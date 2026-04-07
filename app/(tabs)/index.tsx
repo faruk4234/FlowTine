@@ -1,26 +1,23 @@
-import { StyleSheet } from 'react-native';
-
-import { useAppTheme } from '@/providers/app-theme-provider';
-import { ThemedText } from '@/src/components/themed-text';
-import { ThemedView } from '@/src/components/themed-view';
+import { useAppTheme } from '@/src/providers/app-theme-provider';
+import { StyleSheet, Text, View } from 'react-native';
 
 export default function HomeScreen() {
   const { mode, scheme } = useAppTheme();
 
   return (
-    <ThemedView style={styles.container}>
-      <ThemedText type="title">FlowTine</ThemedText>
-      <ThemedText type="subtitle">Template</ThemedText>
-      <ThemedText style={styles.row}>
-        Theme mode: <ThemedText type="defaultSemiBold">{mode}</ThemedText>
-      </ThemedText>
-      <ThemedText style={styles.row}>
-        Effective scheme: <ThemedText type="defaultSemiBold">{scheme}</ThemedText>
-      </ThemedText>
-      <ThemedText style={styles.hint}>
-        Colors come from <ThemedText type="defaultSemiBold">constants/colors.ts</ThemedText>.
-      </ThemedText>
-    </ThemedView>
+      <View style={styles.container}>
+      <Text>FlowTine</Text>
+      <Text>Template</Text>
+      <Text style={styles.row}>
+        Theme mode: <Text>{mode}</Text>
+      </Text>
+      <Text style={styles.row}>
+        Effective scheme: <Text>{scheme}</Text>
+      </Text>
+      <Text style={styles.hint}>
+        Colors come from <Text>constants/colors.ts</Text>.
+      </Text>
+    </View>
   );
 }
 

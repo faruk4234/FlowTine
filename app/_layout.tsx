@@ -4,9 +4,8 @@ import { StatusBar } from 'expo-status-bar';
 import { Provider as JotaiProvider } from 'jotai';
 import 'react-native-reanimated';
 
-import { AppThemeProvider, useAppTheme } from '@/providers/app-theme-provider';
+import { AppThemeProvider, useAppTheme } from '@/src/providers/app-theme-provider';
 import { Colors } from '@/src/state/colors';
-import { appStore } from '@/src/state/store';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -36,11 +35,11 @@ function NavigationThemeProvider({ children }: { children: React.ReactNode }) {
 
 export default function RootLayout() {
   return (
-    <JotaiProvider store={appStore}>
+    <JotaiProvider >
       <AppThemeProvider>
         <NavigationThemeProvider>
           <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)"  options={{ headerShown: false }}  />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
           </Stack>
         </NavigationThemeProvider>
