@@ -6,6 +6,7 @@ import { Colors } from '@/src/state/colors';
 
 const TabsLayout = () => {
   const { scheme } = useAppTheme();
+  const showHomeCopy = false;
 
   return (
     <Tabs
@@ -15,7 +16,10 @@ const TabsLayout = () => {
         tabBarInactiveTintColor: Colors[scheme].tabBarInactive,
       }}>
       <Tabs.Screen name="home" options={{ title: 'Home' }} />
-
+      <Tabs.Screen
+        name="home-copy"
+        options={ showHomeCopy ? { title: 'Home Copy' } : { href: null }}
+      />
     </Tabs>
   );
 }

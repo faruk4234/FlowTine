@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { useAppTheme } from '@/src/providers/app-theme-provider';
 
-const WowScreen = () => {
+export default function HomeCopyScreen() {
   const { mode, scheme, colors } = useAppTheme();
 
   return (
@@ -14,7 +14,7 @@ const WowScreen = () => {
         Theme mode: <Text style={{ color: colors.text }}>{mode}</Text>
       </Text>
       <Text style={[styles.row, { color: colors.mutedText }]}>
-        Effective  wow scheme: <Text style={{ color: colors.text }}>{scheme}</Text>
+        Effective scheme: <Text style={{ color: colors.text }}>{scheme}</Text>
       </Text>
 
       <Text style={[styles.hint, { color: colors.mutedText }]}>
@@ -32,4 +32,3 @@ const styles = StyleSheet.create({
   hint: { marginTop: 14 },
 });
 
-export default WowScreen;
