@@ -4,15 +4,16 @@ import 'react-native-reanimated';
 
 import { AppThemeProvider } from '@/src/providers/app-theme-provider';
 
-export default function RootLayout() {
+const RootLayout = () => {
   return (
     <JotaiProvider>
       <AppThemeProvider>
         <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="tabs" />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: true }} />
+          <Stack.Screen  name='tabs' />
         </Stack>
       </AppThemeProvider>
     </JotaiProvider>
   );
 }
+
+export default RootLayout;

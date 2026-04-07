@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { useAppTheme } from '@/src/providers/app-theme-provider';
 
-export default function HomeScreen() {
+const HomeScreen = () => {
   const { mode, scheme, colors } = useAppTheme();
 
   return (
@@ -32,3 +32,4 @@ const styles = StyleSheet.create({
   hint: { marginTop: 14 },
 });
 
+export default HomeScreen;
