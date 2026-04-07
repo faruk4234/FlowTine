@@ -1,18 +1,19 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAppTheme } from '@/providers/app-theme-provider';
+import { HapticTab } from '@/src/components/haptic-tab';
+import { IconSymbol } from '@/src/components/ui/icon-symbol';
+import { Colors } from '@/src/state/colors';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { scheme } = useAppTheme();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: Colors[scheme].tabBarActive,
+        tabBarInactiveTintColor: Colors[scheme].tabBarInactive,
         headerShown: false,
         tabBarButton: HapticTab,
       }}>
