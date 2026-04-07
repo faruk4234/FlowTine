@@ -8,7 +8,7 @@ import { AppThemeProvider, useAppTheme } from '@/src/providers/app-theme-provide
 import { Colors } from '@/src/state/colors';
 
 export const unstable_settings = {
-  anchor: '(tabs)',
+  anchor: 'tabs',
 };
 
 function NavigationThemeProvider({ children }: { children: React.ReactNode }) {
@@ -39,8 +39,8 @@ export default function RootLayout() {
       <AppThemeProvider>
         <NavigationThemeProvider>
           <Stack>
-            <Stack.Screen name="(tabs)"  options={{ headerShown: false }}  />
-            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+            <Stack.Screen name="tabs/Home2"  options={{ headerShown: false }}  />
+            <Stack.Screen name="tabs/Settings"  options={{ headerShown: false }}  />
           </Stack>
         </NavigationThemeProvider>
       </AppThemeProvider>

@@ -7,7 +7,7 @@ export default function HomeScreen() {
   return (
       <View style={styles.container}>
       <Text>FlowTine</Text>
-      <Text>Template</Text>
+      <Text>Template2112</Text>
       <Text style={styles.row}>
         Theme mode: <Text>{mode}</Text>
       </Text>

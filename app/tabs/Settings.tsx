@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 export default function TabTwoScreen() {
   return (
-    <View><Text>sa</Text></View>
+    <View><Text>s1a</Text></View>
   );
 }
 
