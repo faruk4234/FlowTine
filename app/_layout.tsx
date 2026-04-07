@@ -9,7 +9,7 @@ const RootLayout = () => {
     <JotaiProvider>
       <AppThemeProvider>
         <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen  name='tabs' />
+          <Stack.Screen name="tabs" />
         </Stack>
       </AppThemeProvider>
     </JotaiProvider>

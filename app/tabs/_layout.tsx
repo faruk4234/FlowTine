@@ -6,7 +6,9 @@ import { Colors } from '@/src/state/colors';
 
 const TabsLayout = () => {
   const { scheme } = useAppTheme();
-  const showHomeCopy = false;
+
+  // Put your real condition here (atom, storage, etc.)
+  const showHomeCopy = true;
 
   return (
     <Tabs
@@ -16,12 +18,9 @@ const TabsLayout = () => {
         tabBarInactiveTintColor: Colors[scheme].tabBarInactive,
       }}>
       <Tabs.Screen name="home" options={{ title: 'Home' }} />
-      <Tabs.Screen
-        name="home-copy"
-        options={ showHomeCopy ? { title: 'Home Copy' } : { href: null }}
-      />
+      <Tabs.Screen name="home-copy" options={showHomeCopy ? { title: 'Home2 Copy' } : { href: null }} />
     </Tabs>
   );
-}
+};
 
 export default TabsLayout;
