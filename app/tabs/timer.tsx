@@ -1,74 +1,85 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, StatusBar, SafeAreaView, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useAtom, useAtomValue } from 'jotai';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import {
-  timerSecondsAtom, timerRunningAtom, activeRoutineIdAtom, routinesAtom,
+  timerRunningAtom, activeRoutineIdAtom, routinesAtom, type Movement,
 } from '@/src/state/atoms';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
   bg:         '#0F1115',
   surface:    '#1A1D23',
+  surfaceHigh:'#22262F',
   border:     '#2A2E38',
   text:       '#F1F5F9',
   textMuted:  '#9CA3AF',
   textDim:    '#64748B',
   blue:       '#3B82F6',
-  blueBg:     'rgba(59,130,246,0.15)',
+  orange:     '#F97316',
+  green:      '#10B981',
 };
 
-const RING_SIZE   = 260;
-const RING_STROKE = 8;
-const HALF = (RING_SIZE - RING_STROKE * 2) / 2; // inner radius
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function pad(n: number) { return String(Math.floor(Math.max(0, n))).padStart(2, '0'); }
 
-// ─── Circular progress ring (CSS-like, no SVG dependency) ────────────────────
-// Built with two masked rotated half-circles — works on both iOS and Android.
-type RingProps = { progress: number }; // 0 → 1
+function formatTime(s: number) {
+  if (s >= 3600) {
+    return `${pad(s / 3600)}:${pad((s % 3600) / 60)}:${pad(s % 60)}`;
+  }
+  return `${pad(s / 60)}:${pad(s % 60)}`;
+}
 
-function CircularRing({ progress }: RingProps) {
-  const clamp = Math.min(Math.max(progress, 0), 1);
+/** Sum work durations of movements starting from index `from`. */
+function totalRemainingSeconds(movements: Movement[], fromIndex: number): number {
+  return movements.slice(fromIndex).reduce((acc, m) => {
+    return acc + m.durationMin * 60 + m.durationSec;
+  }, 0);
+}
 
-  // We split the circle into two halves; rotate them based on progress.
-  const leftDeg  = clamp <= 0.5 ? clamp * 360 : 180;
-  const rightDeg = clamp > 0.5 ? (clamp - 0.5) * 360 : 0;
+function movementSeconds(m: Movement): number {
+  return m.durationMin * 60 + m.durationSec;
+}
 
-  const size = RING_SIZE;
-  const half = size / 2;
-  const stroke = RING_STROKE;
+// ─── Circular ring ────────────────────────────────────────────────────────────
+const RING = 260;
+const STROKE = 9;
+
+type RingProps = { progress: number; color?: string };
+
+function CircularRing({ progress, color = C.blue }: RingProps) {
+  const p = Math.min(Math.max(progress, 0), 1);
+  const half = RING / 2;
+  const rightDeg = p > 0.5 ? 180 : p * 360;
+  const leftDeg  = p > 0.5 ? (p - 0.5) * 360 : 0;
 
   return (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-      {/* Background ring */}
-      <View style={[$ring.base, { width: size, height: size, borderRadius: half, borderColor: C.surface }]} />
-
-      {/* Right slice (0–180°) */}
-      <View style={[{ position: 'absolute', width: size, height: size, borderRadius: half, overflow: 'hidden' }]}>
-        <View style={{ position: 'absolute', right: 0, top: 0, width: half, height: size, overflow: 'hidden' }}>
-          <View
-            style={{
-              width: size, height: size, borderRadius: half,
-              borderWidth: stroke, borderColor: C.blue,
-              transform: [{ translateX: -half }, { rotate: `${rightDeg}deg` }, { translateX: half }],
-            }}
-          />
+    <View style={{ width: RING, height: RING, alignItems: 'center', justifyContent: 'center' }}>
+      {/* Track */}
+      <View style={{
+        position: 'absolute', width: RING, height: RING, borderRadius: half,
+        borderWidth: STROKE, borderColor: C.surface,
+      }} />
+      {/* Right half (first 180°) */}
+      <View style={{ position: 'absolute', width: RING, height: RING, borderRadius: half, overflow: 'hidden' }}>
+        <View style={{ position: 'absolute', right: 0, top: 0, width: half, height: RING, overflow: 'hidden' }}>
+          <View style={{
+            width: RING, height: RING, borderRadius: half, borderWidth: STROKE, borderColor: color,
+            transform: [{ translateX: -half }, { rotate: `${rightDeg}deg` }, { translateX: half }],
+          }} />
         </View>
       </View>
-
-      {/* Left slice (180–360°) – only visible when progress > 50 % */}
-      {clamp > 0.5 && (
-        <View style={{ position: 'absolute', width: size, height: size, borderRadius: half, overflow: 'hidden' }}>
-          <View style={{ position: 'absolute', left: 0, top: 0, width: half, height: size, overflow: 'hidden' }}>
-            <View
-              style={{
-                width: size, height: size, borderRadius: half,
-                borderWidth: stroke, borderColor: C.blue,
-                transform: [{ translateX: half }, { rotate: `${leftDeg}deg` }, { translateX: -half }],
-              }}
-            />
+      {/* Left half (next 180°) — only when > 50% */}
+      {p > 0.5 && (
+        <View style={{ position: 'absolute', width: RING, height: RING, borderRadius: half, overflow: 'hidden' }}>
+          <View style={{ position: 'absolute', left: 0, top: 0, width: half, height: RING, overflow: 'hidden' }}>
+            <View style={{
+              width: RING, height: RING, borderRadius: half, borderWidth: STROKE, borderColor: color,
+              transform: [{ translateX: half }, { rotate: `${leftDeg}deg` }, { translateX: -half }],
+            }} />
           </View>
         </View>
       )}
@@ -76,52 +87,85 @@ function CircularRing({ progress }: RingProps) {
   );
 }
 
-const $ring = StyleSheet.create({
-  base: { position: 'absolute', borderWidth: RING_STROKE },
-});
+// ─── Timer screen ─────────────────────────────────────────────────────────────
+type Phase = 'work' | 'rest' | 'done';
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function pad(n: number) {
-  return String(Math.floor(n)).padStart(2, '0');
-}
-
-function formatTime(totalSeconds: number) {
-  if (totalSeconds >= 3600) {
-    const h = Math.floor(totalSeconds / 3600);
-    const m = Math.floor((totalSeconds % 3600) / 60);
-    const s = totalSeconds % 60;
-    return `${pad(h)}:${pad(m)}:${pad(s)}`;
-  }
-  const m = Math.floor(totalSeconds / 60);
-  const s = totalSeconds % 60;
-  return `${pad(m)}:${pad(s)}`;
-}
-
-// ─── Active Timer Screen ──────────────────────────────────────────────────────
 export default function TimerScreen() {
   const router = useRouter();
-  const [seconds,    setSeconds]    = useAtom(timerSecondsAtom);
-  const [isRunning,  setIsRunning]  = useAtom(timerRunningAtom);
-  const [activeId,   setActiveId]   = useAtom(activeRoutineIdAtom);
-  const routines = useAtomValue(routinesAtom);
+  // Get routine ID from URL params for reliability
+  const { id: paramId }   = useLocalSearchParams<{ id: string }>();
+  const [isRunning, setIsRunning] = useAtom(timerRunningAtom);
+  const setActiveId       = useSetAtom(activeRoutineIdAtom);
+  const activeId          = useAtomValue(activeRoutineIdAtom);
+  const routines          = useAtomValue(routinesAtom);
 
-  const safeRoutines = Array.isArray(routines) ? routines : [];
-  const activeRoutine = safeRoutines.find((r) => r.id === activeId) ?? safeRoutines[0];
-  const totalSeconds  = (activeRoutine?.durationMin ?? 1) * 60;
-  const progress      = totalSeconds > 0 ? (totalSeconds - seconds) / totalSeconds : 0;
+  const safeRoutines      = Array.isArray(routines) ? routines : [];
+  // Prefer URL param ID over atom (avoids hydration race)
+  const routineId         = paramId ?? activeId;
+  const routine           = safeRoutines.find((r) => r.id === routineId) ?? safeRoutines[0];
+  const movements: Movement[] = Array.isArray(routine?.movements) ? routine!.movements : [];
 
-  // Find the "next up" routine (first non-active one)
-  const nextRoutine = safeRoutines.find((r) => r.id !== activeId);
+  // ── per-movement / per-phase state ──
+  const [movIdx,     setMovIdx]     = useState(0);
+  const [phase,      setPhase]      = useState<Phase>('work');
+  const [seconds,    setSeconds]    = useState(() => movementSeconds(movements[0] ?? { durationMin: 0, durationSec: 30, id: '', name: '', description: '', restSec: 0 }));
 
-  // Countdown tick
+  const currentMov  = movements[movIdx];
+  const nextMov     = movements[movIdx + 1] ?? null;
+
+  // Total remaining work time (not counting current phase — just info label)
+  const totalRemaining = totalRemainingSeconds(movements, movIdx);
+
+  // Phase duration for the ring to compute progress correctly
+  const phaseDuration = phase === 'work'
+    ? movementSeconds(currentMov ?? { durationMin: 0, durationSec: 30, id: '', name: '', description: '', restSec: 0 })
+    : (currentMov?.restSec ?? 30);
+  const progress = phaseDuration > 0 ? (phaseDuration - seconds) / phaseDuration : 0;
+
+  // Ring color: blue for work, orange for rest
+  const ringColor = phase === 'rest' ? C.orange : C.blue;
+
+  // ── advance logic ──
+  const advance = useCallback(() => {
+    if (phase === 'work') {
+      const restSec = currentMov?.restSec ?? 0;
+      if (restSec > 0) {
+        setPhase('rest');
+        setSeconds(restSec);
+      } else {
+        // No rest — go straight to next movement
+        const nextIdx = movIdx + 1;
+        if (nextIdx < movements.length) {
+          setMovIdx(nextIdx);
+          setPhase('work');
+          setSeconds(movementSeconds(movements[nextIdx]));
+        } else {
+          setPhase('done');
+          setIsRunning(false);
+        }
+      }
+    } else {
+      // rest ended — next movement
+      const nextIdx = movIdx + 1;
+      if (nextIdx < movements.length) {
+        setMovIdx(nextIdx);
+        setPhase('work');
+        setSeconds(movementSeconds(movements[nextIdx]));
+      } else {
+        setPhase('done');
+        setIsRunning(false);
+      }
+    }
+  }, [phase, movIdx, movements, currentMov, setIsRunning]);
+
+  // ── countdown tick ──
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(() => {
-    if (isRunning) {
+    if (isRunning && phase !== 'done') {
       intervalRef.current = setInterval(() => {
         setSeconds((s) => {
           if (s <= 1) {
             clearInterval(intervalRef.current!);
-            setIsRunning(false);
             return 0;
           }
           return s - 1;
@@ -131,27 +175,75 @@ export default function TimerScreen() {
       if (intervalRef.current) clearInterval(intervalRef.current);
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [isRunning, setSeconds, setIsRunning]);
+  }, [isRunning, phase]);
 
-  function handlePauseResume() {
-    setIsRunning((r) => !r);
-  }
+  // When seconds hit 0 auto-advance
+  useEffect(() => {
+    if (seconds === 0 && isRunning) {
+      advance();
+    }
+  }, [seconds, isRunning, advance]);
 
-  function handleReset() {
+  // Controls
+  function handlePauseResume() { setIsRunning((r) => !r); }
+
+  function handleBack() {
+    if (phase === 'rest') {
+      // Jump back to work phase of current movement
+      setPhase('work');
+      setSeconds(movementSeconds(currentMov));
+    } else if (movIdx > 0) {
+      const prevIdx = movIdx - 1;
+      setMovIdx(prevIdx);
+      setPhase('work');
+      setSeconds(movementSeconds(movements[prevIdx]));
+    }
     setIsRunning(false);
-    setSeconds(totalSeconds);
   }
 
   function handleSkip() {
     setIsRunning(false);
-    setSeconds(0);
+    advance();
   }
 
   function handleEnd() {
+    if (intervalRef.current) clearInterval(intervalRef.current);
     setIsRunning(false);
     setActiveId(null);
-    setSeconds(0);
     router.back();
+  }
+
+  // ── Done screen ──
+  if (phase === 'done') {
+    return (
+      <View style={ts.root}>
+        <StatusBar barStyle="light-content" backgroundColor={C.bg} />
+        <SafeAreaView style={ts.center}>
+          <View style={ts.doneIconWrap}>
+            <Ionicons name="checkmark" size={48} color={C.green} />
+          </View>
+          <Text style={ts.doneTitle}>Routine Complete!</Text>
+          <Text style={ts.doneSub}>{routine?.title}</Text>
+          <TouchableOpacity style={ts.doneBtn} onPress={handleEnd}>
+            <Text style={ts.doneBtnText}>Back to Routines</Text>
+          </TouchableOpacity>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
+  // If no movements, early exit
+  if (!currentMov) {
+    return (
+      <View style={ts.root}>
+        <SafeAreaView style={ts.center}>
+          <Text style={{ color: C.textMuted, fontSize: 16 }}>No movements added.</Text>
+          <TouchableOpacity style={[ts.doneBtn, { marginTop: 24 }]} onPress={handleEnd}>
+            <Text style={ts.doneBtnText}>Go Back</Text>
+          </TouchableOpacity>
+        </SafeAreaView>
+      </View>
+    );
   }
 
   return (
@@ -160,28 +252,50 @@ export default function TimerScreen() {
       <SafeAreaView style={{ flex: 1 }}>
         <View style={ts.container}>
 
-          {/* Timer ring + counter */}
+          {/* Top: routine name + movement progress */}
+          <View style={ts.topBar}>
+            <Text style={ts.routineLabel} numberOfLines={1}>{routine?.title}</Text>
+            <Text style={ts.progressLabel}>{movIdx + 1} / {movements.length}</Text>
+          </View>
+
+          {/* Phase badge */}
+          <View style={[ts.phaseBadge, { backgroundColor: phase === 'rest' ? `${C.orange}20` : `${C.blue}20` }]}>
+            <Text style={[ts.phaseText, { color: phase === 'rest' ? C.orange : C.blue }]}>
+              {phase === 'rest' ? '⏳ REST' : '▶ WORK'}
+            </Text>
+          </View>
+
+          {/* Current movement name */}
+          <Text style={ts.movementName} numberOfLines={2}>{currentMov.name}</Text>
+
+          {/* Ring + timer */}
           <View style={ts.ringSection}>
-            <CircularRing progress={progress} />
-            {/* Overlaid content */}
+            <CircularRing progress={progress} color={ringColor} />
             <View style={ts.ringOverlay}>
               <Text style={ts.timerText}>{formatTime(seconds)}</Text>
-              <Text style={ts.timerLabel}>SECONDS REMAINING</Text>
+              <Text style={ts.timerSub}>
+                {phase === 'rest' ? 'REST' : 'REMAINING'}
+              </Text>
             </View>
           </View>
 
-          {/* Routine info */}
-          {activeRoutine && (
-            <Text style={ts.routineName}>{activeRoutine.title}</Text>
-          )}
+          {/* Total remaining time info */}
+          <Text style={ts.totalLabel}>
+            Total remaining: {formatTime(totalRemaining)}
+          </Text>
 
-          {/* Controls: reset · play/pause · skip */}
+          {/* Controls: back · pause/play · skip */}
           <View style={ts.controls}>
-            <TouchableOpacity style={ts.ctrlBtnSecondary} onPress={handleReset} activeOpacity={0.7}>
-              <Ionicons name="refresh" size={24} color={C.text} />
+            <TouchableOpacity
+              style={[ts.ctrlSecondary, movIdx === 0 && phase === 'work' && ts.ctrlDisabled]}
+              onPress={handleBack}
+              activeOpacity={0.7}
+              disabled={movIdx === 0 && phase === 'work'}
+            >
+              <Ionicons name="play-skip-back" size={22} color={movIdx === 0 && phase === 'work' ? C.textDim : C.text} />
             </TouchableOpacity>
 
-            <TouchableOpacity style={ts.ctrlBtnPrimary} onPress={handlePauseResume} activeOpacity={0.85}>
+            <TouchableOpacity style={ts.ctrlPrimary} onPress={handlePauseResume} activeOpacity={0.85}>
               <Ionicons
                 name={isRunning ? 'pause' : 'play'}
                 size={32}
@@ -190,23 +304,23 @@ export default function TimerScreen() {
               />
             </TouchableOpacity>
 
-            <TouchableOpacity style={ts.ctrlBtnSecondary} onPress={handleSkip} activeOpacity={0.7}>
-              <Ionicons name="play-skip-forward" size={24} color={C.text} />
+            <TouchableOpacity style={ts.ctrlSecondary} onPress={handleSkip} activeOpacity={0.7}>
+              <Ionicons name="play-skip-forward" size={22} color={C.text} />
             </TouchableOpacity>
           </View>
 
           {/* Up Next card */}
-          {nextRoutine && (
+          {nextMov && (
             <View style={ts.upNextCard}>
-              <View style={ts.upNextLeft}>
+              <View style={{ flex: 1 }}>
                 <Text style={ts.upNextLabel}>UP NEXT</Text>
-                <Text style={ts.upNextTitle}>{nextRoutine.title}</Text>
+                <Text style={ts.upNextTitle} numberOfLines={1}>{nextMov.name}</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={C.textMuted} />
+              <Ionicons name="chevron-forward" size={18} color={C.textMuted} />
             </View>
           )}
 
-          {/* End routine */}
+          {/* End */}
           <TouchableOpacity onPress={handleEnd} style={ts.endBtn}>
             <Text style={ts.endBtnText}>END ROUTINE</Text>
           </TouchableOpacity>
@@ -219,29 +333,50 @@ export default function TimerScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const ts = StyleSheet.create({
-  root:       { flex: 1, backgroundColor: C.bg },
-  container:  { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, paddingBottom: Platform.OS === 'android' ? 24 : 0 },
+  root:      { flex: 1, backgroundColor: C.bg },
+  container: { flex: 1, alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingTop: 8, paddingBottom: Platform.OS === 'android' ? 16 : 8 },
+  center:    { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
+
+  // Top bar
+  topBar:         { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' },
+  routineLabel:   { fontSize: 14, fontWeight: '600', color: C.textMuted, flex: 1 },
+  progressLabel:  { fontSize: 14, fontWeight: '700', color: C.textDim },
+
+  // Phase
+  phaseBadge: { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 999, marginTop: 8 },
+  phaseText:  { fontSize: 11, fontWeight: '800', letterSpacing: 1.5 },
+
+  // Movement name
+  movementName: { fontSize: 22, fontWeight: '800', color: C.text, textAlign: 'center', marginTop: 6, lineHeight: 28 },
 
   // Ring
-  ringSection:  { alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
+  ringSection:  { alignItems: 'center', justifyContent: 'center' },
   ringOverlay:  { position: 'absolute', alignItems: 'center' },
-  timerText:    { fontSize: 56, fontWeight: '800', color: C.text, letterSpacing: -2 },
-  timerLabel:   { fontSize: 10, fontWeight: '700', color: C.textDim, letterSpacing: 2, marginTop: 4 },
+  timerText:    { fontSize: 52, fontWeight: '800', color: C.text, letterSpacing: -2 },
+  timerSub:     { fontSize: 10, fontWeight: '700', color: C.textDim, letterSpacing: 2, marginTop: 2 },
 
-  routineName: { fontSize: 20, fontWeight: '700', color: C.text, marginBottom: 40, textAlign: 'center' },
+  // Total
+  totalLabel: { fontSize: 13, color: C.textMuted, fontWeight: '500' },
 
   // Controls
-  controls:       { flexDirection: 'row', alignItems: 'center', gap: 28, marginBottom: 40 },
-  ctrlBtnPrimary: { width: 72, height: 72, borderRadius: 36, backgroundColor: C.blue, justifyContent: 'center', alignItems: 'center', shadowColor: C.blue, shadowOpacity: 0.5, shadowRadius: 16, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
-  ctrlBtnSecondary:{ width: 56, height: 56, borderRadius: 28, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, justifyContent: 'center', alignItems: 'center' },
+  controls:     { flexDirection: 'row', alignItems: 'center', gap: 24 },
+  ctrlPrimary:  { width: 72, height: 72, borderRadius: 36, backgroundColor: C.blue, justifyContent: 'center', alignItems: 'center', shadowColor: C.blue, shadowOpacity: 0.45, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
+  ctrlSecondary:{ width: 54, height: 54, borderRadius: 27, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, justifyContent: 'center', alignItems: 'center' },
+  ctrlDisabled: { opacity: 0.3 },
 
-  // Up Next
-  upNextCard:   { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: C.surface, borderRadius: 20, paddingVertical: 18, paddingHorizontal: 20, borderWidth: 1, borderColor: C.border, marginBottom: 32 },
-  upNextLeft:   { gap: 4 },
-  upNextLabel:  { fontSize: 9, fontWeight: '700', color: C.textDim, letterSpacing: 1.4 },
-  upNextTitle:  { fontSize: 16, fontWeight: '600', color: C.text },
+  // Up next
+  upNextCard:  { width: '100%', flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface, borderRadius: 18, paddingVertical: 14, paddingHorizontal: 18, borderWidth: 1, borderColor: C.border },
+  upNextLabel: { fontSize: 9, fontWeight: '700', color: C.textDim, letterSpacing: 1.4, marginBottom: 3 },
+  upNextTitle: { fontSize: 15, fontWeight: '600', color: C.text },
 
   // End
-  endBtn:     { paddingVertical: 8, paddingHorizontal: 24 },
-  endBtnText: { fontSize: 13, fontWeight: '700', color: '#EF4444', letterSpacing: 1.2 },
+  endBtn:     { paddingVertical: 6 },
+  endBtnText: { fontSize: 12, fontWeight: '700', color: '#EF4444', letterSpacing: 1.2 },
+
+  // Done screen
+  doneIconWrap: { width: 96, height: 96, borderRadius: 48, backgroundColor: `${C.green}20`, justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
+  doneTitle:    { fontSize: 28, fontWeight: '800', color: C.text, marginBottom: 8 },
+  doneSub:      { fontSize: 16, color: C.textMuted, marginBottom: 48 },
+  doneBtn:      { backgroundColor: C.blue, borderRadius: 16, paddingVertical: 18, paddingHorizontal: 48 },
+  doneBtnText:  { fontSize: 16, fontWeight: '700', color: '#FFF' },
 });

@@ -4,10 +4,10 @@ import {
   Modal, TextInput, StyleSheet, StatusBar, Alert, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import {
-  routinesAtom, selectedRoutineIdAtom, activeRoutineIdAtom,
+  routinesAtom, activeRoutineIdAtom,
   timerSecondsAtom, timerRunningAtom,
   isPremiumAtom, CATEGORY_ICONS, type Routine, type Movement,
 } from '@/src/state/atoms';
@@ -105,7 +105,12 @@ function MovementEditorModal({ visible, movement, onClose, onSave, onDelete, isP
           <Text style={e.headerRight}>EDITOR</Text>
         </View>
 
-        <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 60 }}>
+        {/* Scrollable fields */}
+        <ScrollView
+          contentContainerStyle={{ padding: 24, paddingBottom: 32 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <Text style={e.editorTitle}>Task Editor</Text>
           <View style={e.titleUnderline} />
 
@@ -180,12 +185,7 @@ function MovementEditorModal({ visible, movement, onClose, onSave, onDelete, isP
             <Ionicons name={isPremium ? 'checkmark-circle' : 'lock-closed'} size={20} color={isPremium ? C.blue : C.textDim} />
           </View>
 
-          {/* Done */}
-          <TouchableOpacity style={e.doneBtn} onPress={handleSave}>
-            <Text style={e.doneBtnText}>Done</Text>
-          </TouchableOpacity>
-
-          {/* Delete (edit mode only) */}
+          {/* Delete (edit mode only) — inside scroll */}
           {isEdit && (
             <TouchableOpacity style={e.deleteBtn} onPress={handleDelete}>
               <Ionicons name="trash-outline" size={18} color={C.red} />
@@ -193,6 +193,14 @@ function MovementEditorModal({ visible, movement, onClose, onSave, onDelete, isP
             </TouchableOpacity>
           )}
         </ScrollView>
+
+        {/* Done — always visible at the bottom, never scrolled away */}
+        <View style={e.bottomBar}>
+          <TouchableOpacity style={e.doneBtn} onPress={handleSave}>
+            <Text style={e.doneBtnText}>Done</Text>
+          </TouchableOpacity>
+        </View>
+
       </View>
     </Modal>
   );
@@ -223,12 +231,13 @@ function MovementRow({ movement, onPress }: MovRowProps) {
 // ─── Routine Detail Screen ────────────────────────────────────────────────────
 export default function RoutineScreen() {
   const router = useRouter();
-  const selectedId = useAtomValue(selectedRoutineIdAtom);
+  // Read the routine ID from URL params — avoids async atomWithStorage race condition
+  const { id: selectedId } = useLocalSearchParams<{ id: string }>();
   const [routines, setRoutines] = useAtom(routinesAtom);
-  const setActiveRoutineId      = useSetAtom(activeRoutineIdAtom);
-  const setTimerSeconds         = useSetAtom(timerSecondsAtom);
-  const setTimerRunning         = useSetAtom(timerRunningAtom);
-  const isPremium               = useAtomValue(isPremiumAtom);
+  const setActiveRoutineId = useSetAtom(activeRoutineIdAtom);
+  const setTimerSeconds    = useSetAtom(timerSecondsAtom);
+  const setTimerRunning    = useSetAtom(timerRunningAtom);
+  const isPremium          = useAtomValue(isPremiumAtom);
 
   const safeRoutines: Routine[] = Array.isArray(routines) ? routines : [];
   const routine = safeRoutines.find((r) => r.id === selectedId);
@@ -254,17 +263,22 @@ export default function RoutineScreen() {
     });
   }
 
+  function computeDuration(movs: Movement[]): number {
+    const totalSec = movs.reduce((acc, m) => acc + m.durationMin * 60 + m.durationSec, 0);
+    return Math.max(1, Math.ceil(totalSec / 60));
+  }
+
   function saveMovement(m: Movement) {
-    const idx = movements.findIndex((mv) => mv.id === m.id);
+    const idx  = movements.findIndex((mv) => mv.id === m.id);
     const next = idx >= 0
       ? movements.map((mv) => mv.id === m.id ? m : mv)
       : [...movements, m];
-    updateRoutine({ movements: next, movementCount: next.length });
+    updateRoutine({ movements: next, movementCount: next.length, durationMin: computeDuration(next) });
   }
 
   function deleteMovement(id: string) {
     const next = movements.filter((mv) => mv.id !== id);
-    updateRoutine({ movements: next, movementCount: next.length });
+    updateRoutine({ movements: next, movementCount: next.length, durationMin: computeDuration(next) });
   }
 
   function openAdd() {
@@ -282,7 +296,7 @@ export default function RoutineScreen() {
     setTimerSeconds(seconds);
     setTimerRunning(true);
     setActiveRoutineId(routine.id);
-    router.push('/tabs/timer');
+    router.push({ pathname: '/tabs/timer', params: { id: routine.id } });
   }
 
   function handleDeleteRoutine() {
@@ -431,8 +445,9 @@ const e = StyleSheet.create({
   hapticTitle:{ fontSize: 15, fontWeight: '600' },
   hapticSub: { fontSize: 12, color: C.textDim },
 
-  doneBtn:     { backgroundColor: C.blue, borderRadius: 16, paddingVertical: 18, alignItems: 'center', marginBottom: 16 },
+  doneBtn:     { backgroundColor: C.blue, borderRadius: 16, paddingVertical: 18, alignItems: 'center' },
   doneBtnText: { fontSize: 16, fontWeight: '700', color: '#FFF' },
-  deleteBtn:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, borderRadius: 14, backgroundColor: C.redDim, borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' },
+  bottomBar:   { paddingHorizontal: 24, paddingBottom: Platform.OS === 'ios' ? 34 : 20, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border, backgroundColor: C.bg },
+  deleteBtn:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, borderRadius: 14, backgroundColor: C.redDim, borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)', marginTop: 12 },
   deleteBtnText:{ color: C.red, fontSize: 15, fontWeight: '600' },
 });

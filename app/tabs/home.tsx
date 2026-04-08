@@ -107,19 +107,15 @@ function RoutineFormModal({ visible, formMode, onClose, onSave, onDelete }: Form
   const isEdit   = formMode.mode === 'edit';
   const existing = isEdit ? formMode.routine : null;
 
-  const [title,         setTitle]         = useState(existing?.title          ?? '');
-  const [subtitle,      setSubtitle]      = useState(existing?.subtitle       ?? '');
-  const [durationMin,   setDurationMin]   = useState(String(existing?.durationMin   ?? 15));
-  const [movementCount, setMovementCount] = useState(String(existing?.movementCount ?? 6));
-  const [selectedIcon,  setSelectedIcon]  = useState(existing?.categoryIconIndex   ?? 0);
+  const [title,        setTitle]        = useState(existing?.title             ?? '');
+  const [subtitle,     setSubtitle]     = useState(existing?.subtitle          ?? '');
+  const [selectedIcon, setSelectedIcon] = useState(existing?.categoryIconIndex ?? 0);
 
   // Sync fields when switching between edit targets
   React.useEffect(() => {
     if (visible) {
       setTitle(existing?.title ?? '');
       setSubtitle(existing?.subtitle ?? '');
-      setDurationMin(String(existing?.durationMin ?? 15));
-      setMovementCount(String(existing?.movementCount ?? 6));
       setSelectedIcon(existing?.categoryIconIndex ?? 0);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -127,15 +123,19 @@ function RoutineFormModal({ visible, formMode, onClose, onSave, onDelete }: Form
 
   function handleSave() {
     if (!title.trim()) return;
+    const movements = existing?.movements ?? [];
+    // Duration and movement count are derived from actual movements
+    const totalSec  = movements.reduce((acc, m) => acc + m.durationMin * 60 + m.durationSec, 0);
     const routine: Routine = {
-      id:                 existing?.id ?? generateId(),
-      title:              title.trim(),
-      subtitle:           subtitle.trim() || CATEGORY_ICONS[selectedIcon].label,
-      durationMin:        parseInt(durationMin)   || 15,
-      movementCount:      parseInt(movementCount) || 6,
-      categoryIconIndex:  selectedIcon,
-      isActive:           existing?.isActive ?? false,
-      createdAt:          existing?.createdAt ?? Date.now(),
+      id:                existing?.id ?? generateId(),
+      title:             title.trim(),
+      subtitle:          subtitle.trim() || CATEGORY_ICONS[selectedIcon].label,
+      durationMin:       Math.max(1, Math.ceil(totalSec / 60)),
+      movementCount:     movements.length,
+      categoryIconIndex: selectedIcon,
+      isActive:          existing?.isActive ?? false,
+      createdAt:         existing?.createdAt ?? Date.now(),
+      movements,
     };
     onSave(routine);
     onClose();
@@ -170,22 +170,15 @@ function RoutineFormModal({ visible, formMode, onClose, onSave, onDelete }: Form
             placeholderTextColor={C.textDim} value={title} onChangeText={setTitle} />
 
           <Text style={[s.fieldLabel, { marginTop: 20 }]}>DESCRIPTION</Text>
-          <TextInput style={s.input} placeholder="e.g. Vinyasa Flow focus"
-            placeholderTextColor={C.textDim} value={subtitle} onChangeText={setSubtitle} />
-
-          <View style={s.rowInputs}>
-            <View style={{ flex: 1 }}>
-              <Text style={s.fieldLabel}>DURATION (MIN)</Text>
-              <TextInput style={s.input} keyboardType="number-pad"
-                value={durationMin} onChangeText={setDurationMin} placeholderTextColor={C.textDim} />
-            </View>
-            <View style={{ width: 16 }} />
-            <View style={{ flex: 1 }}>
-              <Text style={s.fieldLabel}>MOVEMENTS</Text>
-              <TextInput style={s.input} keyboardType="number-pad"
-                value={movementCount} onChangeText={setMovementCount} placeholderTextColor={C.textDim} />
-            </View>
-          </View>
+          <TextInput
+            style={[s.input, { height: 120, textAlignVertical: 'top', paddingTop: 14 }]}
+            placeholder="What is this routine about?"
+            placeholderTextColor={C.textDim}
+            value={subtitle}
+            onChangeText={setSubtitle}
+            multiline
+            numberOfLines={4}
+          />
 
           <Text style={[s.fieldLabel, { marginTop: 24 }]}>CATEGORY</Text>
           <View style={s.iconGrid}>
@@ -271,8 +264,8 @@ export default function HomeScreen() {
   }
 
   function handleOpen(routine: Routine) {
-    setSelectedRoutineId(routine.id);
-    router.push('/tabs/routine');
+    // Pass the ID as a URL param — avoids async hydration race with atomWithStorage
+    router.push({ pathname: '/tabs/routine', params: { id: routine.id } });
   }
 
   function handlePlay(routine: Routine) {
