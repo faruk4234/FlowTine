@@ -14,17 +14,19 @@ import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import React, { useState } from 'react';
 import {
   Alert,
-  Modal,
   Platform,
   SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+
+import MovementEditorModal from '@/src/components/MovementEditorModal';
+import MovementRow from '@/src/components/MovementRow';
+import RoutineFormModal, { type FormMode } from '@/src/components/RoutineFormModal';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -41,8 +43,6 @@ const C = {
   redDim: 'rgba(239,68,68,0.1)',
 };
 
-import MovementEditorModal from '@/src/components/MovementEditorModal';
-import MovementRow from '@/src/components/MovementRow';
 
 
 
@@ -50,7 +50,10 @@ import MovementRow from '@/src/components/MovementRow';
 export default function RoutineScreen() {
   const router = useRouter();
   // Read the routine ID from URL params — avoids async atomWithStorage race condition
-  const { id: selectedId } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id: string }>();
+  // Persist the ID so Expo Router parameter shedding doesn't break the screen on updates
+  const [selectedId] = useState(params.id);
+
   const [routines, setRoutines] = useAtom(routinesAtom);
   const setActiveRoutineId = useSetAtom(activeRoutineIdAtom);
   const setTimerSeconds = useSetAtom(timerSecondsAtom);
@@ -62,6 +65,9 @@ export default function RoutineScreen() {
 
   const [editorVisible, setEditorVisible] = useState(false);
   const [editingMovement, setEditingMovement] = useState<Movement | null>(null);
+
+  const [routineFormVisible, setRoutineFormVisible] = useState(false);
+  const [routineFormMode, setRoutineFormMode] = useState<FormMode>({ mode: 'create' });
 
   if (!routine) {
     return (
@@ -109,16 +115,30 @@ export default function RoutineScreen() {
     setEditorVisible(true);
   }
 
+  function openEditRoutine() {
+    setRoutineFormMode({ mode: 'edit', routine });
+    setRoutineFormVisible(true);
+  }
+
+  function handleSaveRoutine(updatedRoutine: Routine) {
+    // Only patch the details; movements remain what they are in routine.tsx state
+    updateRoutine({
+      title: updatedRoutine.title,
+      subtitle: updatedRoutine.subtitle,
+      categoryIconIndex: updatedRoutine.categoryIconIndex
+    });
+  }
+
   function handleStartRoutine() {
-    const seconds = routine.durationMin * 60;
+    const seconds = routine?.durationMin || 1 * 60;
     setTimerSeconds(seconds);
     setTimerRunning(true);
-    setActiveRoutineId(routine.id);
-    router.push({ pathname: '/tabs/timer', params: { id: routine.id } });
+    routine?.id && setActiveRoutineId(routine?.id);
+    router.push({ pathname: '/tabs/timer', params: { id: routine?.id } });
   }
 
   function handleDeleteRoutine() {
-    Alert.alert('Delete Routine', `Delete "${routine.title}"?`, [
+    Alert.alert('Delete Routine', `Delete "${routine?.title}"?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete', style: 'destructive', onPress: () => {
@@ -152,7 +172,7 @@ export default function RoutineScreen() {
               <Ionicons name={cat.name as any} size={22} color={cat.color} />
             </View>
             <Text style={r.routineTitle}>{routine.title}</Text>
-            <TouchableOpacity style={{ marginLeft: 8 }}>
+            <TouchableOpacity style={{ marginLeft: 8 }} onPress={openEditRoutine} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="pencil" size={18} color={C.textDim} />
             </TouchableOpacity>
           </View>
@@ -193,6 +213,14 @@ export default function RoutineScreen() {
         onClose={() => setEditorVisible(false)}
         onSave={saveMovement}
         onDelete={deleteMovement}
+      />
+
+      <RoutineFormModal
+        visible={routineFormVisible}
+        formMode={routineFormMode}
+        onClose={() => setRoutineFormVisible(false)}
+        onSave={handleSaveRoutine}
+        onDelete={() => { }} // Not rendering delete here since it's already in the action bar, or we can reuse handleDeleteRoutine
       />
     </View>
   );
