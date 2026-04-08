@@ -4,7 +4,9 @@ export type ThemeMode = 'system' | AppColorScheme;
 const palette = {
   white: '#FFFFFF',
   black: '#000000',
+  transparent: 'transparent',
 
+  // Neutrals / Grayscale
   gray50: '#F8FAFC',
   gray100: '#F1F5F9',
   gray200: '#E2E8F0',
@@ -15,44 +17,52 @@ const palette = {
   gray700: '#334155',
   gray800: '#1F2937',
   gray900: '#0F172A',
+  
+  // Specific UI Colors based on extraction
+  darkBg: '#121212', // App background dark mode
+  darkSurface: '#1C1C1E', // Card/Surface dark mode
+  darkSurfaceElevated: '#2A2A2D',
 
-  blue500: '#0A7EA4',
-  blue600: '#086A8A',
-  teal500: '#22C55E',
-  red500: '#EF4444',
-  amber500: '#F59E0B',
+  primaryElectric: '#3B82F6', // Vibrant blue action color
+  primaryElectricMuted: '#1E40AF',
+  accentRed: '#F87171',
 } as const;
 
 export const Colors = {
   light: {
-    background: palette.white,
+    background: palette.gray50,
+    surface: palette.white,
+    surfaceElevated: palette.gray100,
+
     text: palette.gray900,
     mutedText: palette.gray600,
 
-    primary: palette.blue500,
-    primaryPressed: palette.blue600,
+    primary: palette.primaryElectric,
+    primaryPressed: palette.primaryElectricMuted,
 
     border: palette.gray200,
-    card: palette.gray50,
+    accent: palette.accentRed,
 
-    tabBarActive: palette.blue500,
+    tabBarActive: palette.primaryElectric,
     tabBarInactive: palette.gray500,
   },
   dark: {
-    background: '#0B0F14',
-    text: palette.gray100,
-    mutedText: palette.gray400,
+    background: palette.darkBg,
+    surface: palette.darkSurface,
+    surfaceElevated: palette.darkSurfaceElevated,
 
-    primary: palette.white,
-    primaryPressed: palette.gray200,
+    text: '#F2F4F7', 
+    mutedText: '#A1A1AA',
 
-    border: '#1B2530',
-    card: '#0F151D',
+    primary: palette.primaryElectric,
+    primaryPressed: palette.primaryElectricMuted,
 
-    tabBarActive: palette.white,
-    tabBarInactive: palette.gray400,
+    border: '#27272A', // subtle border for dark mode
+    accent: palette.accentRed,
+
+    tabBarActive: palette.primaryElectric,
+    tabBarInactive: '#A1A1AA',
   },
 } as const satisfies Record<AppColorScheme, Record<string, string>>;
 
 export type AppColors = (typeof Colors)[AppColorScheme];
-

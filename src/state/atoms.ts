@@ -14,10 +14,28 @@ export const onboardingCompletedAtom = atomWithStorage<boolean>(
   false,
   persistentStorage
 );
+
+/**
+ * Future Proofing: User Flow & Paywall State
+ */
+export const isPremiumAtom = atomWithStorage<boolean>(
+  'paywall.isPremium',
+  false,
+  persistentStorage
+);
+
+export const hasSeenPaywallAtom = atomWithStorage<boolean>(
+  'paywall.hasSeenPaywall',
+  false,
+  persistentStorage
+);
+
+/**
+ * Theme Preference
+ */
 export const themeModeAtom = atomWithStorage<ThemeMode>('theme.mode', 'system', createJSONStorage<ThemeMode>(() => AsyncStorage));
 
 /**
  * Example: transient atoms.
  */
 export const sessionAtom = atom<{ startedAt: number } | null>(null);
-
