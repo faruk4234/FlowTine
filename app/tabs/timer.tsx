@@ -127,25 +127,28 @@ export default function TimerScreen() {
 
   // ── advance logic ──
   const advance = useCallback(() => {
+    const isLastMovement = movIdx >= movements.length - 1;
+
     if (phase === 'work') {
+      // Last movement: skip rest entirely → done
+      if (isLastMovement) {
+        setPhase('done');
+        setIsRunning(false);
+        return;
+      }
+      // Not last: enter rest if configured, otherwise go straight to next
       const restSec = currentMov?.restSec ?? 0;
       if (restSec > 0) {
         setPhase('rest');
         setSeconds(restSec);
       } else {
-        // No rest — go straight to next movement
         const nextIdx = movIdx + 1;
-        if (nextIdx < movements.length) {
-          setMovIdx(nextIdx);
-          setPhase('work');
-          setSeconds(movementSeconds(movements[nextIdx]));
-        } else {
-          setPhase('done');
-          setIsRunning(false);
-        }
+        setMovIdx(nextIdx);
+        setPhase('work');
+        setSeconds(movementSeconds(movements[nextIdx]));
       }
     } else {
-      // rest ended — next movement
+      // rest ended → next movement (rest only happens between movements, never after last)
       const nextIdx = movIdx + 1;
       if (nextIdx < movements.length) {
         setMovIdx(nextIdx);
