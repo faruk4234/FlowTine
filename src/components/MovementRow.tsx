@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { type Movement } from '@/src/state/atoms';
+import { BorderRadius, Spacing, Typography } from '@/src/state/theme';
 
 const C = {
   surface: '#1A1D23',
@@ -32,13 +33,13 @@ type MovRowProps = {
 export default function MovementRow({ movement, onPress, onDelete }: MovRowProps) {
   return (
     <TouchableOpacity activeOpacity={0.75} style={r.movRow} onPress={onPress}>
-      <Ionicons name="reorder-three" size={22} color={C.textDim} style={{ marginRight: 12 }} />
+      <Ionicons name="reorder-three" size={22} color={C.textDim} style={{ marginRight: Spacing.sm + 4 }} />
       <View style={{ flex: 1 }}>
         <Text style={r.movName}>{movement.name}</Text>
         <View style={r.movMeta}>
           <Ionicons name="time" size={13} color={C.blue} />
           <Text style={r.movMetaText}>{formatDuration(movement.durationMin, movement.durationSec)}</Text>
-          <Ionicons name="timer-outline" size={13} color={C.textDim} style={{ marginLeft: 8 }} />
+          <Ionicons name="timer-outline" size={13} color={C.textDim} style={{ marginLeft: Spacing.sm }} />
           <Text style={[r.movMetaText, { color: C.textDim }]}>{formatRest(movement.restSec)}</Text>
         </View>
       </View>
@@ -50,8 +51,8 @@ export default function MovementRow({ movement, onPress, onDelete }: MovRowProps
 }
 
 const r = StyleSheet.create({
-  movRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface, borderRadius: 18, padding: 18, marginBottom: 10, borderWidth: 1, borderColor: C.border },
-  movName: { fontSize: 16, fontWeight: '600', color: C.text, marginBottom: 6 },
+  movRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface, borderRadius: BorderRadius.lg, padding: Spacing.md, marginBottom: Spacing.sm, borderWidth: 1, borderColor: C.border },
+  movName: { ...Typography.bodyMedium, fontWeight: '600', color: C.text, marginBottom: Spacing.xs },
   movMeta: { flexDirection: 'row', alignItems: 'center' },
-  movMetaText: { fontSize: 13, color: C.blue, marginLeft: 4 },
+  movMetaText: { ...Typography.caption, fontSize: 13, color: C.blue, marginLeft: Spacing.xs },
 });

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Modal, TextInput, StyleSheet, StatusBar, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CATEGORY_ICONS, type Routine } from '@/src/state/atoms';
+import { BorderRadius, Spacing, Typography } from '@/src/state/theme';
 
 const C = {
   bg:          '#0F1115',
@@ -135,14 +136,14 @@ export default function RoutineFormModal({ visible, formMode, onClose, onSave, o
 
 const s = StyleSheet.create({
   modalContainer:{ flex: 1, backgroundColor: C.bg },
-  modalHeader:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: C.border },
-  modalTitle:    { fontSize: 17, fontWeight: '700', color: C.text },
-  modalCancel:   { fontSize: 16, color: C.textMuted, fontWeight: '500' },
-  fieldLabel:    { fontSize: 10, fontWeight: '700', color: C.textDim, letterSpacing: 1.4, marginBottom: 8 },
-  input:         { backgroundColor: C.surface, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, color: C.text, borderWidth: 1, borderColor: C.border },
-  iconGrid:      { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 4 },
-  iconCell:      { width: '18%', aspectRatio: 1, borderRadius: 16, justifyContent: 'center', alignItems: 'center', gap: 4 },
-  iconLabel:     { fontSize: 9, fontWeight: '600' },
-  deleteBtn:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 36, paddingVertical: 16, borderRadius: 14, backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' },
-  deleteBtnText: { color: '#EF4444', fontSize: 15, fontWeight: '600' },
+  modalHeader:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingTop: Spacing.md + 4, paddingBottom: Spacing.md, borderBottomWidth: 1, borderBottomColor: C.border },
+  modalTitle:    { ...Typography.bodyMedium, fontSize: 17, fontWeight: '700', color: C.text },
+  modalCancel:   { ...Typography.bodyMedium, color: C.textMuted, fontWeight: '500' },
+  fieldLabel:    { ...Typography.caption, fontSize: 10, fontWeight: '700', color: C.textDim, letterSpacing: 1.4, marginBottom: Spacing.sm },
+  input:         { backgroundColor: C.surface, borderRadius: BorderRadius.lg, paddingHorizontal: Spacing.md, paddingVertical: Spacing.md - 2, ...Typography.bodyMedium, color: C.text, borderWidth: 1, borderColor: C.border },
+  iconGrid:      { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm + 4, marginTop: Spacing.xs },
+  iconCell:      { width: '18%', aspectRatio: 1, borderRadius: BorderRadius.lg, justifyContent: 'center', alignItems: 'center', gap: Spacing.xs },
+  iconLabel:     { ...Typography.caption, fontSize: 9, fontWeight: '600' },
+  deleteBtn:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, marginTop: Spacing.xl + 4, paddingVertical: Spacing.md, borderRadius: BorderRadius.lg, backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' },
+  deleteBtnText: { color: '#EF4444', ...Typography.bodyMedium, fontSize: 15, fontWeight: '600' },
 });

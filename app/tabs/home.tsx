@@ -1,31 +1,41 @@
-import React, { useState } from 'react';
+import RoutineCard from '@/src/components/RoutineCard';
+import RoutineFormModal, { type FormMode } from '@/src/components/RoutineFormModal';
 import {
-  View, Text, TouchableOpacity, ScrollView, SafeAreaView,
-  Modal, TextInput, StyleSheet, StatusBar, Platform, Alert,
-} from 'react-native';
+  activeRoutineIdAtom,
+  isPremiumAtom,
+  routinesAtom,
+  selectedRoutineIdAtom,
+  timerRunningAtom,
+  timerSecondsAtom,
+  type Routine
+} from '@/src/state/atoms';
+import { BorderRadius, Spacing, Typography } from '@/src/state/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import React, { useState } from 'react';
 import {
-  routinesAtom, activeRoutineIdAtom, selectedRoutineIdAtom,
-  timerSecondsAtom, timerRunningAtom,
-  isPremiumAtom, CATEGORY_ICONS, type Routine,
-} from '@/src/state/atoms';
-import RoutineCard from '@/src/components/RoutineCard';
-import RoutineFormModal, { type FormMode } from '@/src/components/RoutineFormModal';
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text, TouchableOpacity,
+  View
+} from 'react-native';
 
 // ─── Design tokens (Stitch Obsidian Kinetic) ─────────────────────────────────
 const C = {
-  bg:          '#0F1115',
-  surface:     '#1A1D23',
+  bg: '#0F1115',
+  surface: '#1A1D23',
   surfaceHigh: '#22262F',
-  border:      '#2A2E38',
-  text:        '#F1F5F9',
-  textMuted:   '#9CA3AF',
-  textDim:     '#64748B',
-  blue:        '#3B82F6',
-  blueDim:     'rgba(59,130,246,0.15)',
-  green:       '#10B981',
+  border: '#2A2E38',
+  text: '#F1F5F9',
+  textMuted: '#9CA3AF',
+  textDim: '#64748B',
+  blue: '#3B82F6',
+  blueDim: 'rgba(59,130,246,0.15)',
+  green: '#10B981',
 };
 
 
@@ -33,15 +43,15 @@ const C = {
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function HomeScreen() {
   const router = useRouter();
-  const [routines,        setRoutines]        = useAtom(routinesAtom);
-  const [activeRoutineId,  setActiveRoutineId]  = useAtom(activeRoutineIdAtom);
-  const setSelectedRoutineId                   = useSetAtom(selectedRoutineIdAtom);
+  const [routines, setRoutines] = useAtom(routinesAtom);
+  const [activeRoutineId, setActiveRoutineId] = useAtom(activeRoutineIdAtom);
+  const setSelectedRoutineId = useSetAtom(selectedRoutineIdAtom);
   const setTimerSeconds = useSetAtom(timerSecondsAtom);
   const setTimerRunning = useSetAtom(timerRunningAtom);
   const isPremium = useAtomValue(isPremiumAtom);
 
   const [formVisible, setFormVisible] = useState(false);
-  const [formMode,    setFormMode]    = useState<FormMode>({ mode: 'create' });
+  const [formMode, setFormMode] = useState<FormMode>({ mode: 'create' });
 
   // Ensure we always work with a real array (fixes atomWithStorage initial-state edge case)
   const safeRoutines: Routine[] = Array.isArray(routines) ? routines : [];
@@ -135,6 +145,7 @@ export default function HomeScreen() {
               <View style={s.createIconWrap}>
                 <Ionicons name="add" size={32} color={C.blue} />
               </View>
+              <Text style={s.createCardText}>Create Routine</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -153,20 +164,20 @@ export default function HomeScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  root:         { flex: 1, backgroundColor: C.bg },
-  scrollContent: { paddingHorizontal: 24, paddingTop: Platform.OS === 'android' ? 48 : 16, paddingBottom: 60 },
+  root: { flex: 1, backgroundColor: C.bg },
+  scrollContent: { paddingHorizontal: Spacing.screenHorizontal, paddingTop: Platform.OS === 'android' ? 48 : Spacing.md, paddingBottom: 60 },
 
   // Header
-  header:     { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 32 },
-  headerTitle:{ fontSize: 38, fontWeight: '800', color: C.text, lineHeight: 44, letterSpacing: -0.5 },
-  headerSub:  { fontSize: 12, fontWeight: '700', color: C.textMuted, letterSpacing: 1.2, marginTop: 8 },
-  settingsBtn:{ width: 46, height: 46, borderRadius: 23, backgroundColor: C.surface, justifyContent: 'center', alignItems: 'center', marginTop: 4 },
+  header: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: Spacing.xl },
+  headerTitle: { ...Typography.hero, fontSize: 38, fontWeight: '800', color: C.text, lineHeight: 44, letterSpacing: -0.5 },
+  headerSub: { ...Typography.caption, fontWeight: '700', color: C.textMuted, letterSpacing: 1.2, marginTop: Spacing.sm },
+  settingsBtn: { width: 46, height: 46, borderRadius: BorderRadius.round, backgroundColor: C.surface, justifyContent: 'center', alignItems: 'center', marginTop: Spacing.xs },
 
   // Card List
-  cardList:    { gap: 14 },
+  cardList: { gap: Spacing.md },
 
   // Create
-  createCard:    { borderWidth: 1.5, borderColor: C.border, borderStyle: 'dashed', borderRadius: 28, height: 80, justifyContent: 'center', alignItems: 'center' },
-  createIconWrap:{ width: 52, height: 52, borderRadius: 16, backgroundColor: C.blueDim, justifyContent: 'center', alignItems: 'center' },
-
+  createCard: { borderWidth: 1.5, borderColor: C.border, borderStyle: 'dashed', borderRadius: BorderRadius.lg, padding: Spacing.md, justifyContent: 'center', alignItems: 'center', flexDirection: 'column' },
+  createIconWrap: { width: 45, height: 45, borderRadius: BorderRadius.md, backgroundColor: C.blueDim, justifyContent: 'center', alignItems: 'center' },
+  createCardText: { marginLeft: 16, fontSize: 20, fontWeight: 700, color: C.blue, marginTop: Spacing.sm },
 });

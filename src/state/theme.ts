@@ -15,9 +15,9 @@ export const Spacing = {
 };
 
 export const BorderRadius = {
-    sm: 5,
-    md: 10,
-    lg: 15,
+    sm: 6,
+    md: 12,
+    lg: 18,
     round: 9999,
 };
 

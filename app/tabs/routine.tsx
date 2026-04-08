@@ -27,6 +27,7 @@ import {
 import MovementEditorModal from '@/src/components/MovementEditorModal';
 import MovementRow from '@/src/components/MovementRow';
 import RoutineFormModal, { type FormMode } from '@/src/components/RoutineFormModal';
+import { BorderRadius, Spacing, Typography } from '@/src/state/theme';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -189,7 +190,7 @@ export default function RoutineScreen() {
 
           {/* Add movement */}
           <TouchableOpacity activeOpacity={0.7} style={r.addMovBtn} onPress={openAdd}>
-            <Ionicons name="add-circle" size={20} color={C.textDim} />
+            <Ionicons name="add-circle" size={20} color={C.blue} />
             <Text style={r.addMovText}>ADD MOVEMENT</Text>
           </TouchableOpacity>
         </ScrollView>
@@ -229,31 +230,26 @@ export default function RoutineScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const r = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
-  scrollContent: { paddingHorizontal: 24, paddingTop: Platform.OS === 'android' ? 8 : 0, paddingBottom: 120 },
+  scrollContent: { paddingHorizontal: Spacing.screenHorizontal, paddingTop: Platform.OS === 'android' ? Spacing.sm : 0, paddingBottom: 120 },
 
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, marginTop: 8 },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: C.surface, justifyContent: 'center', alignItems: 'center' },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.xl - 12, marginTop: Spacing.sm },
+  backBtn: { width: 40, height: 40, borderRadius: BorderRadius.round, backgroundColor: C.surface, justifyContent: 'center', alignItems: 'center' },
 
-  editLabel: { fontSize: 10, fontWeight: '700', color: C.blue, letterSpacing: 1.4, marginBottom: 8 },
-  catIcon: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginRight: 10 },
-  routineTitle: { fontSize: 26, fontWeight: '800', color: C.text, flex: 1 },
+  editLabel: { ...Typography.caption, fontSize: 10, fontWeight: '700', color: C.blue, letterSpacing: 1.4, marginBottom: Spacing.sm },
+  catIcon: { width: 36, height: 36, borderRadius: BorderRadius.md, justifyContent: 'center', alignItems: 'center', marginRight: Spacing.sm + 2 },
+  routineTitle: { ...Typography.title, fontSize: 26, fontWeight: '800', color: C.text, flex: 1 },
 
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: C.text },
-  sectionCount: { fontSize: 13, color: C.textDim },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md - 2 },
+  sectionTitle: { ...Typography.bodyLarge, fontWeight: '700', color: C.text },
+  sectionCount: { ...Typography.caption, fontSize: 13, color: C.textDim },
 
-  movRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface, borderRadius: 18, padding: 18, marginBottom: 10, borderWidth: 1, borderColor: C.border },
-  movName: { fontSize: 16, fontWeight: '600', color: C.text, marginBottom: 6 },
-  movMeta: { flexDirection: 'row', alignItems: 'center' },
-  movMetaText: { fontSize: 13, color: C.blue, marginLeft: 4 },
+  addMovBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, borderWidth: 1.5, borderColor: C.border, borderStyle: 'dashed', borderRadius: BorderRadius.lg, paddingVertical: Spacing.md + 2, marginTop: Spacing.xs },
+  addMovText: { ...Typography.caption, fontSize: 13, fontWeight: '700', color: C.blue, letterSpacing: 1 },
 
-  addMovBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1.5, borderColor: C.border, borderStyle: 'dashed', borderRadius: 18, paddingVertical: 18, marginTop: 4 },
-  addMovText: { fontSize: 13, fontWeight: '700', color: C.textDim, letterSpacing: 1 },
-
-  bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', gap: 12, paddingHorizontal: 24, paddingBottom: Platform.OS === 'ios' ? 34 : 20, paddingTop: 16, backgroundColor: C.bg, borderTopWidth: 1, borderTopColor: C.border },
-  finalizeBtn: { flex: 1, backgroundColor: C.blue, borderRadius: 16, paddingVertical: 18, alignItems: 'center' },
-  finalizeBtnText: { fontSize: 16, fontWeight: '700', color: '#FFF' },
-  deleteBtn: { width: 56, height: 56, borderRadius: 16, backgroundColor: C.red, justifyContent: 'center', alignItems: 'center' },
+  bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', gap: Spacing.md - 4, paddingHorizontal: Spacing.screenHorizontal, paddingBottom: Platform.OS === 'ios' ? Spacing.xl + 2 : Spacing.md + 4, paddingTop: Spacing.md, backgroundColor: C.bg, borderTopWidth: 1, borderTopColor: C.border },
+  finalizeBtn: { flex: 1, backgroundColor: C.blue, borderRadius: BorderRadius.lg, paddingVertical: Spacing.md + 2, alignItems: 'center' },
+  finalizeBtnText: { ...Typography.bodyMedium, fontWeight: '700', color: '#FFF' },
+  deleteBtn: { width: 56, height: 56, borderRadius: BorderRadius.lg, backgroundColor: C.red, justifyContent: 'center', alignItems: 'center' },
 });
 
 // Movement editor styles removed as they live in src/components/MovementEditorModal.tsx

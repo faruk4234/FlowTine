@@ -1,17 +1,18 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { CATEGORY_ICONS, type Routine } from '@/src/state/atoms';
+import { BorderRadius, Spacing, Typography } from '@/src/state/theme';
+import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const C = {
-  surface:     '#1A1D23',
+  surface: '#1A1D23',
   surfaceHigh: '#22262F',
-  border:      '#2A2E38',
-  text:        '#F1F5F9',
-  textMuted:   '#9CA3AF',
-  textDim:     '#64748B',
-  blue:        '#3B82F6',
-  green:       '#10B981',
+  border: '#2A2E38',
+  text: '#F1F5F9',
+  textMuted: '#9CA3AF',
+  textDim: '#64748B',
+  blue: '#3B82F6',
+  green: '#10B981',
 };
 
 function ActiveBadge() {
@@ -33,7 +34,7 @@ export type CardProps = {
 
 export default function RoutineCard({ routine, isRunning, onPress, onPlay, onEdit }: CardProps) {
   const cat = CATEGORY_ICONS[routine.categoryIconIndex] ?? CATEGORY_ICONS[0];
-  
+
   return (
     <TouchableOpacity activeOpacity={0.75} onPress={onPress} style={[s.card, routine.isActive && s.cardActive]}>
       {routine.isActive && <ActiveBadge />}
@@ -76,22 +77,22 @@ export default function RoutineCard({ routine, isRunning, onPress, onPlay, onEdi
 }
 
 const s = StyleSheet.create({
-  card:        { backgroundColor: C.surface, borderRadius: 28, padding: 22, flexDirection: 'row', alignItems: 'center' },
-  cardActive:  { borderWidth: 1, borderColor: C.border },
+  card: { backgroundColor: C.surface, borderRadius: BorderRadius.lg, paddingVertical: Spacing.lg, paddingHorizontal: Spacing.md, flexDirection: 'row', alignItems: 'center' },
+  cardActive: { borderWidth: 1, borderColor: C.border },
 
-  activeBadge: { position: 'absolute', top: 14, left: 22, flexDirection: 'row', alignItems: 'center', gap: 5 },
-  activeDot:   { width: 7, height: 7, borderRadius: 4, backgroundColor: C.green },
-  activeBadgeText: { fontSize: 9, fontWeight: '700', color: C.green, letterSpacing: 1.2 },
+  activeBadge: { position: 'absolute', top: Spacing.md, left: Spacing.lg, flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  activeDot: { width: 7, height: 7, borderRadius: BorderRadius.round, backgroundColor: C.green },
+  activeBadgeText: { ...Typography.caption, fontSize: 9, fontWeight: '700', color: C.green, letterSpacing: 1.2 },
 
-  cardTopRight: { position: 'absolute', top: 14, right: 18, flexDirection: 'row', alignItems: 'center' },
-  cardDuration: { fontSize: 11, fontWeight: '700', color: C.textDim, letterSpacing: 1 },
+  cardTopRight: { position: 'absolute', top: Spacing.md, right: Spacing.lg, flexDirection: 'row', alignItems: 'center' },
+  cardDuration: { ...Typography.caption, fontWeight: '700', color: C.textDim, letterSpacing: 1 },
 
-  cardIconWrap: { width: 64, height: 64, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 16, marginTop: 10 },
-  cardTextBlock:{ flex: 1, marginTop: 10 },
-  cardTitle:    { fontSize: 20, fontWeight: '700', color: C.text, marginBottom: 3 },
-  cardSubtitle: { fontSize: 14, color: C.textMuted, marginBottom: 4 },
-  cardMeta:     { fontSize: 10, fontWeight: '700', color: C.textDim, letterSpacing: 1 },
+  cardIconWrap: { width: 64, height: 64, borderRadius: BorderRadius.md, justifyContent: 'center', alignItems: 'center', marginRight: Spacing.md, marginTop: Spacing.sm },
+  cardTextBlock: { flex: 1, marginTop: Spacing.sm },
+  cardTitle: { ...Typography.heading, fontWeight: '700', color: C.text, marginBottom: Spacing.xs },
+  cardSubtitle: { ...Typography.bodySmall, color: C.textMuted, marginBottom: Spacing.xs },
+  cardMeta: { ...Typography.caption, fontWeight: '700', color: C.textDim, letterSpacing: 1 },
 
-  playBtn:      { width: 52, height: 52, borderRadius: 26, backgroundColor: C.blue, justifyContent: 'center', alignItems: 'center', marginLeft: 12, marginTop: 10 },
-  playBtnPaused:{ backgroundColor: C.surfaceHigh, borderWidth: 2, borderColor: C.blue },
+  playBtn: { width: 52, height: 52, borderRadius: BorderRadius.round, backgroundColor: C.blue, justifyContent: 'center', alignItems: 'center', marginLeft: Spacing.sm, marginTop: Spacing.md },
+  playBtnPaused: { backgroundColor: C.surfaceHigh, borderWidth: 2, borderColor: C.blue },
 });

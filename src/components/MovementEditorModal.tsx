@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Alert, Modal, Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { type Movement } from '@/src/state/atoms';
+import { BorderRadius, Spacing, Typography } from '@/src/state/theme';
 
 const C = {
   bg: '#0F1115',
@@ -186,41 +187,41 @@ export default function MovementEditorModal({ visible, movement, onClose, onSave
 
 const e = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 16 },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: C.surface, justifyContent: 'center', alignItems: 'center' },
-  headerRight: { fontSize: 12, fontWeight: '700', color: C.textDim, letterSpacing: 1.5 },
-  editorTitle: { fontSize: 34, fontWeight: '800', color: C.text, marginBottom: 6 },
-  titleUnderline: { height: 3, width: 36, backgroundColor: C.blue, borderRadius: 2, marginBottom: 28 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingTop: Spacing.md + 4, paddingBottom: Spacing.md },
+  backBtn: { width: 40, height: 40, borderRadius: BorderRadius.round, backgroundColor: C.surface, justifyContent: 'center', alignItems: 'center' },
+  headerRight: { ...Typography.caption, fontWeight: '700', color: C.textDim, letterSpacing: 1.5 },
+  editorTitle: { ...Typography.hero, fontSize: 34, fontWeight: '800', color: C.text, marginBottom: Spacing.xs + 2 },
+  titleUnderline: { height: 3, width: 36, backgroundColor: C.blue, borderRadius: BorderRadius.sm, marginBottom: Spacing.xl - 4 },
 
-  fieldLabel: { fontSize: 10, fontWeight: '700', color: C.textDim, letterSpacing: 1.4, marginBottom: 8 },
-  input: { backgroundColor: C.surface, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, color: C.text, borderWidth: 1, borderColor: C.border },
+  fieldLabel: { ...Typography.caption, fontSize: 10, fontWeight: '700', color: C.textDim, letterSpacing: 1.4, marginBottom: Spacing.sm },
+  input: { backgroundColor: C.surface, borderRadius: BorderRadius.lg, paddingHorizontal: Spacing.md, paddingVertical: Spacing.md - 2, ...Typography.bodyMedium, color: C.text, borderWidth: 1, borderColor: C.border },
 
   // Duration picker
-  durationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 8 },
+  durationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: Spacing.sm },
   durationCol: { alignItems: 'center' },
-  durationColon: { fontSize: 48, fontWeight: '800', color: C.blue, marginHorizontal: 12, marginBottom: 8 },
-  durationNum: { fontSize: 56, fontWeight: '800', color: C.blue, lineHeight: 64 },
-  durBtn: { padding: 4 },
-  durationLabels: { flexDirection: 'row', marginTop: 4 },
-  durationLabel: { fontSize: 11, fontWeight: '700', color: C.textDim, letterSpacing: 1 },
-  durationProgress: { height: 3, backgroundColor: C.blue, borderRadius: 2, marginTop: 16, marginBottom: 24, marginHorizontal: 0, opacity: 0.4 },
+  durationColon: { ...Typography.hero, fontSize: 48, fontWeight: '800', color: C.blue, marginHorizontal: Spacing.sm + 4, marginBottom: Spacing.sm },
+  durationNum: { ...Typography.hero, fontSize: 56, fontWeight: '800', color: C.blue, lineHeight: 64 },
+  durBtn: { padding: Spacing.xs },
+  durationLabels: { flexDirection: 'row', marginTop: Spacing.xs },
+  durationLabel: { ...Typography.caption, fontSize: 11, fontWeight: '700', color: C.textDim, letterSpacing: 1 },
+  durationProgress: { height: 3, backgroundColor: C.blue, borderRadius: BorderRadius.sm, marginTop: Spacing.md, marginBottom: Spacing.lg, marginHorizontal: 0, opacity: 0.4 },
 
   // Rest
-  restCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface, borderRadius: 18, padding: 18, borderWidth: 1, borderColor: C.border, marginBottom: 16 },
-  restTitle: { fontSize: 15, fontWeight: '600', color: C.text },
-  restSub: { fontSize: 12, color: C.textDim },
-  restBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: C.surfaceHigh, justifyContent: 'center', alignItems: 'center', marginHorizontal: 4 },
-  restBtnText: { fontSize: 20, color: C.text, fontWeight: '700', lineHeight: 22 },
-  restValue: { fontSize: 16, fontWeight: '700', color: C.blue, minWidth: 52, textAlign: 'center' },
+  restCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface, borderRadius: BorderRadius.lg, padding: Spacing.lg - 6, borderWidth: 1, borderColor: C.border, marginBottom: Spacing.md },
+  restTitle: { ...Typography.bodyMedium, fontSize: 15, fontWeight: '600', color: C.text },
+  restSub: { ...Typography.caption, color: C.textDim },
+  restBtn: { width: 34, height: 34, borderRadius: BorderRadius.round, backgroundColor: C.surfaceHigh, justifyContent: 'center', alignItems: 'center', marginHorizontal: Spacing.xs },
+  restBtnText: { ...Typography.heading, color: C.text, fontWeight: '700', lineHeight: 22 },
+  restValue: { ...Typography.bodyMedium, fontWeight: '700', color: C.blue, minWidth: 52, textAlign: 'center' },
 
   // Haptic
-  hapticRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderTopWidth: 1, borderTopColor: C.border, marginBottom: 24 },
-  hapticTitle: { fontSize: 15, fontWeight: '600' },
-  hapticSub: { fontSize: 12, color: C.textDim },
+  hapticRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.md, borderTopWidth: 1, borderTopColor: C.border, marginBottom: Spacing.lg },
+  hapticTitle: { ...Typography.bodyMedium, fontSize: 15, fontWeight: '600' },
+  hapticSub: { ...Typography.caption, color: C.textDim },
 
-  doneBtn: { backgroundColor: C.blue, borderRadius: 16, paddingVertical: 18, alignItems: 'center' },
-  doneBtnText: { fontSize: 16, fontWeight: '700', color: '#FFF' },
-  bottomBar: { paddingHorizontal: 24, paddingBottom: Platform.OS === 'ios' ? 34 : 20, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border, backgroundColor: C.bg },
-  deleteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, borderRadius: 14, backgroundColor: C.redDim, borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)', marginTop: 12 },
-  deleteBtnText: { color: C.red, fontSize: 15, fontWeight: '600' },
+  doneBtn: { backgroundColor: C.blue, borderRadius: BorderRadius.md + 6, paddingVertical: Spacing.md + 2, alignItems: 'center' },
+  doneBtnText: { ...Typography.bodyMedium, fontWeight: '700', color: '#FFF' },
+  bottomBar: { paddingHorizontal: Spacing.lg, paddingBottom: Platform.OS === 'ios' ? Spacing.xl + 2 : Spacing.md + 4, paddingTop: Spacing.md - 4, borderTopWidth: 1, borderTopColor: C.border, backgroundColor: C.bg },
+  deleteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md, borderRadius: BorderRadius.md + 4, backgroundColor: C.redDim, borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)', marginTop: Spacing.sm + 4 },
+  deleteBtnText: { color: C.red, ...Typography.bodyMedium, fontSize: 15, fontWeight: '600' },
 });

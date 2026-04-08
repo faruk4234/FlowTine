@@ -1,26 +1,30 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import {
-  View, Text, TouchableOpacity, StyleSheet, StatusBar, SafeAreaView, Platform,
-} from 'react-native';
+import { activeRoutineIdAtom, routinesAtom, timerRunningAtom, type Movement, } from '@/src/state/atoms';
+import { BorderRadius, Spacing, Typography } from '@/src/state/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  timerRunningAtom, activeRoutineIdAtom, routinesAtom, type Movement,
-} from '@/src/state/atoms';
+  Platform,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  Text, TouchableOpacity,
+  View,
+} from 'react-native';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
-  bg:         '#0F1115',
-  surface:    '#1A1D23',
-  surfaceHigh:'#22262F',
-  border:     '#2A2E38',
-  text:       '#F1F5F9',
-  textMuted:  '#9CA3AF',
-  textDim:    '#64748B',
-  blue:       '#3B82F6',
-  orange:     '#F97316',
-  green:      '#10B981',
+  bg: '#0F1115',
+  surface: '#1A1D23',
+  surfaceHigh: '#22262F',
+  border: '#2A2E38',
+  text: '#F1F5F9',
+  textMuted: '#9CA3AF',
+  textDim: '#64748B',
+  blue: '#3B82F6',
+  orange: '#F97316',
+  green: '#10B981',
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -54,7 +58,7 @@ function CircularRing({ progress, color = C.blue }: RingProps) {
   const p = Math.min(Math.max(progress, 0), 1);
   const half = RING / 2;
   const rightDeg = p > 0.5 ? 180 : p * 360;
-  const leftDeg  = p > 0.5 ? (p - 0.5) * 360 : 0;
+  const leftDeg = p > 0.5 ? (p - 0.5) * 360 : 0;
 
   return (
     <View style={{ width: RING, height: RING, alignItems: 'center', justifyContent: 'center' }}>
@@ -93,25 +97,25 @@ type Phase = 'work' | 'rest' | 'done';
 export default function TimerScreen() {
   const router = useRouter();
   // Get routine ID from URL params for reliability
-  const { id: paramId }   = useLocalSearchParams<{ id: string }>();
+  const { id: paramId } = useLocalSearchParams<{ id: string }>();
   const [isRunning, setIsRunning] = useAtom(timerRunningAtom);
-  const setActiveId       = useSetAtom(activeRoutineIdAtom);
-  const activeId          = useAtomValue(activeRoutineIdAtom);
-  const routines          = useAtomValue(routinesAtom);
+  const setActiveId = useSetAtom(activeRoutineIdAtom);
+  const activeId = useAtomValue(activeRoutineIdAtom);
+  const routines = useAtomValue(routinesAtom);
 
-  const safeRoutines      = Array.isArray(routines) ? routines : [];
+  const safeRoutines = Array.isArray(routines) ? routines : [];
   // Prefer URL param ID over atom (avoids hydration race)
-  const routineId         = paramId ?? activeId;
-  const routine           = safeRoutines.find((r) => r.id === routineId) ?? safeRoutines[0];
+  const routineId = paramId ?? activeId;
+  const routine = safeRoutines.find((r) => r.id === routineId) ?? safeRoutines[0];
   const movements: Movement[] = Array.isArray(routine?.movements) ? routine!.movements : [];
 
   // ── per-movement / per-phase state ──
-  const [movIdx,     setMovIdx]     = useState(0);
-  const [phase,      setPhase]      = useState<Phase>('work');
-  const [seconds,    setSeconds]    = useState(() => movementSeconds(movements[0] ?? { durationMin: 0, durationSec: 30, id: '', name: '', description: '', restSec: 0 }));
+  const [movIdx, setMovIdx] = useState(0);
+  const [phase, setPhase] = useState<Phase>('work');
+  const [seconds, setSeconds] = useState(() => movementSeconds(movements[0] ?? { durationMin: 0, durationSec: 30, id: '', name: '', description: '', restSec: 0 }));
 
-  const currentMov  = movements[movIdx];
-  const nextMov     = movements[movIdx + 1] ?? null;
+  const currentMov = movements[movIdx];
+  const nextMov = movements[movIdx + 1] ?? null;
 
   // Total remaining work time (not counting current phase — just info label)
   const totalRemaining = totalRemainingSeconds(movements, movIdx);
@@ -336,50 +340,50 @@ export default function TimerScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const ts = StyleSheet.create({
-  root:      { flex: 1, backgroundColor: C.bg },
-  container: { flex: 1, alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingTop: 8, paddingBottom: Platform.OS === 'android' ? 16 : 8 },
-  center:    { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
+  root: { flex: 1, backgroundColor: C.bg },
+  container: { flex: 1, alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.screenHorizontal, paddingTop: Spacing.sm, paddingBottom: Platform.OS === 'android' ? Spacing.md : Spacing.sm },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.screenHorizontal },
 
   // Top bar
-  topBar:         { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' },
-  routineLabel:   { fontSize: 14, fontWeight: '600', color: C.textMuted, flex: 1 },
-  progressLabel:  { fontSize: 14, fontWeight: '700', color: C.textDim },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' },
+  routineLabel: { ...Typography.bodySmall, fontWeight: '600', color: C.textMuted, flex: 1 },
+  progressLabel: { ...Typography.bodySmall, fontWeight: '700', color: C.textDim },
 
   // Phase
-  phaseBadge: { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 999, marginTop: 8 },
-  phaseText:  { fontSize: 11, fontWeight: '800', letterSpacing: 1.5 },
+  phaseBadge: { paddingHorizontal: Spacing.md - 2, paddingVertical: 5, borderRadius: BorderRadius.round, marginTop: Spacing.sm },
+  phaseText: { ...Typography.caption, fontSize: 11, fontWeight: '800', letterSpacing: 1.5 },
 
   // Movement name
-  movementName: { fontSize: 22, fontWeight: '800', color: C.text, textAlign: 'center', marginTop: 6, lineHeight: 28 },
+  movementName: { ...Typography.title, fontSize: 22, fontWeight: '800', color: C.text, textAlign: 'center', marginTop: Spacing.xs + 2, lineHeight: 28 },
 
   // Ring
-  ringSection:  { alignItems: 'center', justifyContent: 'center' },
-  ringOverlay:  { position: 'absolute', alignItems: 'center' },
-  timerText:    { fontSize: 52, fontWeight: '800', color: C.text, letterSpacing: -2 },
-  timerSub:     { fontSize: 10, fontWeight: '700', color: C.textDim, letterSpacing: 2, marginTop: 2 },
+  ringSection: { alignItems: 'center', justifyContent: 'center' },
+  ringOverlay: { position: 'absolute', alignItems: 'center' },
+  timerText: { ...Typography.hero, fontSize: 52, fontWeight: '800', color: C.text, letterSpacing: -2 },
+  timerSub: { ...Typography.caption, fontSize: 10, fontWeight: '700', color: C.textDim, letterSpacing: 2, marginTop: Spacing.xs - 2 },
 
   // Total
-  totalLabel: { fontSize: 13, color: C.textMuted, fontWeight: '500' },
+  totalLabel: { ...Typography.caption, fontSize: 13, color: C.textMuted, fontWeight: '500' },
 
   // Controls
-  controls:     { flexDirection: 'row', alignItems: 'center', gap: 24 },
-  ctrlPrimary:  { width: 72, height: 72, borderRadius: 36, backgroundColor: C.blue, justifyContent: 'center', alignItems: 'center', shadowColor: C.blue, shadowOpacity: 0.45, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
-  ctrlSecondary:{ width: 54, height: 54, borderRadius: 27, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, justifyContent: 'center', alignItems: 'center' },
+  controls: { flexDirection: 'row', alignItems: 'center', gap: Spacing.screenHorizontal },
+  ctrlPrimary: { width: 72, height: 72, borderRadius: 36, backgroundColor: C.blue, justifyContent: 'center', alignItems: 'center', shadowColor: C.blue, shadowOpacity: 0.45, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
+  ctrlSecondary: { width: 54, height: 54, borderRadius: 27, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, justifyContent: 'center', alignItems: 'center' },
   ctrlDisabled: { opacity: 0.3 },
 
   // Up next
-  upNextCard:  { width: '100%', flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface, borderRadius: 18, paddingVertical: 14, paddingHorizontal: 18, borderWidth: 1, borderColor: C.border },
-  upNextLabel: { fontSize: 9, fontWeight: '700', color: C.textDim, letterSpacing: 1.4, marginBottom: 3 },
-  upNextTitle: { fontSize: 15, fontWeight: '600', color: C.text },
+  upNextCard: { width: '100%', flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface, borderRadius: BorderRadius.lg, paddingVertical: Spacing.md - 2, paddingHorizontal: Spacing.md + 2, borderWidth: 1, borderColor: C.border },
+  upNextLabel: { ...Typography.caption, fontSize: 9, fontWeight: '700', color: C.textDim, letterSpacing: 1.4, marginBottom: Spacing.xs - 1 },
+  upNextTitle: { ...Typography.bodyMedium, fontSize: 15, fontWeight: '600', color: C.text },
 
   // End
-  endBtn:     { paddingVertical: 6 },
-  endBtnText: { fontSize: 12, fontWeight: '700', color: '#EF4444', letterSpacing: 1.2 },
+  endBtn: { paddingVertical: Spacing.sm - 2 },
+  endBtnText: { ...Typography.caption, fontWeight: '700', color: '#EF4444', letterSpacing: 1.2 },
 
   // Done screen
-  doneIconWrap: { width: 96, height: 96, borderRadius: 48, backgroundColor: `${C.green}20`, justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
-  doneTitle:    { fontSize: 28, fontWeight: '800', color: C.text, marginBottom: 8 },
-  doneSub:      { fontSize: 16, color: C.textMuted, marginBottom: 48 },
-  doneBtn:      { backgroundColor: C.blue, borderRadius: 16, paddingVertical: 18, paddingHorizontal: 48 },
-  doneBtnText:  { fontSize: 16, fontWeight: '700', color: '#FFF' },
+  doneIconWrap: { width: 96, height: 96, borderRadius: 48, backgroundColor: `${C.green}20`, justifyContent: 'center', alignItems: 'center', marginBottom: Spacing.screenHorizontal },
+  doneTitle: { ...Typography.title, fontSize: 28, fontWeight: '800', color: C.text, marginBottom: Spacing.sm },
+  doneSub: { ...Typography.bodyMedium, color: C.textMuted, marginBottom: Spacing.screenHorizontal * 2 },
+  doneBtn: { backgroundColor: C.blue, borderRadius: BorderRadius.lg, paddingVertical: Spacing.md + 2, paddingHorizontal: 48 },
+  doneBtnText: { ...Typography.bodyMedium, fontWeight: '700', color: '#FFF' },
 });
