@@ -55,38 +55,38 @@ const STROKE = 9;
 type RingProps = { progress: number; color?: string };
 
 function CircularRing({ progress, color = C.blue }: RingProps) {
-  const p = Math.min(Math.max(progress, 0), 1);
+  const p = Math.max(Math.min(progress, 1), 0);
   const half = RING / 2;
-  const rightDeg = p > 0.5 ? 180 : p * 360;
-  const leftDeg = p > 0.5 ? (p - 0.5) * 360 : 0;
+  const rightDeg = p <= 0.5 ? p * 360 : 180;
+  const leftDeg = p <= 0.5 ? 0 : (p - 0.5) * 360;
 
   return (
     <View style={{ width: RING, height: RING, alignItems: 'center', justifyContent: 'center' }}>
-      {/* Track */}
+      {/* Background Track */}
       <View style={{
         position: 'absolute', width: RING, height: RING, borderRadius: half,
-        borderWidth: STROKE, borderColor: C.surface,
+        borderWidth: STROKE, borderColor: color, // The entire circle starts full (colored)
       }} />
-      {/* Right half (first 180°) */}
-      <View style={{ position: 'absolute', width: RING, height: RING, borderRadius: half, overflow: 'hidden' }}>
-        <View style={{ position: 'absolute', right: 0, top: 0, width: half, height: RING, overflow: 'hidden' }}>
-          <View style={{
-            width: RING, height: RING, borderRadius: half, borderWidth: STROKE, borderColor: color,
-            transform: [{ translateX: -half }, { rotate: `${rightDeg}deg` }, { translateX: half }],
-          }} />
-        </View>
+
+      {/* Right Hemisphere Mask (0° to 180°, 12 o'clock to 6 o'clock) */}
+      <View style={{ position: 'absolute', left: half, width: half, height: RING, overflow: 'hidden' }}>
+        <View style={{
+          position: 'absolute', left: -half, width: RING, height: RING, borderRadius: half,
+          borderWidth: STROKE, borderColor: 'transparent',
+          borderTopColor: C.surface, borderLeftColor: C.surface, // The sweeping eraser track (gray)
+          transform: [{ rotate: '-45deg' }, { rotate: `${rightDeg}deg` }],
+        }} />
       </View>
-      {/* Left half (next 180°) — only when > 50% */}
-      {p > 0.5 && (
-        <View style={{ position: 'absolute', width: RING, height: RING, borderRadius: half, overflow: 'hidden' }}>
-          <View style={{ position: 'absolute', left: 0, top: 0, width: half, height: RING, overflow: 'hidden' }}>
-            <View style={{
-              width: RING, height: RING, borderRadius: half, borderWidth: STROKE, borderColor: color,
-              transform: [{ translateX: half }, { rotate: `${leftDeg}deg` }, { translateX: -half }],
-            }} />
-          </View>
-        </View>
-      )}
+
+      {/* Left Hemisphere Mask (180° to 360°, 6 o'clock to 12 o'clock) */}
+      <View style={{ position: 'absolute', left: 0, width: half, height: RING, overflow: 'hidden' }}>
+        <View style={{
+          position: 'absolute', left: 0, width: RING, height: RING, borderRadius: half,
+          borderWidth: STROKE, borderColor: 'transparent',
+          borderBottomColor: C.surface, borderRightColor: C.surface, // The sweeping eraser track (gray)
+          transform: [{ rotate: '-45deg' }, { rotate: `${leftDeg}deg` }],
+        }} />
+      </View>
     </View>
   );
 }
