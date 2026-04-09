@@ -2,6 +2,7 @@ import RoutineCard from '@/src/components/RoutineCard';
 import RoutineFormModal, { type FormMode } from '@/src/components/RoutineFormModal';
 import {
   activeRoutineIdAtom,
+  isPremiumAtom,
   routinesAtom,
   selectedRoutineIdAtom,
   timerRunningAtom,
@@ -11,7 +12,7 @@ import {
 import { BorderRadius, Spacing, Typography } from '@/src/state/theme';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useAtom, useSetAtom } from 'jotai';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import React, { useState } from 'react';
 import {
   Alert,
@@ -48,7 +49,7 @@ export default function HomeScreen() {
   const setSelectedRoutineId = useSetAtom(selectedRoutineIdAtom);
   const setTimerSeconds = useSetAtom(timerSecondsAtom);
   const setTimerRunning = useSetAtom(timerRunningAtom);
-  const isPremium = false
+  const isPremium = useAtomValue(isPremiumAtom)
 
   const [formVisible, setFormVisible] = useState(false);
   const [formMode, setFormMode] = useState<FormMode>({ mode: 'create' });
