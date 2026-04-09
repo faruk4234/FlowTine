@@ -54,6 +54,7 @@ const RootLayout = () => {
       <AppThemeProvider>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="tabs" />
+          <Stack.Screen name="onboarding" options={{ presentation: 'fullScreenModal' }} />
         </Stack>
       </AppThemeProvider>
     </JotaiProvider>

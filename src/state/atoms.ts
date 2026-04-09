@@ -4,7 +4,7 @@ import { atom } from 'jotai';
 import { atomWithStorage, createJSONStorage } from 'jotai/utils';
 
 // ─── Storage helpers ──────────────────────────────────────────────────────────
-const boolStorage  = createJSONStorage<boolean>(() => AsyncStorage);
+const boolStorage = createJSONStorage<boolean>(() => AsyncStorage);
 const themeStorage = createJSONStorage<ThemeMode>(() => AsyncStorage);
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -16,16 +16,16 @@ export type CategoryIcon = {
 };
 
 export const CATEGORY_ICONS: CategoryIcon[] = [
-  { name: 'body',     label: 'Yoga',      color: '#F97316', bgColor: 'rgba(249,115,22,0.15)' },
-  { name: 'barbell',  label: 'Strength',  color: '#3B82F6', bgColor: 'rgba(59,130,246,0.15)' },
-  { name: 'flame',    label: 'HIIT',      color: '#EF4444', bgColor: 'rgba(239,68,68,0.15)'  },
-  { name: 'bicycle',  label: 'Cardio',    color: '#22C55E', bgColor: 'rgba(34,197,94,0.15)'  },
-  { name: 'fitness',  label: 'Fitness',   color: '#A855F7', bgColor: 'rgba(168,85,247,0.15)' },
-  { name: 'timer',    label: 'Focus',     color: '#38BDF8', bgColor: 'rgba(56,189,248,0.15)' },
-  { name: 'moon',     label: 'Sleep',     color: '#818CF8', bgColor: 'rgba(129,140,248,0.15)'},
-  { name: 'heart',    label: 'Health',    color: '#F43F5E', bgColor: 'rgba(244,63,94,0.15)'  },
-  { name: 'walk',     label: 'Walk',      color: '#84CC16', bgColor: 'rgba(132,204,22,0.15)' },
-  { name: 'water',    label: 'Hydration', color: '#06B6D4', bgColor: 'rgba(6,182,212,0.15)'  },
+  { name: 'body', label: 'Yoga', color: '#F97316', bgColor: 'rgba(249,115,22,0.15)' },
+  { name: 'barbell', label: 'Strength', color: '#3B82F6', bgColor: 'rgba(59,130,246,0.15)' },
+  { name: 'flame', label: 'HIIT', color: '#EF4444', bgColor: 'rgba(239,68,68,0.15)' },
+  { name: 'bicycle', label: 'Cardio', color: '#22C55E', bgColor: 'rgba(34,197,94,0.15)' },
+  { name: 'fitness', label: 'Fitness', color: '#A855F7', bgColor: 'rgba(168,85,247,0.15)' },
+  { name: 'timer', label: 'Focus', color: '#38BDF8', bgColor: 'rgba(56,189,248,0.15)' },
+  { name: 'moon', label: 'Sleep', color: '#818CF8', bgColor: 'rgba(129,140,248,0.15)' },
+  { name: 'heart', label: 'Health', color: '#F43F5E', bgColor: 'rgba(244,63,94,0.15)' },
+  { name: 'walk', label: 'Walk', color: '#84CC16', bgColor: 'rgba(132,204,22,0.15)' },
+  { name: 'water', label: 'Hydration', color: '#06B6D4', bgColor: 'rgba(6,182,212,0.15)' },
 ];
 
 /** A single movement / task inside a routine. */
@@ -114,14 +114,14 @@ export const selectedRoutineIdAtom = atom<string | null>(null);
 export const activeRoutineIdAtom = atom<string | null>(null);
 
 /** Timer state: seconds remaining while a routine is running. Transient. */
-export const timerSecondsAtom  = atom<number>(0);
-export const timerRunningAtom  = atom<boolean>(false);
+export const timerSecondsAtom = atom<number>(0);
+export const timerRunningAtom = atom<boolean>(false);
 
 // ─── User-flow persistent atoms ───────────────────────────────────────────────
-export const onboardingCompletedAtom = atomWithStorage<boolean>('onboarding.completed', false, boolStorage);
-export const isPremiumAtom           = atomWithStorage<boolean>('paywall.isPremium',     false, boolStorage);
-export const hasSeenPaywallAtom      = atomWithStorage<boolean>('paywall.hasSeenPaywall',false, boolStorage);
-export const themeModeAtom           = atomWithStorage<ThemeMode>('theme.mode', 'system', themeStorage);
+export const onboardingCompletedAtom = atomWithStorage<boolean>('onboarding.completed2', false, boolStorage);
+export const isPremiumAtom = atomWithStorage<boolean>('paywall.isPremium', false, boolStorage);
+export const hasSeenPaywallAtom = atomWithStorage<boolean>('paywall.hasSeenPaywall', false, boolStorage);
+export const themeModeAtom = atomWithStorage<ThemeMode>('theme.mode', 'system', themeStorage);
 
 // ─── Transient atoms ──────────────────────────────────────────────────────────
 export const sessionAtom = atom<{ startedAt: number } | null>(null);
