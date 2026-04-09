@@ -154,8 +154,22 @@ export default function HomeScreen() {
                 onEdit={() => openEdit(routine)}
               />
             ))}
+            
+            {/* Inline Add Card (when few routines) */}
+            {sorted.length < 4 && (
+              <TouchableOpacity activeOpacity={0.7} style={s.createCard} onPress={openCreate}>
+                <View style={s.createIconWrap}>
+                  <Ionicons name="add" size={32} color={C.blue} />
+                </View>
+                <Text style={s.createCardText}>Create Routine</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </ScrollView>
 
-            {/* Add card */}
+        {/* Pinned Bottom Button (when many routines) */}
+        {sorted.length >= 4 && (
+          <View style={s.pinnedBottom}>
             <TouchableOpacity activeOpacity={0.7} style={s.createCard} onPress={openCreate}>
               <View style={s.createIconWrap}>
                 <Ionicons name="add" size={32} color={C.blue} />
@@ -163,7 +177,7 @@ export default function HomeScreen() {
               <Text style={s.createCardText}>Create Routine</Text>
             </TouchableOpacity>
           </View>
-        </ScrollView>
+        )}
       </SafeAreaView>
 
       <RoutineFormModal
@@ -191,8 +205,16 @@ const s = StyleSheet.create({
   // Card List
   cardList: { gap: Spacing.md },
 
+  // Pinned Bottom Container
+  pinnedBottom: {
+    paddingHorizontal: Spacing.screenHorizontal,
+    paddingTop: Spacing.md,
+    paddingBottom: Platform.OS === 'ios' ? Spacing.xl : Spacing.lg,
+    backgroundColor: C.bg,
+  },
+  
   // Create
   createCard: { borderWidth: 1.5, borderColor: C.border, borderStyle: 'dashed', borderRadius: BorderRadius.lg, padding: Spacing.md, justifyContent: 'center', alignItems: 'center', flexDirection: 'column' },
   createIconWrap: { width: 45, height: 45, borderRadius: BorderRadius.md, backgroundColor: C.blueDim, justifyContent: 'center', alignItems: 'center' },
-  createCardText: { marginLeft: 16, fontSize: 20, fontWeight: 700, color: C.blue, marginTop: Spacing.sm },
+  createCardText: { fontSize: 20, fontWeight: '700', color: C.blue, marginTop: Spacing.sm },
 });
