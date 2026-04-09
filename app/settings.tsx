@@ -1,10 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
 import { useRouter } from 'expo-router';
 import { useAtom, useAtomValue } from 'jotai';
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Alert, Linking, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import SettingRow from '@/src/components/SettiingRow';
+import { LEGAL_URLS } from '@/src/legal/urls';
 import {
     autoAdvanceEnabledAtom,
     countdownSoundEnabledAtom,
@@ -46,7 +48,13 @@ export default function SettingsScreen() {
         Linking.openURL(url).catch(() => Alert.alert('Error', 'Could not open email client.'));
     };
 
-
+    const openLegalUrl = useCallback(async (url: string) => {
+        try {
+            await WebBrowser.openBrowserAsync(url);
+        } catch (e) {
+            console.error('Failed to open legal URL:', e);
+        }
+    }, []);
 
     return (
         <View style={styles.root}>
@@ -135,12 +143,14 @@ export default function SettingsScreen() {
                             icon="document-text-outline"
                             title="Terms of Service"
                             isLink={true}
+                            onPress={() => openLegalUrl(LEGAL_URLS.terms)}
                         />
                         <View style={styles.divider} />
                         <SettingRow
                             icon="shield-checkmark-outline"
                             title="Privacy Policy"
                             isLink={true}
+                            onPress={() => openLegalUrl(LEGAL_URLS.privacy)}
                         />
                     </View>
 
