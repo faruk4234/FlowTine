@@ -122,7 +122,7 @@ export default function HomeScreen() {
                 KINETIC FLOW • {activeCount} ACTIVE{isPremium ? ' • PRO' : ''}
               </Text>
             </View>
-            <TouchableOpacity style={s.settingsBtn}>
+            <TouchableOpacity style={s.settingsBtn} onPress={() => router.push('/settings')}>
               <Ionicons name="settings-sharp" size={22} color={C.text} />
             </TouchableOpacity>
           </View>

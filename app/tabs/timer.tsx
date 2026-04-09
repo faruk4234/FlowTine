@@ -1,4 +1,4 @@
-import { activeRoutineIdAtom, routinesAtom, timerRunningAtom, type Movement, } from '@/src/state/atoms';
+import { activeRoutineIdAtom, routinesAtom, timerRunningAtom, autoAdvanceEnabledAtom, type Movement, } from '@/src/state/atoms';
 import { BorderRadius, Spacing, Typography } from '@/src/state/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -102,6 +102,7 @@ export default function TimerScreen() {
   const setActiveId = useSetAtom(activeRoutineIdAtom);
   const activeId = useAtomValue(activeRoutineIdAtom);
   const routines = useAtomValue(routinesAtom);
+  const isAutoAdvance = useAtomValue(autoAdvanceEnabledAtom);
 
   const safeRoutines = Array.isArray(routines) ? routines : [];
   // Prefer URL param ID over atom (avoids hydration race)
@@ -188,8 +189,11 @@ export default function TimerScreen() {
   useEffect(() => {
     if (seconds === 0 && isRunning) {
       advance();
+      if (!isAutoAdvance) {
+         setIsRunning(false);
+      }
     }
-  }, [seconds, isRunning, advance]);
+  }, [seconds, isRunning, advance, isAutoAdvance, setIsRunning]);
 
   // Controls
   function handlePauseResume() { setIsRunning((r) => !r); }

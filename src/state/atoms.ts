@@ -123,5 +123,11 @@ export const isPremiumAtom = atomWithStorage<boolean>('paywall.isPremium', false
 export const hasSeenPaywallAtom = atomWithStorage<boolean>('paywall.hasSeenPaywall', false, boolStorage);
 export const themeModeAtom = atomWithStorage<ThemeMode>('theme.mode', 'system', themeStorage);
 
+// ─── App Settings Atoms ───────────────────────────────────────────────────────
+export const notificationsEnabledAtom = atomWithStorage<boolean>('settings.notifications', true, boolStorage);
+export const soundVibrationEnabledAtom = atomWithStorage<boolean>('settings.soundVibration', true, boolStorage);
+export const autoAdvanceEnabledAtom = atomWithStorage<boolean>('settings.autoAdvance', false, boolStorage);
+export const countdownSoundEnabledAtom = atomWithStorage<boolean>('settings.countdownSound', true, boolStorage);
+
 // ─── Transient atoms ──────────────────────────────────────────────────────────
 export const sessionAtom = atom<{ startedAt: number } | null>(null);
