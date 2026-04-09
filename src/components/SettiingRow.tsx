@@ -50,7 +50,7 @@ export const SettingRow = ({ icon, title, subtitle, isSwitch, switchValue, onVal
         ) : isLink ? (
             <Ionicons name="chevron-forward" size={20} color={C.textDim} />
         ) : (
-            <Ionicons name="arrow-up-right" size={20} color={C.textDim} />
+            <Ionicons name="open-outline" size={20} color={C.textDim} />
         )}
     </TouchableOpacity>
 );
