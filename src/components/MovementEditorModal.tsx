@@ -38,6 +38,10 @@ export default function MovementEditorModal({ visible, movement, onClose, onSave
   const [durSec, setDurSec] = useState(movement?.durationSec ?? 30);
   const [restSec, setRestSec] = useState(movement?.restSec ?? 30);
 
+  const [minFocused, setMinFocused] = useState(false);
+  const [secFocused, setSecFocused] = useState(false);
+
+
   React.useEffect(() => {
     if (visible) {
       setName(movement?.name ?? '');
@@ -115,7 +119,19 @@ export default function MovementEditorModal({ visible, movement, onClose, onSave
               <TouchableOpacity onPress={() => setDurMin((v) => clamp(v + 1, 0, 99))} style={e.durBtn}>
                 <Ionicons name="chevron-up" size={22} color={C.textMuted} />
               </TouchableOpacity>
-              <Text style={e.durationNum}>{pad(durMin)}</Text>
+              <TextInput
+                style={[e.durationNum, { minWidth: 80, textAlign: 'center', padding: 0 }]}
+                value={minFocused ? (durMin ? String(durMin) : '') : pad(durMin)}
+                keyboardType="number-pad"
+                maxLength={2}
+                selectTextOnFocus
+                onFocus={() => setMinFocused(true)}
+                onBlur={() => setMinFocused(false)}
+                onChangeText={(val) => {
+                  const num = parseInt(val.replace(/\D/g, ''), 10);
+                  setDurMin(isNaN(num) ? 0 : clamp(num, 0, 99));
+                }}
+              />
               <TouchableOpacity onPress={() => setDurMin((v) => clamp(v - 1, 0, 99))} style={e.durBtn}>
                 <Ionicons name="chevron-down" size={22} color={C.textMuted} />
               </TouchableOpacity>
@@ -125,7 +141,19 @@ export default function MovementEditorModal({ visible, movement, onClose, onSave
               <TouchableOpacity onPress={() => setDurSec((v) => clamp(v + 5, 0, 55))} style={e.durBtn}>
                 <Ionicons name="chevron-up" size={22} color={C.textMuted} />
               </TouchableOpacity>
-              <Text style={e.durationNum}>{pad(durSec)}</Text>
+              <TextInput
+                style={[e.durationNum, { minWidth: 80, textAlign: 'center', padding: 0 }]}
+                value={secFocused ? (durSec ? String(durSec) : '') : pad(durSec)}
+                keyboardType="number-pad"
+                maxLength={2}
+                selectTextOnFocus
+                onFocus={() => setSecFocused(true)}
+                onBlur={() => setSecFocused(false)}
+                onChangeText={(val) => {
+                  const num = parseInt(val.replace(/\D/g, ''), 10);
+                  setDurSec(isNaN(num) ? 0 : clamp(num, 0, 59));
+                }}
+              />
               <TouchableOpacity onPress={() => setDurSec((v) => clamp(v - 5, 0, 55))} style={e.durBtn}>
                 <Ionicons name="chevron-down" size={22} color={C.textMuted} />
               </TouchableOpacity>
