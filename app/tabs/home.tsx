@@ -2,7 +2,6 @@ import RoutineCard from '@/src/components/RoutineCard';
 import RoutineFormModal, { type FormMode } from '@/src/components/RoutineFormModal';
 import {
   activeRoutineIdAtom,
-  isPremiumAtom,
   routinesAtom,
   selectedRoutineIdAtom,
   timerRunningAtom,
@@ -10,11 +9,12 @@ import {
   type Routine
 } from '@/src/state/atoms';
 import { BorderRadius, Spacing, Typography } from '@/src/state/theme';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useAtom, useSetAtom } from 'jotai';
 import React, { useState } from 'react';
 import {
+  Alert,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -48,7 +48,7 @@ export default function HomeScreen() {
   const setSelectedRoutineId = useSetAtom(selectedRoutineIdAtom);
   const setTimerSeconds = useSetAtom(timerSecondsAtom);
   const setTimerRunning = useSetAtom(timerRunningAtom);
-  const isPremium = useAtomValue(isPremiumAtom);
+  const isPremium = false
 
   const [formVisible, setFormVisible] = useState(false);
   const [formMode, setFormMode] = useState<FormMode>({ mode: 'create' });
@@ -122,9 +122,23 @@ export default function HomeScreen() {
                 KINETIC FLOW • {activeCount} ACTIVE{isPremium ? ' • PRO' : ''}
               </Text>
             </View>
-            <TouchableOpacity style={s.settingsBtn} onPress={() => router.push('/settings')}>
-              <Ionicons name="settings-sharp" size={22} color={C.text} />
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: Spacing.xs }}>
+              {!isPremium ? (
+                <TouchableOpacity
+                  style={[s.settingsBtn, { marginTop: 0, marginRight: Spacing.sm }]}
+                  onPress={() => Alert.alert("Upgrade", "Open premium paywall...")}
+                >
+                  <MaterialCommunityIcons name="crown-outline" size={24} color={C.textMuted} />
+                </TouchableOpacity>
+              ) : (
+                <View style={[s.settingsBtn, { marginTop: 0, marginRight: Spacing.sm, backgroundColor: C.blueDim }]}>
+                  <MaterialCommunityIcons name="crown" size={24} color={C.blue} />
+                </View>
+              )}
+              <TouchableOpacity style={[s.settingsBtn, { marginTop: 0 }]} onPress={() => router.push('/settings')}>
+                <Ionicons name="settings-sharp" size={22} color={C.text} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Cards */}
