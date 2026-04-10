@@ -263,15 +263,6 @@ export default function PaywallScreen() {
               <Text style={s.upgradeBtnText}>Continue</Text>
             )}
           </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={handleRestore}
-            disabled={loading}
-            style={s.restoreWrap}
-          >
-            <Text style={s.restoreText}>Restore Purchases</Text>
-          </TouchableOpacity>
-
           <View style={s.legalRow}>
             <TouchableOpacity onPress={() => openLegalUrl(LEGAL_URLS.terms)}>
               <Text style={s.legalLink}>TERMS</Text>
@@ -492,6 +483,7 @@ const s = StyleSheet.create({
     textDecorationLine: "underline",
   },
   legalRow: {
+    paddingTop: Spacing.lg,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
