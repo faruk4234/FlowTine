@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Modal, Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { type Movement } from '@/src/state/atoms';
@@ -30,6 +31,7 @@ type EditorProps = {
 };
 
 export default function MovementEditorModal({ visible, movement, onClose, onSave, onDelete, isPremium }: EditorProps) {
+  const router = useRouter();
   const isEdit = !!movement;
 
   const [name, setName] = useState(movement?.name ?? '');
@@ -182,15 +184,32 @@ export default function MovementEditorModal({ visible, movement, onClose, onSave
             </TouchableOpacity>
           </View>
 
-          {/* Haptic alerts — premium only */}
-          <View style={e.hapticRow}>
-            <Ionicons name="phone-portrait-outline" size={20} color={isPremium ? C.blue : C.textDim} />
-            <View style={{ flex: 1, marginLeft: 14 }}>
-              <Text style={[e.hapticTitle, { color: isPremium ? C.text : C.textDim }]}>Haptic Alerts</Text>
-              <Text style={e.hapticSub}>Premium feature only</Text>
+          {/* Haptic alerts — premium only; tap opens paywall when locked */}
+          {isPremium ? (
+            <View style={e.hapticRow}>
+              <Ionicons name="phone-portrait-outline" size={20} color={C.blue} />
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text style={[e.hapticTitle, { color: C.text }]}>Haptic Alerts</Text>
+                <Text style={e.hapticSub}>Premium feature only</Text>
+              </View>
+              <Ionicons name="checkmark-circle" size={20} color={C.blue} />
             </View>
-            <Ionicons name={isPremium ? 'checkmark-circle' : 'lock-closed'} size={20} color={isPremium ? C.blue : C.textDim} />
-          </View>
+          ) : (
+            <TouchableOpacity
+              style={e.hapticRow}
+              activeOpacity={0.75}
+              onPress={() => router.push('/paywall')}
+              accessibilityRole="button"
+              accessibilityLabel="Haptic Alerts, Premium only. Opens upgrade screen."
+            >
+              <Ionicons name="phone-portrait-outline" size={20} color={C.textDim} />
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text style={[e.hapticTitle, { color: C.textDim }]}>Haptic Alerts</Text>
+                <Text style={e.hapticSub}>Premium feature only</Text>
+              </View>
+              <Ionicons name="lock-closed" size={20} color={C.textDim} />
+            </TouchableOpacity>
+          )}
 
           {/* Delete (edit mode only) — inside scroll */}
           {isEdit && (

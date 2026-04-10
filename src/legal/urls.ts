@@ -1,0 +1,8 @@
+/**
+ * Canonical URLs for legal documents hosted on your website.
+ * Replace these with your production URLs before release.
+ */
+export const LEGAL_URLS = {
+  terms: "https://yourdomain.com/terms",
+  privacy: "https://yourdomain.com/privacy",
+} as const;
