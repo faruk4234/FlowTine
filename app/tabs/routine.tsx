@@ -84,7 +84,7 @@ export default function RoutineScreen() {
   function updateRoutine(patch: Partial<Routine>) {
     setRoutines((prev) => {
       const arr: Routine[] = Array.isArray(prev) ? prev : [];
-      return arr.map((r) => r.id === routine!.id ? { ...r, ...patch } : r);
+      return arr.map((r) => (r.id === selectedId ? { ...r, ...patch } : r));
     });
   }
 
@@ -102,8 +102,20 @@ export default function RoutineScreen() {
   }
 
   function deleteMovement(id: string) {
-    const next = movements.filter((mv) => mv.id !== id);
-    updateRoutine({ movements: next, movementCount: next.length, durationMin: computeDuration(next) });
+    setRoutines((prev) => {
+      const arr: Routine[] = Array.isArray(prev) ? prev : [];
+      return arr.map((r) => {
+        if (r.id !== selectedId) return r;
+        const currentMovements: Movement[] = Array.isArray(r.movements) ? r.movements : [];
+        const next = currentMovements.filter((mv) => mv.id !== id);
+        return {
+          ...r,
+          movements: next,
+          movementCount: next.length,
+          durationMin: computeDuration(next),
+        };
+      });
+    });
   }
 
   function openAdd() {
@@ -117,7 +129,7 @@ export default function RoutineScreen() {
   }
 
   function openEditRoutine() {
-    setRoutineFormMode({ mode: 'edit', routine });
+    setRoutineFormMode({ mode: 'edit', routine: routine! });
     setRoutineFormVisible(true);
   }
 

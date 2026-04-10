@@ -39,7 +39,7 @@ export default function SettingsScreen() {
     const isPremium = useAtomValue(isPremiumAtom);
 
     const handleUpgrade = () => {
-        Alert.alert("Upgrade", "Open premium paywall...");
+        router.push('/paywall');
     };
 
     const handleSupport = () => {

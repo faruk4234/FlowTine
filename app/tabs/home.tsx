@@ -127,7 +127,7 @@ export default function HomeScreen() {
               {!isPremium ? (
                 <TouchableOpacity
                   style={[s.settingsBtn, { marginTop: 0, marginRight: Spacing.sm }]}
-                  onPress={() => Alert.alert("Upgrade", "Open premium paywall...")}
+                  onPress={() => router.push('/paywall')}
                 >
                   <MaterialCommunityIcons name="crown-outline" size={24} color={C.textMuted} />
                 </TouchableOpacity>
