@@ -9,8 +9,8 @@ import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  ImageBackground,
   Platform,
-  SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
@@ -18,6 +18,7 @@ import {
   View,
 } from "react-native";
 import Purchases, { type PurchasesPackage } from "react-native-purchases";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const C = {
   bg: "#070B12",
@@ -172,115 +173,133 @@ export default function PaywallScreen() {
 
   return (
     <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor={C.bg} />
-      <SafeAreaView style={s.safe}>
-        <View style={s.topBar}>
-          <TouchableOpacity
-            style={s.closeBtn}
-            onPress={() => router.back()}
-            accessibilityRole="button"
-            accessibilityLabel="Close"
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <Ionicons name="close" size={20} color={C.textMuted} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={s.content}>
-          <View style={s.brandRow}>
-            <Ionicons name="flash" size={13} color={C.blue} />
-            <Text style={s.brandText}>FLOWTINE PREMIUM</Text>
+      <ImageBackground
+        source={require("../src/assets/images/paywall-background.png")}
+        style={s.backgroundImage}
+      >
+        <StatusBar barStyle="light-content" backgroundColor={C.bg} />
+        <SafeAreaView style={s.safe}>
+          <View style={s.topBar}>
+            <TouchableOpacity
+              style={s.closeBtn}
+              onPress={() => router.back()}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Ionicons name="close" size={20} color={C.textMuted} />
+            </TouchableOpacity>
           </View>
 
-          <Text style={s.headline}>Flowtine</Text>
-          <Text style={s.subHeadline}>Limitless focused sessions</Text>
+          <View style={s.content}>
+            <View style={s.brandRow}>
+              <Ionicons name="flash" size={13} color={C.blue} />
+              <Text style={s.brandText}>FLOWTINE PREMIUM</Text>
+            </View>
 
-          <View style={s.featureRow}>
-            {featureChips.map((f) => (
-              <View key={f.label} style={s.featureChip}>
-                <Ionicons name={f.icon} size={14} color="#93C5FD" />
-                <Text style={s.featureChipText}>{f.label}</Text>
-              </View>
-            ))}
-          </View>
+            <Text style={s.headline}>Flowtine</Text>
+            <Text style={s.subHeadline}>Limitless focused sessions</Text>
 
-          <View style={s.plans}>
-            {PLANS.map((plan) => {
-              const selected = selectedId === plan.id;
-              return (
-                <TouchableOpacity
-                  key={plan.id}
-                  activeOpacity={0.85}
-                  onPress={() => !plan.active && setSelectedId(plan.id)}
-                  style={[s.planCard, selected && s.planCardSelected]}
-                >
-                  {plan.badge ? (
-                    <View style={s.badge}>
-                      <Text style={s.badgeText}>{plan.badge}</Text>
-                    </View>
-                  ) : null}
-                  <View style={s.planRowInner}>
-                    <View style={s.planLeft}>
-                      <View
-                        style={[s.radioOuter, selected && s.radioOuterSelected]}
-                      >
-                        {selected ? <View style={s.radioInner} /> : null}
+            <View style={s.featureRow}>
+              {featureChips.map((f) => (
+                <View key={f.label} style={s.featureChip}>
+                  <Ionicons name={f.icon} size={14} color="#93C5FD" />
+                  <Text style={s.featureChipText}>{f.label}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={s.plans}>
+              {PLANS.map((plan) => {
+                const selected = selectedId === plan.id;
+                return (
+                  <TouchableOpacity
+                    key={plan.id}
+                    activeOpacity={0.85}
+                    onPress={() => !plan.active && setSelectedId(plan.id)}
+                    style={[s.planCard, selected && s.planCardSelected]}
+                  >
+                    {plan.badge ? (
+                      <View style={s.badge}>
+                        <Text style={s.badgeText}>{plan.badge}</Text>
                       </View>
-                      <Text style={s.planLabel}>{plan.label}</Text>
-                    </View>
-                    <View style={s.planRight}>
-                      {plan.active ? (
-                        <View style={s.activePill}>
-                          <Text style={s.activeText}>ACTIVE</Text>
+                    ) : null}
+                    <View style={s.planRowInner}>
+                      <View style={s.planLeft}>
+                        <View
+                          style={[
+                            s.radioOuter,
+                            selected && s.radioOuterSelected,
+                          ]}
+                        >
+                          {selected ? <View style={s.radioInner} /> : null}
                         </View>
-                      ) : (
-                        <View style={s.priceBlock}>
-                          <Text style={s.planPrice}>{plan.price}</Text>
-                          {plan.duration ? (
-                            <Text style={s.planDuration}>{plan.duration}</Text>
-                          ) : null}
-                        </View>
-                      )}
+                        <Text style={s.planLabel}>{plan.label}</Text>
+                      </View>
+                      <View style={s.planRight}>
+                        {plan.active ? (
+                          <View style={s.activePill}>
+                            <Text style={s.activeText}>ACTIVE</Text>
+                          </View>
+                        ) : (
+                          <View style={s.priceBlock}>
+                            <Text style={s.planPrice}>{plan.price}</Text>
+                            {plan.duration ? (
+                              <Text style={s.planDuration}>
+                                {plan.duration}
+                              </Text>
+                            ) : null}
+                          </View>
+                        )}
+                      </View>
                     </View>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
-        </View>
 
-        <View style={s.footer}>
-          <TouchableOpacity
-            style={[s.upgradeBtn, loading && s.upgradeBtnDisabled]}
-            onPress={handleUpgrade}
-            disabled={loading}
-            activeOpacity={0.9}
-          >
-            {loading ? (
-              <ActivityIndicator color="#FFF" />
-            ) : (
-              <Text style={s.upgradeBtnText}>Continue</Text>
-            )}
-          </TouchableOpacity>
-          <View style={s.legalRow}>
-            <TouchableOpacity onPress={() => openLegalUrl(LEGAL_URLS.terms)}>
-              <Text style={s.legalLink}>TERMS</Text>
+          <View style={s.footer}>
+            <TouchableOpacity
+              style={[s.upgradeBtn, loading && s.upgradeBtnDisabled]}
+              onPress={handleUpgrade}
+              disabled={loading}
+              activeOpacity={0.9}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={s.upgradeBtnText}>Continue</Text>
+              )}
             </TouchableOpacity>
-            <TouchableOpacity onPress={handleRestore}>
-              <Text style={s.legalLink}>RESTORE PURCHASES</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => openLegalUrl(LEGAL_URLS.privacy)}>
-              <Text style={s.legalLink}>PRIVACY</Text>
-            </TouchableOpacity>
+            <View style={s.legalRow}>
+              <TouchableOpacity onPress={() => openLegalUrl(LEGAL_URLS.terms)}>
+                <Text style={s.legalLink}>TERMS</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleRestore}>
+                <Text style={s.legalLink}>RESTORE PURCHASES</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => openLegalUrl(LEGAL_URLS.privacy)}
+              >
+                <Text style={s.legalLink}>PRIVACY</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </SafeAreaView>
+        </SafeAreaView>
+      </ImageBackground>
     </View>
   );
 }
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
+  backgroundImage: {
+    flex: 1,
+    resizeMode: "cover",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   safe: { flex: 1 },
   topBar: {
     paddingHorizontal: Spacing.screenHorizontal - 6,
@@ -453,7 +472,6 @@ const s = StyleSheet.create({
     paddingHorizontal: Spacing.screenHorizontal,
     paddingBottom: Platform.OS === "ios" ? Spacing.lg : Spacing.md,
     paddingTop: Spacing.sm,
-    backgroundColor: C.bg,
   },
   upgradeBtn: {
     backgroundColor: C.blue,
