@@ -52,21 +52,21 @@ export type Routine = {
 
 // ─── Default data ─────────────────────────────────────────────────────────────
 const DEFAULT_ROUTINES: Routine[] = [
-  {
-    id: 'default-1',
-    title: 'Morning Yoga',
-    subtitle: 'Vinyasa Flow focus',
-    durationMin: 15,
-    movementCount: 3,
-    categoryIconIndex: 0,
-    isActive: true,
-    createdAt: 1_000_000_001,
-    movements: [
-      { id: 'm1-1', name: 'Sun Salutation A', description: '', durationMin: 5, durationSec: 0, restSec: 30 },
-      { id: 'm1-2', name: 'Deep Breath Isometric', description: '', durationMin: 2, durationSec: 0, restSec: 15 },
-      { id: 'm1-3', name: 'Warrior Flow II', description: '', durationMin: 8, durationSec: 0, restSec: 60 },
-    ],
-  },
+  /* {
+     id: 'default-1',
+     title: 'Morning Yoga',
+     subtitle: 'Vinyasa Flow focus',
+     durationMin: 15,
+     movementCount: 3,
+     categoryIconIndex: 0,
+     isActive: true,
+     createdAt: 1_000_000_001,
+     movements: [
+       { id: 'm1-1', name: 'Sun Salutation A', description: '', durationMin: 5, durationSec: 0, restSec: 30 },
+       { id: 'm1-2', name: 'Deep Breath Isometric', description: '', durationMin: 2, durationSec: 0, restSec: 15 },
+       { id: 'm1-3', name: 'Warrior Flow II', description: '', durationMin: 8, durationSec: 0, restSec: 60 },
+     ],
+   },*/
   {
     id: 'default-2',
     title: 'Deep Work Pomodoro',
@@ -106,6 +106,46 @@ export const routinesAtom = atomWithStorage<Routine[]>(
   DEFAULT_ROUTINES,
   createJSONStorage<Routine[]>(() => AsyncStorage),
 );
+
+/**
+ * Set of default routine IDs the user has explicitly deleted.
+ * Used by seedDefaultRoutines() to avoid re-adding them on next launch.
+ */
+export const deletedDefaultIdsAtom = atomWithStorage<string[]>(
+  'routines.deletedDefaults',
+  [],
+  createJSONStorage<string[]>(() => AsyncStorage),
+);
+
+/**
+ * Call once at app startup (e.g. in _layout.tsx or index.tsx).
+ * Merges any new DEFAULT_ROUTINES into storage, skipping ones the user deleted.
+ */
+export async function seedDefaultRoutines(): Promise<void> {
+  try {
+    const [storedRaw, deletedRaw] = await Promise.all([
+      AsyncStorage.getItem('routines.list'),
+      AsyncStorage.getItem('routines.deletedDefaults'),
+    ]);
+
+    const stored: Routine[] = storedRaw ? JSON.parse(storedRaw) : [];
+    const deletedIds: string[] = deletedRaw ? JSON.parse(deletedRaw) : [];
+
+    const storedIds = new Set(stored.map((r) => r.id));
+
+    // Find defaults the user hasn't seen yet and hasn't explicitly deleted
+    const toAdd = DEFAULT_ROUTINES.filter(
+      (d) => !storedIds.has(d.id) && !deletedIds.includes(d.id),
+    );
+
+    if (toAdd.length === 0) return;
+
+    const merged = [...stored, ...toAdd];
+    await AsyncStorage.setItem('routines.list', JSON.stringify(merged));
+  } catch (e) {
+    console.warn('[seedDefaultRoutines] failed:', e);
+  }
+}
 
 /** ID of the routine detail screen currently open. Transient. */
 export const selectedRoutineIdAtom = atom<string | null>(null);

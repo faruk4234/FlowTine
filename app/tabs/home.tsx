@@ -3,7 +3,9 @@ import RoutineFormModal, {
   type FormMode,
 } from "@/src/components/RoutineFormModal";
 import {
+  DEFAULT_ROUTINES,
   activeRoutineIdAtom,
+  deletedDefaultIdsAtom,
   isPremiumAtom,
   routinesAtom,
   selectedRoutineIdAtom,
@@ -50,6 +52,7 @@ export default function HomeScreen() {
   const setTimerSeconds = useSetAtom(timerSecondsAtom);
   const setTimerRunning = useSetAtom(timerRunningAtom);
   const isPremium = useAtomValue(isPremiumAtom);
+  const [deletedDefaultIds, setDeletedDefaultIds] = useAtom(deletedDefaultIdsAtom);
 
   const [formVisible, setFormVisible] = useState(false);
   const [formMode, setFormMode] = useState<FormMode>({ mode: "create" });
@@ -94,6 +97,11 @@ export default function HomeScreen() {
       return arr.filter((r) => r.id !== id);
     });
     if (activeRoutineId === id) setActiveRoutineId(null);
+    // Track if user deleted a default routine so it won't be re-seeded
+    const isDefault = DEFAULT_ROUTINES.some((d) => d.id === id);
+    if (isDefault) {
+      setDeletedDefaultIds((prev) => [...new Set([...prev, id])]);
+    }
   }
 
   function handleOpen(routine: Routine) {
