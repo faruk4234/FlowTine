@@ -7,7 +7,6 @@ import {
   Alert,
   Linking,
   Platform,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -15,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import SettingRow from "@/src/components/SettiingRow";
 import { LEGAL_URLS } from "@/src/legal/urls";
@@ -22,6 +22,7 @@ import {
   autoAdvanceEnabledAtom,
   countdownSoundEnabledAtom,
   isPremiumAtom,
+  routineCueSoundsEnabledAtom,
   soundVibrationEnabledAtom,
 } from "@/src/state/atoms";
 import { Spacing } from "@/src/state/theme";
@@ -49,6 +50,9 @@ export default function SettingsScreen() {
   const [autoAdvance, setAutoAdvance] = useAtom(autoAdvanceEnabledAtom);
   const [countdownSound, setCountdownSound] = useAtom(
     countdownSoundEnabledAtom,
+  );
+  const [routineCueSounds, setRoutineCueSounds] = useAtom(
+    routineCueSoundsEnabledAtom,
   );
 
   const isPremium = useAtomValue(isPremiumAtom);
@@ -134,6 +138,15 @@ export default function SettingsScreen() {
               isSwitch={true}
               switchValue={soundVibration}
               onValueChange={setSoundVibration}
+            />
+            <View style={styles.divider} />
+            <SettingRow
+              icon="musical-notes-outline"
+              title="Routine sounds"
+              subtitle="Get ready, go, step done, and finish cues"
+              isSwitch={true}
+              switchValue={routineCueSounds}
+              onValueChange={setRoutineCueSounds}
             />
             <View style={styles.divider} />
             <SettingRow

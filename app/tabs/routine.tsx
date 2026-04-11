@@ -15,7 +15,6 @@ import React, { useState } from 'react';
 import {
   Alert,
   Platform,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -23,6 +22,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import MovementEditorModal from '@/src/components/MovementEditorModal';
 import MovementRow from '@/src/components/MovementRow';
