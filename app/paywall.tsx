@@ -199,7 +199,7 @@ export default function PaywallScreen() {
               </View>
 
               <Text style={s.headline}>Flowtine</Text>
-              <Text style={s.subHeadline}>Limitless focused sessions</Text>
+              <Text style={s.subHeadline}>Routine and Habit Tracker</Text>
             </View>
 
             <View style={s.featureGrid}>
@@ -304,7 +304,7 @@ const s = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  safe: { flex: 1 },
+  safe: { flex: 1, marginHorizontal: Spacing.sm },
   topBar: {
     paddingHorizontal: Spacing.screenHorizontal - 6,
     paddingTop: Platform.OS === "android" ? 8 : 4,
@@ -359,20 +359,17 @@ const s = StyleSheet.create({
   },
   featureGrid: {
     flexDirection: "row",
-
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
     flexWrap: "wrap",
     rowGap: 15,
-    columnGap: 0,
     marginBottom: 30,
     marginTop: 10,
   },
   featureCell: {
-    width: "50%",
+    width: "48%",
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    paddingRight: 8,
   },
   featureIconCircle: {
     width: 30,
