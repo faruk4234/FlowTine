@@ -45,7 +45,6 @@ type PlanRow = {
 };
 
 const PLANS: PlanRow[] = [
-  { id: "free", label: "Free", price: "", active: true },
   { id: "weekly", label: "Weekly", price: "$4.99", duration: "/ week" },
   { id: "monthly", label: "Monthly", price: "$12.99", duration: "/ month" },
   {

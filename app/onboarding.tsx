@@ -1,27 +1,27 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSetAtom } from 'jotai';
-import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
+import { Dimensions, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
-import { useAppTheme } from '@/src/state/theme';
 import { onboardingCompletedAtom } from '@/src/state/atoms';
+import { useAppTheme } from '@/src/state/theme';
 
 const { width } = Dimensions.get('window');
 
 // ─── Design tokens (Stitch Obsidian Kinetic) ─────────────────────────────────
 const C = {
-  bg: '#0F1115',
-  surface: '#1A1D23',
-  surfaceHigh: '#22262F',
-  border: '#2A2E38',
-  text: '#F1F5F9',
-  textMuted: '#9CA3AF',
-  textDim: '#64748B',
-  blue: '#3B82F6',
-  blueDim: 'rgba(59,130,246,0.15)',
-  green: '#10B981',
+    bg: '#0F1115',
+    surface: '#1A1D23',
+    surfaceHigh: '#22262F',
+    border: '#2A2E38',
+    text: '#F1F5F9',
+    textMuted: '#9CA3AF',
+    textDim: '#64748B',
+    blue: '#3B82F6',
+    blueDim: 'rgba(59,130,246,0.15)',
+    green: '#10B981',
 };
 const FEATURES = [
     {
@@ -32,7 +32,7 @@ const FEATURES = [
     {
         icon: 'time-outline' as const,
         title: 'Movements & Time',
-        description: 'Add routine movements or steps with precise time controls.',
+        description: 'Add routine movexPments or steps with precise time controls.',
     },
     {
         icon: 'checkmark-circle-outline' as const,
