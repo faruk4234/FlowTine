@@ -17,7 +17,7 @@ import { BorderRadius, Spacing, Typography } from "@/src/state/theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Platform,
   SafeAreaView,
@@ -78,29 +78,35 @@ export default function HomeScreen() {
     setFormVisible(true);
   }
 
+  useEffect(() => {
+    // console.log('routine', routines)
+  }, [routines])
+
   function handleSave(routine: Routine) {
-    setRoutines((prev) => {
-      const arr: Routine[] = Array.isArray(prev) ? prev : [];
-      const idx = arr.findIndex((r) => r.id === routine.id);
-      if (idx >= 0) {
-        const next = [...arr];
-        next[idx] = routine;
-        return next;
-      }
-      return [...arr, routine];
-    });
+    const arr = Array.isArray(routines) ? routines : [];
+    const idx = arr.findIndex((r) => r.id === routine.id);
+    let updated;
+    if (idx >= 0) {
+      updated = [...arr];
+      updated[idx] = routine;
+    } else {
+      updated = [...arr, routine];
+    }
+    setRoutines(updated);
   }
 
   function handleDelete(id: string) {
-    setRoutines((prev) => {
-      const arr: Routine[] = Array.isArray(prev) ? prev : [];
-      return arr.filter((r) => r.id !== id);
-    });
+    const arr = Array.isArray(routines) ? routines : [];
+    const updated = arr.filter((r) => r.id !== id);
+    setRoutines(updated);
+
     if (activeRoutineId === id) setActiveRoutineId(null);
+
     // Track if user deleted a default routine so it won't be re-seeded
     const isDefault = DEFAULT_ROUTINES.some((d) => d.id === id);
     if (isDefault) {
-      setDeletedDefaultIds((prev) => [...new Set([...prev, id])]);
+      const nextDeleted = [...new Set([...deletedDefaultIds, id])];
+      setDeletedDefaultIds(nextDeleted);
     }
   }
 

@@ -2,6 +2,7 @@ import { ThemeMode } from '@/src/state/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { atom } from 'jotai';
 import { atomWithStorage, createJSONStorage } from 'jotai/utils';
+import { appStore } from '@/src/state/store';
 
 // ─── Storage helpers ──────────────────────────────────────────────────────────
 const boolStorage = createJSONStorage<boolean>(() => AsyncStorage);
@@ -141,7 +142,9 @@ export async function seedDefaultRoutines(): Promise<void> {
     if (toAdd.length === 0) return;
 
     const merged = [...stored, ...toAdd];
-    await AsyncStorage.setItem('routines.list', JSON.stringify(merged));
+    // CRITICAL: We must update the atom, not just AsyncStorage.
+    // appStore.set ensures the React state is updated immediately so no routines 'disappear'.
+    appStore.set(routinesAtom, merged);
   } catch (e) {
     console.warn('[seedDefaultRoutines] failed:', e);
   }
