@@ -1,5 +1,5 @@
-import { activeRoutineIdAtom, routinesAtom, timerRunningAtom, autoAdvanceEnabledAtom, routineCueSoundsEnabledAtom, type Movement, } from '@/src/state/atoms';
 import { routineFeedback } from '@/src/feedback/routine-feedback';
+import { activeRoutineIdAtom, autoAdvanceEnabledAtom, routineCueSoundsEnabledAtom, routinesAtom, soundVibrationEnabledAtom, timerRunningAtom, type Movement, } from '@/src/state/atoms';
 import { BorderRadius, Spacing, Typography } from '@/src/state/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -105,6 +105,9 @@ export default function TimerScreen() {
   const routines = useAtomValue(routinesAtom);
   const isAutoAdvance = useAtomValue(autoAdvanceEnabledAtom);
   const routineSoundsOn = useAtomValue(routineCueSoundsEnabledAtom);
+  const feedbackEnabled = useAtomValue(soundVibrationEnabledAtom);
+  const transportFeedbackAt = useRef(0);
+  const TRANSPORT_FEEDBACK_GAP_MS = 220;
 
   const safeRoutines = Array.isArray(routines) ? routines : [];
   // Prefer URL param ID over atom (avoids hydration race)
@@ -243,13 +246,34 @@ export default function TimerScreen() {
     if (seconds === 0 && isRunning) {
       advance();
       if (!isAutoAdvance) {
-         setIsRunning(false);
+        setIsRunning(false);
       }
     }
   }, [seconds, isRunning, advance, isAutoAdvance, setIsRunning]);
 
-  // Controls
-  function handlePauseResume() { setIsRunning((r) => !r); }
+  useEffect(() => {
+    void routineFeedback.preloadTransport();
+  }, []);
+
+  const handlePauseResume = useCallback(() => {
+    setIsRunning((wasRunning) => {
+      const next = !wasRunning;
+      if (phase === 'done' || !currentMov) return next;
+      if (feedbackEnabled) {
+        const now = Date.now();
+        if (now - transportFeedbackAt.current < TRANSPORT_FEEDBACK_GAP_MS) {
+          return next;
+        }
+        transportFeedbackAt.current = now;
+        if (next) {
+          void routineFeedback.playResume(feedbackEnabled);
+        } else {
+          void routineFeedback.playPause(feedbackEnabled);
+        }
+      }
+      return next;
+    });
+  }, [phase, currentMov, feedbackEnabled, setIsRunning]);
 
   function handleBack() {
     if (phase === 'rest') {

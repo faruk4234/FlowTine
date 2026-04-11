@@ -92,7 +92,7 @@ export default function PaywallScreen() {
 
       const res = await Purchases.getOfferings();
       const info = await Purchases.getCustomerInfo();
-      
+
       console.log("📢 offerings", res.current);
       console.log("📢 Active Product IDs:", info.activeSubscriptions);
       console.log("📢 All Purchased IDs:", info.allPurchasedProductIdentifiers);
@@ -345,6 +345,7 @@ const s = StyleSheet.create({
   closeBtn: {
     width: 36,
     height: 36,
+    marginTop: Spacing.sm,
     borderRadius: BorderRadius.round,
     backgroundColor: C.surfaceBtn,
     justifyContent: "center",

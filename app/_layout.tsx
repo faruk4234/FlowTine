@@ -81,6 +81,7 @@ const RootLayout = () => {
             <Stack.Screen name="onboarding" options={{ presentation: 'fullScreenModal' }} />
             <Stack.Screen name="settings" options={{ presentation: 'card' }} />
             <Stack.Screen name="paywall" options={{ presentation: 'fullScreenModal' }} />
+            <Stack.Screen name="legal-webview" options={{ presentation: 'card' }} />
           </Stack>
         </AppThemeProvider>
       </JotaiProvider>
