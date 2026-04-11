@@ -1,4 +1,5 @@
-import { activeRoutineIdAtom, routinesAtom, timerRunningAtom, autoAdvanceEnabledAtom, type Movement, } from '@/src/state/atoms';
+import { activeRoutineIdAtom, routinesAtom, timerRunningAtom, autoAdvanceEnabledAtom, soundVibrationEnabledAtom, type Movement, } from '@/src/state/atoms';
+import { routineFeedback } from '@/src/feedback/routine-feedback';
 import { BorderRadius, Spacing, Typography } from '@/src/state/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -6,12 +7,12 @@ import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Platform,
-  SafeAreaView,
   StatusBar,
   StyleSheet,
   Text, TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -103,6 +104,9 @@ export default function TimerScreen() {
   const activeId = useAtomValue(activeRoutineIdAtom);
   const routines = useAtomValue(routinesAtom);
   const isAutoAdvance = useAtomValue(autoAdvanceEnabledAtom);
+  const feedbackEnabled = useAtomValue(soundVibrationEnabledAtom);
+  const transportFeedbackAt = useRef(0);
+  const TRANSPORT_FEEDBACK_GAP_MS = 220;
 
   const safeRoutines = Array.isArray(routines) ? routines : [];
   // Prefer URL param ID over atom (avoids hydration race)
@@ -195,8 +199,29 @@ export default function TimerScreen() {
     }
   }, [seconds, isRunning, advance, isAutoAdvance, setIsRunning]);
 
-  // Controls
-  function handlePauseResume() { setIsRunning((r) => !r); }
+  useEffect(() => {
+    void routineFeedback.preloadTransport();
+  }, []);
+
+  const handlePauseResume = useCallback(() => {
+    setIsRunning((wasRunning) => {
+      const next = !wasRunning;
+      if (phase === 'done' || !currentMov) return next;
+      if (feedbackEnabled) {
+        const now = Date.now();
+        if (now - transportFeedbackAt.current < TRANSPORT_FEEDBACK_GAP_MS) {
+          return next;
+        }
+        transportFeedbackAt.current = now;
+        if (next) {
+          void routineFeedback.playResume(feedbackEnabled);
+        } else {
+          void routineFeedback.playPause(feedbackEnabled);
+        }
+      }
+      return next;
+    });
+  }, [phase, currentMov, feedbackEnabled, setIsRunning]);
 
   function handleBack() {
     if (phase === 'rest') {
