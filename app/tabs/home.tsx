@@ -1,45 +1,47 @@
-import RoutineCard from '@/src/components/RoutineCard';
-import RoutineFormModal, { type FormMode } from '@/src/components/RoutineFormModal';
+import RoutineCard from "@/src/components/RoutineCard";
+import RoutineFormModal, {
+  type FormMode,
+} from "@/src/components/RoutineFormModal";
 import {
+  DEFAULT_ROUTINES,
   activeRoutineIdAtom,
+  deletedDefaultIdsAtom,
   isPremiumAtom,
   routinesAtom,
   selectedRoutineIdAtom,
   timerRunningAtom,
   timerSecondsAtom,
-  type Routine
-} from '@/src/state/atoms';
-import { BorderRadius, Spacing, Typography } from '@/src/state/theme';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import React, { useState } from 'react';
+  type Routine,
+} from "@/src/state/atoms";
+import { BorderRadius, Spacing, Typography } from "@/src/state/theme";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import React, { useEffect, useState } from "react";
 import {
-  Alert,
   Platform,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
-  Text, TouchableOpacity,
-  View
-} from 'react-native';
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 // ─── Design tokens (Stitch Obsidian Kinetic) ─────────────────────────────────
 const C = {
-  bg: '#0F1115',
-  surface: '#1A1D23',
-  surfaceHigh: '#22262F',
-  border: '#2A2E38',
-  text: '#F1F5F9',
-  textMuted: '#9CA3AF',
-  textDim: '#64748B',
-  blue: '#3B82F6',
-  blueDim: 'rgba(59,130,246,0.15)',
-  green: '#10B981',
+  bg: "#0F1115",
+  surface: "#1A1D23",
+  surfaceHigh: "#22262F",
+  border: "#2A2E38",
+  text: "#F1F5F9",
+  textMuted: "#9CA3AF",
+  textDim: "#64748B",
+  blue: "#3B82F6",
+  blueDim: "rgba(59,130,246,0.15)",
+  green: "#10B981",
 };
-
-
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function HomeScreen() {
@@ -49,10 +51,11 @@ export default function HomeScreen() {
   const setSelectedRoutineId = useSetAtom(selectedRoutineIdAtom);
   const setTimerSeconds = useSetAtom(timerSecondsAtom);
   const setTimerRunning = useSetAtom(timerRunningAtom);
-  const isPremium = useAtomValue(isPremiumAtom)
+  const isPremium = useAtomValue(isPremiumAtom);
+  const [deletedDefaultIds, setDeletedDefaultIds] = useAtom(deletedDefaultIdsAtom);
 
   const [formVisible, setFormVisible] = useState(false);
-  const [formMode, setFormMode] = useState<FormMode>({ mode: 'create' });
+  const [formMode, setFormMode] = useState<FormMode>({ mode: "create" });
 
   // Ensure we always work with a real array (fixes atomWithStorage initial-state edge case)
   const safeRoutines: Routine[] = Array.isArray(routines) ? routines : [];
@@ -66,39 +69,50 @@ export default function HomeScreen() {
   const activeCount = safeRoutines.filter((r) => r.isActive).length;
 
   function openCreate() {
-    setFormMode({ mode: 'create' });
+    setFormMode({ mode: "create" });
     setFormVisible(true);
   }
 
   function openEdit(routine: Routine) {
-    setFormMode({ mode: 'edit', routine });
+    setFormMode({ mode: "edit", routine });
     setFormVisible(true);
   }
 
+  useEffect(() => {
+    // console.log('routine', routines)
+  }, [routines])
+
   function handleSave(routine: Routine) {
-    setRoutines((prev) => {
-      const arr: Routine[] = Array.isArray(prev) ? prev : [];
-      const idx = arr.findIndex((r) => r.id === routine.id);
-      if (idx >= 0) {
-        const next = [...arr];
-        next[idx] = routine;
-        return next;
-      }
-      return [...arr, routine];
-    });
+    const arr = Array.isArray(routines) ? routines : [];
+    const idx = arr.findIndex((r) => r.id === routine.id);
+    let updated;
+    if (idx >= 0) {
+      updated = [...arr];
+      updated[idx] = routine;
+    } else {
+      updated = [...arr, routine];
+    }
+    setRoutines(updated);
   }
 
   function handleDelete(id: string) {
-    setRoutines((prev) => {
-      const arr: Routine[] = Array.isArray(prev) ? prev : [];
-      return arr.filter((r) => r.id !== id);
-    });
+    const arr = Array.isArray(routines) ? routines : [];
+    const updated = arr.filter((r) => r.id !== id);
+    setRoutines(updated);
+
     if (activeRoutineId === id) setActiveRoutineId(null);
+
+    // Track if user deleted a default routine so it won't be re-seeded
+    const isDefault = DEFAULT_ROUTINES.some((d) => d.id === id);
+    if (isDefault) {
+      const nextDeleted = [...new Set([...deletedDefaultIds, id])];
+      setDeletedDefaultIds(nextDeleted);
+    }
   }
 
   function handleOpen(routine: Routine) {
     // Pass the ID as a URL param — avoids async hydration race with atomWithStorage
-    router.push({ pathname: '/tabs/routine', params: { id: routine.id } });
+    router.push({ pathname: "/tabs/routine", params: { id: routine.id } });
   }
 
   function handlePlay(routine: Routine) {
@@ -106,37 +120,68 @@ export default function HomeScreen() {
     setTimerSeconds(seconds);
     setTimerRunning(true);
     setActiveRoutineId(routine.id);
-    router.push('/tabs/timer');
+    router.push("/tabs/timer");
   }
 
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.bg} />
       <SafeAreaView style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
-
+        <ScrollView
+          contentContainerStyle={s.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Header */}
           <View style={s.header}>
             <View style={{ flex: 1 }}>
-              <Text style={s.headerTitle}>Your{'\n'}Routines</Text>
+              <Text style={s.headerTitle}>Your{"\n"}Routines</Text>
               <Text style={s.headerSub}>
-                KINETIC FLOW • {activeCount} ACTIVE{isPremium ? ' • PRO' : ''}
+                KINETIC FLOW • {activeCount} ACTIVE{isPremium ? " • PRO" : ""}
               </Text>
             </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: Spacing.xs }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginTop: Spacing.xs,
+              }}
+            >
               {!isPremium ? (
                 <TouchableOpacity
-                  style={[s.settingsBtn, { marginTop: 0, marginRight: Spacing.sm }]}
-                  onPress={() => Alert.alert("Upgrade", "Open premium paywall...")}
+                  style={[
+                    s.settingsBtn,
+                    { marginTop: 0, marginRight: Spacing.sm },
+                  ]}
+                  onPress={() => router.push("../paywall")}
                 >
-                  <MaterialCommunityIcons name="crown-outline" size={24} color={C.textMuted} />
+                  <MaterialCommunityIcons
+                    name="crown-outline"
+                    size={24}
+                    color={C.textMuted}
+                  />
                 </TouchableOpacity>
               ) : (
-                <View style={[s.settingsBtn, { marginTop: 0, marginRight: Spacing.sm, backgroundColor: C.blueDim }]}>
-                  <MaterialCommunityIcons name="crown" size={24} color={C.blue} />
+                <View
+                  style={[
+                    s.settingsBtn,
+                    {
+                      marginTop: 0,
+                      marginRight: Spacing.sm,
+                      backgroundColor: C.blueDim,
+                    },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="crown"
+                    size={24}
+                    color={C.blue}
+                  />
                 </View>
               )}
-              <TouchableOpacity style={[s.settingsBtn, { marginTop: 0 }]} onPress={() => router.push('/settings')}>
+              <TouchableOpacity
+                style={[s.settingsBtn, { marginTop: 0 }]}
+                onPress={() => router.push("../settings")}
+              >
                 <Ionicons name="settings-sharp" size={22} color={C.text} />
               </TouchableOpacity>
             </View>
@@ -154,10 +199,14 @@ export default function HomeScreen() {
                 onEdit={() => openEdit(routine)}
               />
             ))}
-            
+
             {/* Inline Add Card (when few routines) */}
             {sorted.length < 4 && (
-              <TouchableOpacity activeOpacity={0.7} style={s.createCard} onPress={openCreate}>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                style={s.createCard}
+                onPress={openCreate}
+              >
                 <View style={s.createIconWrap}>
                   <Ionicons name="add" size={32} color={C.blue} />
                 </View>
@@ -170,7 +219,11 @@ export default function HomeScreen() {
         {/* Pinned Bottom Button (when many routines) */}
         {sorted.length >= 4 && (
           <View style={s.pinnedBottom}>
-            <TouchableOpacity activeOpacity={0.7} style={s.createCard} onPress={openCreate}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={s.createCard}
+              onPress={openCreate}
+            >
               <View style={s.createIconWrap}>
                 <Ionicons name="add" size={32} color={C.blue} />
               </View>
@@ -194,13 +247,42 @@ export default function HomeScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
-  scrollContent: { paddingHorizontal: Spacing.screenHorizontal, paddingTop: Platform.OS === 'android' ? 48 : Spacing.md, paddingBottom: 60 },
+  scrollContent: {
+    paddingHorizontal: Spacing.screenHorizontal,
+    paddingTop: Platform.OS === "android" ? 48 : Spacing.md,
+    paddingBottom: 60,
+  },
 
   // Header
-  header: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: Spacing.xl },
-  headerTitle: { ...Typography.hero, fontSize: 38, fontWeight: '800', color: C.text, lineHeight: 44, letterSpacing: -0.5 },
-  headerSub: { ...Typography.caption, fontWeight: '700', color: C.textMuted, letterSpacing: 1.2, marginTop: Spacing.sm },
-  settingsBtn: { width: 46, height: 46, borderRadius: BorderRadius.round, backgroundColor: C.surface, justifyContent: 'center', alignItems: 'center', marginTop: Spacing.xs },
+  header: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: Spacing.xl,
+  },
+  headerTitle: {
+    ...Typography.hero,
+    fontSize: 38,
+    fontWeight: "800",
+    color: C.text,
+    lineHeight: 44,
+    letterSpacing: -0.5,
+  },
+  headerSub: {
+    ...Typography.caption,
+    fontWeight: "700",
+    color: C.textMuted,
+    letterSpacing: 1.2,
+    marginTop: Spacing.sm,
+  },
+  settingsBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: BorderRadius.round,
+    backgroundColor: C.surface,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: Spacing.xs,
+  },
 
   // Card List
   cardList: { gap: Spacing.md },
@@ -209,12 +291,33 @@ const s = StyleSheet.create({
   pinnedBottom: {
     paddingHorizontal: Spacing.screenHorizontal,
     paddingTop: Spacing.md,
-    paddingBottom: Platform.OS === 'ios' ? Spacing.xl : Spacing.lg,
+    paddingBottom: Platform.OS === "ios" ? Spacing.xl : Spacing.lg,
     backgroundColor: C.bg,
   },
-  
+
   // Create
-  createCard: { borderWidth: 1.5, borderColor: C.border, borderStyle: 'dashed', borderRadius: BorderRadius.lg, padding: Spacing.md, justifyContent: 'center', alignItems: 'center', flexDirection: 'column' },
-  createIconWrap: { width: 45, height: 45, borderRadius: BorderRadius.md, backgroundColor: C.blueDim, justifyContent: 'center', alignItems: 'center' },
-  createCardText: { fontSize: 20, fontWeight: '700', color: C.blue, marginTop: Spacing.sm },
+  createCard: {
+    borderWidth: 1.5,
+    borderColor: C.border,
+    borderStyle: "dashed",
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    justifyContent: "center",
+    alignItems: "center",
+    flexDirection: "column",
+  },
+  createIconWrap: {
+    width: 45,
+    height: 45,
+    borderRadius: BorderRadius.md,
+    backgroundColor: C.blueDim,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  createCardText: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: C.blue,
+    marginTop: Spacing.sm,
+  },
 });

@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import { Stack } from 'expo-router';
 import { Provider as JotaiProvider } from 'jotai';
 import Purchases from 'react-native-purchases';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 
 import { AppThemeProvider } from '@/src/providers/app-theme-provider';
@@ -50,16 +51,18 @@ const RootLayout = () => {
   }, []);
 
   return (
-    <JotaiProvider store={appStore}>
-      <AppThemeProvider>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="tabs" />
-          <Stack.Screen name="onboarding" options={{ presentation: 'fullScreenModal' }} />
-          <Stack.Screen name="settings" options={{ presentation: 'card' }} />
-          <Stack.Screen name="paywall" options={{ presentation: 'fullScreenModal' }} />
-        </Stack>
-      </AppThemeProvider>
-    </JotaiProvider>
+    <SafeAreaProvider>
+      <JotaiProvider store={appStore}>
+        <AppThemeProvider>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="tabs" />
+            <Stack.Screen name="onboarding" options={{ presentation: 'fullScreenModal' }} />
+            <Stack.Screen name="settings" options={{ presentation: 'card' }} />
+            <Stack.Screen name="paywall" options={{ presentation: 'fullScreenModal' }} />
+          </Stack>
+        </AppThemeProvider>
+      </JotaiProvider>
+    </SafeAreaProvider>
   );
 }
 

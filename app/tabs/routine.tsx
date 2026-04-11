@@ -15,14 +15,14 @@ import React, { useState } from 'react';
 import {
   Alert,
   Platform,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import MovementEditorModal from '@/src/components/MovementEditorModal';
 import MovementRow from '@/src/components/MovementRow';
@@ -70,6 +70,8 @@ export default function RoutineScreen() {
   const [routineFormVisible, setRoutineFormVisible] = useState(false);
   const [routineFormMode, setRoutineFormMode] = useState<FormMode>({ mode: 'create' });
 
+  // Component logic
+
   if (!routine) {
     return (
       <View style={{ flex: 1, backgroundColor: C.bg, justifyContent: 'center', alignItems: 'center' }}>
@@ -82,10 +84,9 @@ export default function RoutineScreen() {
   const movements: Movement[] = Array.isArray(routine.movements) ? routine.movements : [];
 
   function updateRoutine(patch: Partial<Routine>) {
-    setRoutines((prev) => {
-      const arr: Routine[] = Array.isArray(prev) ? prev : [];
-      return arr.map((r) => r.id === routine!.id ? { ...r, ...patch } : r);
-    });
+    const arr = Array.isArray(routines) ? routines : [];
+    const updated = arr.map((r) => (r.id === selectedId ? { ...r, ...patch } : r));
+    setRoutines(updated);
   }
 
   function computeDuration(movs: Movement[]): number {
@@ -102,8 +103,19 @@ export default function RoutineScreen() {
   }
 
   function deleteMovement(id: string) {
-    const next = movements.filter((mv) => mv.id !== id);
-    updateRoutine({ movements: next, movementCount: next.length, durationMin: computeDuration(next) });
+    const arr = Array.isArray(routines) ? routines : [];
+    const updated = arr.map((r) => {
+      if (r.id !== selectedId) return r;
+      const currentMovements = Array.isArray(r.movements) ? r.movements : [];
+      const next = currentMovements.filter((mv) => mv.id !== id);
+      return {
+        ...r,
+        movements: next,
+        movementCount: next.length,
+        durationMin: computeDuration(next),
+      };
+    });
+    setRoutines(updated);
   }
 
   function openAdd() {
@@ -117,7 +129,7 @@ export default function RoutineScreen() {
   }
 
   function openEditRoutine() {
-    setRoutineFormMode({ mode: 'edit', routine });
+    setRoutineFormMode({ mode: 'edit', routine: routine! });
     setRoutineFormVisible(true);
   }
 
@@ -143,10 +155,9 @@ export default function RoutineScreen() {
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete', style: 'destructive', onPress: () => {
-          setRoutines((prev) => {
-            const arr: Routine[] = Array.isArray(prev) ? prev : [];
-            return arr.filter((r) => r.id !== routine!.id);
-          });
+          const arr = Array.isArray(routines) ? routines : [];
+          const updated = arr.filter((r) => r.id !== routine!.id);
+          setRoutines(updated);
           router.back();
         },
       },
@@ -251,5 +262,6 @@ const r = StyleSheet.create({
   finalizeBtnText: { ...Typography.bodyMedium, fontWeight: '700', color: '#FFF' },
   deleteBtn: { width: 56, height: 56, borderRadius: BorderRadius.lg, backgroundColor: C.red, justifyContent: 'center', alignItems: 'center' },
 });
+
 
 // Movement editor styles removed as they live in src/components/MovementEditorModal.tsx

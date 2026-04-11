@@ -4,12 +4,12 @@ import { useSetAtom } from "jotai";
 import React from "react";
 import {
   Dimensions,
-  SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
 import { onboardingCompletedAtom } from "@/src/state/atoms";
@@ -39,7 +39,7 @@ const FEATURES = [
   {
     icon: "time-outline" as const,
     title: "Movements & Time",
-    description: "Add routine movexPments or steps with precise time controls.",
+    description: "Add routine movements or steps with precise time controls.",
   },
   {
     icon: "checkmark-circle-outline" as const,
@@ -56,7 +56,7 @@ export default function OnboardingScreen() {
 
   const handleGetStarted = () => {
     setOnboardingCompleted(true);
-    router.replace("../tabs");
+    router.replace("/tabs/home");
   };
 
   return (

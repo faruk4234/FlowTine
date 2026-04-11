@@ -43,7 +43,13 @@ export default function MovementRow({ movement, onPress, onDelete }: MovRowProps
           <Text style={[r.movMetaText, { color: C.textDim }]}>{formatRest(movement.restSec)}</Text>
         </View>
       </View>
-      <TouchableOpacity onPress={() => onDelete(movement.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+      <TouchableOpacity
+        onPress={(e) => {
+          e.stopPropagation();
+          onDelete(movement.id);
+        }}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
         <Ionicons name="trash-outline" size={18} color={C.textDim} />
       </TouchableOpacity>
     </TouchableOpacity>
