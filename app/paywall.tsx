@@ -11,6 +11,7 @@ import {
   Alert,
   ImageBackground,
   Platform,
+  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -55,7 +56,6 @@ const PLANS: PlanRow[] = [
     duration: "/ year",
     badge: "62% OFF",
   },
-  { id: "lifetime", label: "One-time payment", price: "$149.99" },
 ];
 
 function pickPackageForPlan(
@@ -161,12 +161,12 @@ export default function PaywallScreen() {
     }
   }, [router, setPremium]);
 
-  const featureChips = useMemo(
+  const features = useMemo(
     () => [
-      { icon: "infinite" as const, label: "Unlimited Routines" },
-      { icon: "ban-outline" as const, label: "No Ads" },
-      { icon: "phone-portrait" as const, label: "Haptics" },
-      { icon: "volume-high" as const, label: "Sounds" },
+      { icon: "infinite" as const, text: "Unlimited Routines" },
+      { icon: "layers" as const, text: "Unlimited Movements" },
+      { icon: "phone-portrait" as const, text: "Haptic Alerts" },
+      { icon: "ban-outline" as const, text: "No Ads" },
     ],
     [],
   );
@@ -191,20 +191,24 @@ export default function PaywallScreen() {
             </TouchableOpacity>
           </View>
 
-          <View style={s.content}>
-            <View style={s.brandRow}>
-              <Ionicons name="flash" size={13} color={C.blue} />
-              <Text style={s.brandText}>FLOWTINE PREMIUM</Text>
+          <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} bounces={true}>
+            <View>
+              <View style={s.brandRow}>
+                <Ionicons name="flash" size={13} color={C.blue} />
+                <Text style={s.brandText}>FLOWTINE PREMIUM</Text>
+              </View>
+
+              <Text style={s.headline}>Flowtine</Text>
+              <Text style={s.subHeadline}>Limitless focused sessions</Text>
             </View>
 
-            <Text style={s.headline}>Flowtine</Text>
-            <Text style={s.subHeadline}>Limitless focused sessions</Text>
-
-            <View style={s.featureRow}>
-              {featureChips.map((f) => (
-                <View key={f.label} style={s.featureChip}>
-                  <Ionicons name={f.icon} size={14} color="#93C5FD" />
-                  <Text style={s.featureChipText}>{f.label}</Text>
+            <View style={s.featureGrid}>
+              {features.map((f) => (
+                <View key={f.text} style={s.featureCell}>
+                  <View style={s.featureIconCircle}>
+                    <Ionicons name={f.icon} size={15} color={C.blue} />
+                  </View>
+                  <Text style={s.featureText}>{f.text}</Text>
                 </View>
               ))}
             </View>
@@ -257,7 +261,7 @@ export default function PaywallScreen() {
                 );
               })}
             </View>
-          </View>
+          </ScrollView>
 
           <View style={s.footer}>
             <TouchableOpacity
@@ -316,9 +320,11 @@ const s = StyleSheet.create({
     alignItems: "center",
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: Spacing.screenHorizontal,
-    justifyContent: "center",
+    paddingTop: 16,
+    paddingBottom: 0,
+
   },
   brandRow: {
     flexDirection: "row",
@@ -345,32 +351,50 @@ const s = StyleSheet.create({
   },
   subHeadline: {
     ...Typography.bodyMedium,
-    fontSize: 30,
+    fontSize: 22,
     color: C.textMuted,
     textAlign: "center",
-    marginBottom: Spacing.md,
-    fontStyle: "italic",
+    marginBottom: 30,
+    marginTop: 4,
   },
-  featureRow: {
+  featureGrid: {
     flexDirection: "row",
-    justifyContent: "center",
+
+    justifyContent: 'space-between',
     flexWrap: "wrap",
-    gap: Spacing.xs,
-    marginBottom: Spacing.md,
+    rowGap: 15,
+    columnGap: 0,
+    marginBottom: 30,
+    marginTop: 10,
   },
-  featureChip: {
+  featureCell: {
+    width: "50%",
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    marginHorizontal: 4,
+    gap: 10,
+    paddingRight: 8,
   },
-  featureChipText: {
+  featureIconCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    flexShrink: 0,
+  },
+  featureText: {
     fontSize: 13,
     fontWeight: "600",
-    color: C.textMuted,
+    color: C.text,
+    flexShrink: 1,
+    numberOfLines: 1,
   },
   plans: {
-    gap: 8,
+    gap: 12,
+    marginBottom: 0,
+    flex: 1,
+    justifyContent: 'center'
   },
   planCard: {
     backgroundColor: C.surface,
@@ -471,7 +495,7 @@ const s = StyleSheet.create({
   footer: {
     paddingHorizontal: Spacing.screenHorizontal,
     paddingBottom: Platform.OS === "ios" ? Spacing.lg : Spacing.md,
-    paddingTop: Spacing.sm,
+    paddingTop: 28,
   },
   upgradeBtn: {
     backgroundColor: C.blue,
