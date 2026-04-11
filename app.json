@@ -10,7 +10,11 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "icon": "./src/assets/images/app-icon.png"
+      "icon": "./src/assets/images/app-icon.png",
+      "bundleIdentifier": "com.cekolabs.flowtine",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +22,8 @@
         "backgroundColor": "#0A0F1E"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.cekolabs.flowtine"
     },
     "web": {
       "output": "static",
@@ -42,6 +47,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "c1f4c955-2382-463f-b2e6-139273c76040"
+      }
     }
   }
 }
