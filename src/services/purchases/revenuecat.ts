@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 type RevenueCatConfig = {
   apiKeyApple?: string;
   apiKeyGoogle?: string;
@@ -13,7 +15,7 @@ let configured = false;
 export async function configureRevenueCat(cfg: RevenueCatConfig) {
   if (configured) return;
 
-  const apiKey = (process.env.EXPO_OS === 'ios' ? cfg.apiKeyApple : cfg.apiKeyGoogle) ?? '';
+  const apiKey = (Platform.OS === 'ios' ? cfg.apiKeyApple : cfg.apiKeyGoogle) ?? '';
   if (!apiKey) return;
 
   try {
