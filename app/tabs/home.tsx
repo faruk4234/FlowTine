@@ -17,7 +17,7 @@ import { BorderRadius, Spacing, Typography } from "@/src/state/theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Platform,
   ScrollView,
@@ -78,9 +78,6 @@ export default function HomeScreen() {
     setFormVisible(true);
   }
 
-  useEffect(() => {
-    // console.log('routine', routines)
-  }, [routines])
 
   function handleSave(routine: Routine) {
     const arr = Array.isArray(routines) ? routines : [];

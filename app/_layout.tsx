@@ -1,44 +1,66 @@
-import { useEffect } from 'react';
-import { Platform } from 'react-native';
+import Constants, { AppOwnership } from 'expo-constants';
 import { Stack } from 'expo-router';
 import { Provider as JotaiProvider } from 'jotai';
+import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import Purchases from 'react-native-purchases';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppThemeProvider } from '@/src/providers/app-theme-provider';
-import { appStore } from '@/src/state/store';
 import { isPremiumAtom } from '@/src/state/atoms';
+import { appStore } from '@/src/state/store';
 
-// Ensure your RevenueCat API keys are placed here when you go live
-const API_KEYS = {
-  apple: "test_bInltzRNMclCwybpslqFMSNCvJE",
-  google: "test_bInltzRNMclCwybpslqFMSNCvJE",
+// ─── RevenueCat Keys ──────────────────────────────────────────────────────────
+// PROD KEYS: Only work in Development Builds (custom native app)
+const PROD_KEYS = {
+  apple: "appl_gJfpbUnvdEUPcDgIwJGaNOzQxxh",
+  google: "goog_RokUOiUOpgCBAuJymemQyPnWTTH",
 };
+
+// TEST STORE KEY: Required for testing inside EXPO GO
+const EXPO_GO_TEST_KEY = "test_QDKSTicRiuleHapXWJDzaMaHStn";
 
 const RootLayout = () => {
   useEffect(() => {
-    const setupPurchases = async () => {
+    const isExpoGo = Constants.appOwnership === AppOwnership.Expo;
+
+    if (__DEV__) {
+      Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
+    }
+
+    try {
       // 1. Initialize logic
-      if (Platform.OS === 'ios') {
-        Purchases.configure({ apiKey: API_KEYS.apple });
-      } else if (Platform.OS === 'android') {
-        Purchases.configure({ apiKey: API_KEYS.google });
+      if (isExpoGo) {
+        // Use the Sandbox/Test Store key for Expo Go users
+        Purchases.configure({ apiKey: EXPO_GO_TEST_KEY });
+      } else {
+        // Use real keys for production or development builds
+        const apiKey = Platform.OS === 'ios' ? PROD_KEYS.apple : PROD_KEYS.google;
+        Purchases.configure({ apiKey });
       }
+    } catch (e) {
+      console.warn("Purchases: Configuration failed (likely running in a simulator/web without native support)", e);
+    }
+
+    const setupPurchases = async () => {
+      // Check if configured (especially important on Android if key is missing)
+      const isConfigured = await Purchases.isConfigured();
+      if (!isConfigured) return;
 
       // 2. Fetch Customer Entitlements
       try {
         const customerInfo = await Purchases.getCustomerInfo();
-        
-        // Will evaluate true if any generic subscription or IAP mapped via RevenueCat is active
-        const hasActiveSubscription = Object.keys(customerInfo.entitlements.active).length > 0;
-        
-        // Push state dynamically into Jotai, decoupled from React component tree rendering
+
+        // Check for specific entitlement 'Premium Cats'
+        const hasActiveSubscription = typeof customerInfo.entitlements.active["Premium Cats"] !== "undefined";
+
+        // Push state dynamically into Jotai
         appStore.set(isPremiumAtom, hasActiveSubscription);
 
         // Optional: Listen for active subscription changes automatically
         Purchases.addCustomerInfoUpdateListener((info) => {
-          const isActive = Object.keys(info.entitlements.active).length > 0;
+          const isActive = typeof info.entitlements.active["Premium Cats"] !== "undefined";
           appStore.set(isPremiumAtom, isActive);
         });
 

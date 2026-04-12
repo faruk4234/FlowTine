@@ -43,20 +43,16 @@ type PlanRow = {
   price: string;
   duration?: string;
   active?: boolean;
-  badge?: "62% OFF";
+  badge?: string;
 };
 
-const PLANS: PlanRow[] = [
-  { id: "weekly", label: "Weekly", price: "$4.99", duration: "/ week" },
-  { id: "monthly", label: "Monthly", price: "$12.99", duration: "/ month" },
-  {
-    id: "yearly",
-    label: "Yearly",
-    price: "$59.99",
-    duration: "/ year",
-    badge: "62% OFF",
-  },
-];
+// Mapping labels and metadata for dynamic packages
+const PACKAGE_METADATA: Record<string, { label: string; duration: string; badge?: string; order: number }> = {
+  WEEKLY: { label: "Weekly", duration: "/ week", order: 1 },
+  MONTHLY: { label: "Monthly", duration: "/ month", order: 2 },
+  ANNUAL: { label: "Yearly", duration: "/ year", badge: "60% OFF", order: 3 },
+  LIFETIME: { label: "Lifetime", duration: "one-time", order: 4 },
+};
 
 function pickPackageForPlan(
   packages: PurchasesPackage[],
@@ -79,6 +75,71 @@ export default function PaywallScreen() {
   const setPremium = useSetAtom(isPremiumAtom);
   const [selectedId, setSelectedId] = useState<PlanId>("yearly");
   const [loading, setLoading] = useState(false);
+  const [packages, setPackages] = useState<PurchasesPackage[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Load real packages from RevenueCat
+  const [offerings, setOfferings] = useState<any>(null);
+
+  async function getOfferings() {
+    try {
+      // Guard: Wait for configuration to settle if necessary
+      let retry = 0;
+      while (!(await Purchases.isConfigured()) && retry < 10) {
+        await new Promise(r => setTimeout(r, 500));
+        retry++;
+      }
+
+      const res = await Purchases.getOfferings();
+      const info = await Purchases.getCustomerInfo();
+      
+      console.log("📢 offerings", res.current);
+      console.log("📢 Active Product IDs:", info.activeSubscriptions);
+      console.log("📢 All Purchased IDs:", info.allPurchasedProductIdentifiers);
+
+      if (res.current !== null && res.current.availablePackages.length !== 0) {
+        setOfferings(res);
+        setPackages(res.current.availablePackages);
+      }
+    } catch (e) {
+      console.error("Paywall: Error loading data", e);
+    } finally {
+      setIsLoaded(true);
+    }
+  }
+
+  React.useEffect(() => {
+    getOfferings();
+  }, []);
+
+  // Map real package data to the UI rows
+  const dynamicPlans = useMemo(() => {
+    if (!isLoaded || packages.length === 0) return [];
+
+    return packages
+      .map(pkg => {
+        const meta = PACKAGE_METADATA[pkg.packageType] || { label: pkg.product.title, duration: "", order: 99 };
+        return {
+          id: pkg.packageType as any,
+          label: meta.label,
+          price: pkg.product.priceString,
+          duration: meta.duration,
+          badge: meta.badge,
+          pkg, // Actual package object
+          order: meta.order,
+        };
+      })
+      .sort((a, b) => a.order - b.order);
+  }, [isLoaded, packages]);
+
+  // Sync selectedId with Yearly if it just loaded
+  React.useEffect(() => {
+    if (dynamicPlans.length > 0 && selectedId === "yearly") {
+      const exists = dynamicPlans.find(p => p.id === "ANNUAL");
+      if (exists) setSelectedId("ANNUAL" as any);
+      else if (dynamicPlans[0]) setSelectedId(dynamicPlans[0].id);
+    }
+  }, [dynamicPlans]);
 
   const openLegalUrl = useCallback(async (url: string) => {
     try {
@@ -88,74 +149,43 @@ export default function PaywallScreen() {
     }
   }, []);
 
-  const handleUpgrade = useCallback(async () => {
+  const handleUpgrade = async () => {
+    const plan = dynamicPlans.find(p => p.id === selectedId);
+    const pkg = plan?.pkg;
+
+    if (!pkg) {
+      Alert.alert("Package not found", "This plan is currently unavailable.");
+      return;
+    }
+
     setLoading(true);
     try {
-      if (selectedId === "free") {
-        Alert.alert("Select a plan", "Choose a premium plan to continue.");
-        return;
-      }
-      const offerings = await Purchases.getOfferings();
-      const current = offerings.current;
-      const packages = current?.availablePackages ?? [];
-      if (packages.length === 0) {
-        Alert.alert(
-          "Store unavailable",
-          "Subscription packages are not loaded yet. Check RevenueCat offerings and try again.",
-        );
-        return;
-      }
-      const pkg = pickPackageForPlan(packages, selectedId);
-      if (!pkg) {
-        Alert.alert(
-          "Package not found",
-          "No store package matches this plan. Map products in RevenueCat.",
-        );
-        return;
-      }
       const { customerInfo } = await Purchases.purchasePackage(pkg);
-      const active = Object.keys(customerInfo.entitlements.active).length > 0;
-      setPremium(active);
-      if (active) router.back();
-    } catch (e: unknown) {
-      const cancelled =
-        e &&
-        typeof e === "object" &&
-        "userCancelled" in e &&
-        (e as { userCancelled?: boolean }).userCancelled === true;
-      if (!cancelled) {
-        console.error("Purchase error:", e);
-        Alert.alert(
-          "Purchase failed",
-          "Something went wrong. Please try again.",
-        );
+      if (typeof customerInfo.entitlements.active["Premium Cats"] !== "undefined") {
+        setPremium(true);
+        router.push("/");
       }
+    } catch (e) {
+      console.log("📢 error", e);
     } finally {
       setLoading(false);
     }
-  }, [router, selectedId, setPremium]);
+  };
 
   const handleRestore = useCallback(async () => {
     setLoading(true);
     try {
       const customerInfo = await Purchases.restorePurchases();
-      const active = Object.keys(customerInfo.entitlements.active).length > 0;
+      const active = typeof customerInfo.entitlements.active["Premium Cats"] !== "undefined";
       setPremium(active);
       if (active) {
-        Alert.alert("Restored", "Your purchases were restored.");
-        router.back();
+        Alert.alert("Restored", "Your premium status has been restored!");
+        router.push("/");
       } else {
-        Alert.alert(
-          "No purchases found",
-          "There is nothing to restore for this account.",
-        );
+        Alert.alert("No premium found", "We couldn't find an active subscription.");
       }
     } catch (e) {
       console.error("Restore error:", e);
-      Alert.alert(
-        "Restore failed",
-        "Could not restore purchases. Try again later.",
-      );
     } finally {
       setLoading(false);
     }
@@ -214,7 +244,7 @@ export default function PaywallScreen() {
             </View>
 
             <View style={s.plans}>
-              {PLANS.map((plan) => {
+              {dynamicPlans.map((plan) => {
                 const selected = selectedId === plan.id;
                 return (
                   <TouchableOpacity
@@ -308,6 +338,7 @@ const s = StyleSheet.create({
   topBar: {
     paddingHorizontal: Spacing.screenHorizontal - 6,
     paddingTop: Platform.OS === "android" ? 8 : 4,
+    marginTop: Spacing.xs,
     paddingBottom: 6,
     alignItems: "flex-start",
   },
