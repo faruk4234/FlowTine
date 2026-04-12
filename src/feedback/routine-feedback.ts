@@ -1,13 +1,15 @@
 import { Audio } from 'expo-av';
 import * as Haptics from 'expo-haptics';
 
-export type RoutineCue = 'incoming' | 'start' | 'stepComplete' | 'complete';
+export type RoutineCue = 'incoming' | 'start' | 'stepComplete' | 'complete' | 'pause' | 'resume';
 
 const SOURCES: Record<RoutineCue, number> = {
   incoming: require('@/assets/sounds/get-ready.wav'),
   start: require('@/assets/sounds/go.wav'),
   stepComplete: require('@/assets/sounds/step-complete.wav'),
   complete: require('@/assets/sounds/all-done.wav'),
+  pause: require('@/assets/sounds/pause.wav'),
+  resume: require('@/assets/sounds/resume.wav'),
 };
 
 let audioModeReady = false;
