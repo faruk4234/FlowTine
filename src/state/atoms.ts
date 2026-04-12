@@ -1,8 +1,8 @@
 import { ThemeMode } from '@/src/state/colors';
+import { appStore } from '@/src/state/store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { atom } from 'jotai';
 import { atomWithStorage, createJSONStorage } from 'jotai/utils';
-import { appStore } from '@/src/state/store';
 
 // ─── Storage helpers ──────────────────────────────────────────────────────────
 const boolStorage = createJSONStorage<boolean>(() => AsyncStorage);
@@ -161,7 +161,7 @@ export const timerSecondsAtom = atom<number>(0);
 export const timerRunningAtom = atom<boolean>(false);
 
 // ─── User-flow persistent atoms ───────────────────────────────────────────────
-export const onboardingCompletedAtom = atomWithStorage<boolean>('onboarding.completed2', false, boolStorage);
+export const onboardingCompletedAtom = atomWithStorage<boolean>('onboarding.completed', false, boolStorage);
 export const isPremiumAtom = atomWithStorage<boolean>('paywall.isPremium', false, boolStorage);
 export const hasSeenPaywallAtom = atomWithStorage<boolean>('paywall.hasSeenPaywall', false, boolStorage);
 export const themeModeAtom = atomWithStorage<ThemeMode>('theme.mode', 'system', themeStorage);

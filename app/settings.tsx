@@ -9,7 +9,6 @@ import SettingRow from '@/src/components/SettiingRow';
 import { LEGAL_URLS } from '@/src/legal/urls';
 import {
     autoAdvanceEnabledAtom,
-    countdownSoundEnabledAtom,
     isPremiumAtom,
     routineCueSoundsEnabledAtom,
     soundVibrationEnabledAtom
@@ -35,7 +34,7 @@ export default function SettingsScreen() {
 
     const [soundVibration, setSoundVibration] = useAtom(soundVibrationEnabledAtom);
     const [autoAdvance, setAutoAdvance] = useAtom(autoAdvanceEnabledAtom);
-    const [countdownSound, setCountdownSound] = useAtom(countdownSoundEnabledAtom);
+    // const [countdownSound, setCountdownSound] = useAtom(countdownSoundEnabledAtom);
     const [routineCueSounds, setRoutineCueSounds] = useAtom(routineCueSoundsEnabledAtom);
 
     const isPremium = useAtomValue(isPremiumAtom);
@@ -130,6 +129,7 @@ export default function SettingsScreen() {
                             onValueChange={setAutoAdvance}
                         />
                         <View style={styles.divider} />
+                        {/*}
                         <SettingRow
                             icon="timer-outline"
                             title="Countdown sound"
@@ -138,6 +138,7 @@ export default function SettingsScreen() {
                             switchValue={countdownSound}
                             onValueChange={setCountdownSound}
                         />
+                        */}
                     </View>
 
                     {/* Section: Legal & Support */}
