@@ -1,4 +1,4 @@
-import { activeRoutineIdAtom, routinesAtom, timerRunningAtom, autoAdvanceEnabledAtom, soundVibrationEnabledAtom, type Movement, } from '@/src/state/atoms';
+import { activeRoutineIdAtom, routinesAtom, timerRunningAtom, autoAdvanceEnabledAtom, routineCueSoundsEnabledAtom, soundVibrationEnabledAtom, type Movement, } from '@/src/state/atoms';
 import { routineFeedback } from '@/src/feedback/routine-feedback';
 import { BorderRadius, Spacing, Typography } from '@/src/state/theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -105,6 +105,7 @@ export default function TimerScreen() {
   const routines = useAtomValue(routinesAtom);
   const isAutoAdvance = useAtomValue(autoAdvanceEnabledAtom);
   const feedbackEnabled = useAtomValue(soundVibrationEnabledAtom);
+  const routineSoundsOn = useAtomValue(routineCueSoundsEnabledAtom);
   const transportFeedbackAt = useRef(0);
   const TRANSPORT_FEEDBACK_GAP_MS = 220;
 
@@ -170,6 +171,57 @@ export default function TimerScreen() {
     }
   }, [phase, movIdx, movements, currentMov, setIsRunning]);
 
+  const segmentKey = `${movIdx}-${phase}`;
+  const goSegmentRef = useRef<string | null>(null);
+  const preCueSegmentRef = useRef<string | null>(null);
+  const stepCompleteWorkIdxRef = useRef<number | null>(null);
+  const routineCompleteFiredRef = useRef(false);
+
+  useEffect(() => {
+    goSegmentRef.current = null;
+    preCueSegmentRef.current = null;
+    stepCompleteWorkIdxRef.current = null;
+    routineCompleteFiredRef.current = false;
+  }, [routineId]);
+
+  useEffect(() => {
+    void routineFeedback.preload();
+  }, []);
+
+  // Get ready — rest only (~2s before rest ends). No pre-cue during work.
+  useEffect(() => {
+    if (!isRunning || phase !== 'rest') return;
+    if (phaseDuration <= 2 || seconds !== 2) return;
+    const key = `${segmentKey}-pre`;
+    if (preCueSegmentRef.current === key) return;
+    preCueSegmentRef.current = key;
+    void routineFeedback.playIncoming(routineSoundsOn);
+  }, [isRunning, phase, phaseDuration, seconds, segmentKey, routineSoundsOn]);
+
+  // Go! — work segment starts only (never rest).
+  useEffect(() => {
+    if (!isRunning || phase !== 'work') return;
+    if (seconds !== phaseDuration) return;
+    if (goSegmentRef.current === segmentKey) return;
+    goSegmentRef.current = segmentKey;
+    void routineFeedback.playStart(routineSoundsOn);
+  }, [isRunning, phase, seconds, phaseDuration, segmentKey, routineSoundsOn]);
+
+  // Step complete — work phase ends naturally (not skip).
+  useEffect(() => {
+    if (seconds !== 0 || phase !== 'work' || !isRunning) return;
+    if (stepCompleteWorkIdxRef.current === movIdx) return;
+    stepCompleteWorkIdxRef.current = movIdx;
+    void routineFeedback.playStepComplete(routineSoundsOn);
+  }, [seconds, phase, movIdx, isRunning, routineSoundsOn]);
+
+  // Routine finished.
+  useEffect(() => {
+    if (phase !== 'done' || routineCompleteFiredRef.current) return;
+    routineCompleteFiredRef.current = true;
+    void routineFeedback.playRoutineComplete(routineSoundsOn);
+  }, [phase, routineSoundsOn]);
+
   // ── countdown tick ──
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(() => {
@@ -198,10 +250,6 @@ export default function TimerScreen() {
       }
     }
   }, [seconds, isRunning, advance, isAutoAdvance, setIsRunning]);
-
-  useEffect(() => {
-    void routineFeedback.preloadTransport();
-  }, []);
 
   const handlePauseResume = useCallback(() => {
     setIsRunning((wasRunning) => {

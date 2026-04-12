@@ -128,6 +128,8 @@ export const notificationsEnabledAtom = atomWithStorage<boolean>('settings.notif
 export const soundVibrationEnabledAtom = atomWithStorage<boolean>('settings.soundVibration', true, boolStorage);
 export const autoAdvanceEnabledAtom = atomWithStorage<boolean>('settings.autoAdvance', false, boolStorage);
 export const countdownSoundEnabledAtom = atomWithStorage<boolean>('settings.countdownSound', true, boolStorage);
+/** Routine timer cue tones (get ready, go, step done, finish). Haptics still fire when off. */
+export const routineCueSoundsEnabledAtom = atomWithStorage<boolean>('settings.routineCueSounds', true, boolStorage);
 
 // ─── Transient atoms ──────────────────────────────────────────────────────────
 export const sessionAtom = atom<{ startedAt: number } | null>(null);
