@@ -103,6 +103,25 @@ export class RoutineFeedbackController {
     await this.playSound('complete');
   }
 
+  /** User paused — softer haptic + pause tone. */
+  async playPause(feedbackEnabled: boolean): Promise<void> {
+    if (!feedbackEnabled) return;
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await this.playSound('pause');
+  }
+
+  /** User resumed — slightly stronger haptic + resume tone. */
+  async playResume(feedbackEnabled: boolean): Promise<void> {
+    if (!feedbackEnabled) return;
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    await this.playSound('resume');
+  }
+
+  /** Bridge method for transport preloading. */
+  async preloadTransport(): Promise<void> {
+    return this.preload();
+  }
+
   async unload(): Promise<void> {
     for (const s of Object.values(this.sounds)) {
       try {
