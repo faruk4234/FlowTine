@@ -18,25 +18,25 @@ import { Spacing } from '@/src/state/theme';
 
 // ─── Design tokens (Stitch Obsidian Kinetic) ─────────────────────────────────
 const C = {
-    bg: "#0F1115",
-    surface: "#1A1D23",
-    surfaceHigh: "#22262F",
-    border: "#2A2E38",
-    text: "#F1F5F9",
-    textMuted: "#9CA3AF",
-    textDim: "#64748B",
-    blue: "#3B82F6",
-    blueDim: "rgba(59,130,246,0.15)",
-    green: "#10B981",
+    bg: '#0F1115',
+    surface: '#1A1D23',
+    surfaceHigh: '#22262F',
+    border: '#2A2E38',
+    text: '#F1F5F9',
+    textMuted: '#9CA3AF',
+    textDim: '#64748B',
+    blue: '#3B82F6',
+    blueDim: 'rgba(59,130,246,0.15)',
+    green: '#10B981',
 };
 
 export default function SettingsScreen() {
     const router = useRouter();
 
+    const [soundVibration, setSoundVibration] = useAtom(soundVibrationEnabledAtom);
     const [autoAdvance, setAutoAdvance] = useAtom(autoAdvanceEnabledAtom);
     const [countdownSound, setCountdownSound] = useAtom(countdownSoundEnabledAtom);
     const [routineCueSounds, setRoutineCueSounds] = useAtom(routineCueSoundsEnabledAtom);
-    const [soundVibration, setSoundVibration] = useAtom(soundVibrationEnabledAtom);
 
     const isPremium = useAtomValue(isPremiumAtom);
 
@@ -169,7 +169,7 @@ export default function SettingsScreen() {
                 </ScrollView>
             </SafeAreaView>
         </View>
-    )
+    );
 }
 
 const styles = StyleSheet.create({
@@ -178,18 +178,18 @@ const styles = StyleSheet.create({
         backgroundColor: C.bg,
     },
     navBar: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
         paddingHorizontal: Spacing.screenHorizontal,
-        paddingTop: Platform.OS === "android" ? 16 : 8,
+        paddingTop: Platform.OS === 'android' ? 16 : 8,
         paddingBottom: 16,
     },
     backBtn: {},
     navTitle: {
         color: C.blue,
         fontSize: 13,
-        fontWeight: "700",
+        fontWeight: '700',
         letterSpacing: 1.5,
     },
     scrollContent: {
@@ -200,14 +200,14 @@ const styles = StyleSheet.create({
     configLabel: {
         color: C.blue,
         fontSize: 12,
-        fontWeight: "700",
+        fontWeight: '700',
         letterSpacing: 1.2,
         marginBottom: 8,
     },
     pageTitle: {
         color: C.text,
         fontSize: 32,
-        fontWeight: "800",
+        fontWeight: '800',
         lineHeight: 40,
         letterSpacing: -0.5,
         marginBottom: 40,
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     sectionTitle: {
         color: C.textMuted,
         fontSize: 11,
-        fontWeight: "700",
+        fontWeight: '700',
         letterSpacing: 1.5,
         marginBottom: 12,
         marginLeft: 4,
@@ -224,29 +224,29 @@ const styles = StyleSheet.create({
         backgroundColor: C.surface,
         borderRadius: 16,
         marginBottom: 32,
-        overflow: "hidden",
+        overflow: 'hidden',
     },
     settingRow: {
-        flexDirection: "row",
-        alignItems: "center",
+        flexDirection: 'row',
+        alignItems: 'center',
         padding: 16,
     },
     iconContainer: {
         width: 36,
         height: 36,
         borderRadius: 10,
-        justifyContent: "center",
-        alignItems: "center",
+        justifyContent: 'center',
+        alignItems: 'center',
         marginRight: 16,
     },
     textContainer: {
         flex: 1,
-        justifyContent: "center",
+        justifyContent: 'center',
     },
     rowTitle: {
         color: C.text,
         fontSize: 16,
-        fontWeight: "600",
+        fontWeight: '600',
     },
     rowSubtitle: {
         color: C.textDim,

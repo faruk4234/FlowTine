@@ -90,16 +90,23 @@ export default function PaywallScreen() {
         retry++;
       }
 
+      const isConfigured = await Purchases.isConfigured();
+      console.log("📢 Purchases.isConfigured():", isConfigured);
+
       const res = await Purchases.getOfferings();
       const info = await Purchases.getCustomerInfo();
-
-      console.log("📢 offerings", res.current);
+      
+      console.log("📢 Raw Offerings Object:", JSON.stringify(res, null, 2));
+      console.log("📢 Current Offering:", res.current);
       console.log("📢 Active Product IDs:", info.activeSubscriptions);
       console.log("📢 All Purchased IDs:", info.allPurchasedProductIdentifiers);
 
       if (res.current !== null && res.current.availablePackages.length !== 0) {
+        console.log("📢 Found packages count:", res.current.availablePackages.length);
         setOfferings(res);
         setPackages(res.current.availablePackages);
+      } else {
+        console.warn("📢 No current offering or packages found in RevenueCat dashboard.");
       }
     } catch (e) {
       console.error("Paywall: Error loading data", e);
