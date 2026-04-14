@@ -52,7 +52,7 @@ export type Routine = {
 };
 
 // ─── Default data ─────────────────────────────────────────────────────────────
-const DEFAULT_ROUTINES: Routine[] = [
+export const DEFAULT_ROUTINES: Routine[] = [
   /* {
      id: 'default-1',
      title: 'Morning Yoga',

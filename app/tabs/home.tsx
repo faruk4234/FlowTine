@@ -69,6 +69,10 @@ export default function HomeScreen() {
   const activeCount = safeRoutines.filter((r) => r.isActive).length;
 
   function openCreate() {
+    if (!isPremium && safeRoutines.length >= 3) {
+      router.push("/paywall");
+      return;
+    }
     setFormMode({ mode: "create" });
     setFormVisible(true);
   }
@@ -87,6 +91,12 @@ export default function HomeScreen() {
       updated = [...arr];
       updated[idx] = routine;
     } else {
+      // Free users can create max 3 routines
+      if (!isPremium && arr.length >= 3) {
+        setFormVisible(false);
+        router.push("/paywall");
+        return;
+      }
       updated = [...arr, routine];
     }
     setRoutines(updated);
@@ -133,7 +143,7 @@ export default function HomeScreen() {
             <View style={{ flex: 1 }}>
               <Text style={s.headerTitle}>Your{"\n"}Routines</Text>
               <Text style={s.headerSub}>
-                KINETIC FLOW • {activeCount} ACTIVE{isPremium ? " • PRO" : ""}
+                KINETIC FLOW • {isPremium ? " • PRO" : ""}
               </Text>
             </View>
             <View

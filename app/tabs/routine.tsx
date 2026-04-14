@@ -96,6 +96,12 @@ export default function RoutineScreen() {
 
   function saveMovement(m: Movement) {
     const idx = movements.findIndex((mv) => mv.id === m.id);
+    // Free users can only have max 3 movements per routine
+    if (!isPremium && idx < 0 && movements.length >= 3) {
+      setEditorVisible(false);
+      router.push('/paywall');
+      return;
+    }
     const next = idx >= 0
       ? movements.map((mv) => mv.id === m.id ? m : mv)
       : [...movements, m];
@@ -119,6 +125,10 @@ export default function RoutineScreen() {
   }
 
   function openAdd() {
+    if (!isPremium && movements.length >= 3) {
+      router.push('/paywall');
+      return;
+    }
     setEditingMovement(null);
     setEditorVisible(true);
   }

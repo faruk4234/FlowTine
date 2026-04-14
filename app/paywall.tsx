@@ -46,6 +46,18 @@ type PlanRow = {
   badge?: string;
 };
 
+type CustomerInfoLike = {
+  entitlements?: { active?: Record<string, unknown> };
+  activeSubscriptions?: string[];
+};
+
+function isPremiumCustomer(info: CustomerInfoLike | null | undefined): boolean {
+  const activeEntitlements = info?.entitlements?.active ?? {};
+  if (activeEntitlements && Object.keys(activeEntitlements).length > 0) return true;
+  const activeSubs = info?.activeSubscriptions ?? [];
+  return Array.isArray(activeSubs) && activeSubs.length > 0;
+}
+
 // Mapping labels and metadata for dynamic packages
 const PACKAGE_METADATA: Record<string, { label: string; duration: string; badge?: string; order: number }> = {
   WEEKLY: { label: "Weekly", duration: "/ week", order: 1 },
@@ -97,12 +109,8 @@ export default function PaywallScreen() {
       const info = await Purchases.getCustomerInfo();
       
       console.log("📢 Raw Offerings Object:", JSON.stringify(res, null, 2));
-      console.log("📢 Current Offering:", res.current);
-      console.log("📢 Active Product IDs:", info.activeSubscriptions);
-      console.log("📢 All Purchased IDs:", info.allPurchasedProductIdentifiers);
 
       if (res.current !== null && res.current.availablePackages.length !== 0) {
-        console.log("📢 Found packages count:", res.current.availablePackages.length);
         setOfferings(res);
         setPackages(res.current.availablePackages);
       } else {
@@ -167,11 +175,12 @@ export default function PaywallScreen() {
 
     setLoading(true);
     try {
-      const { customerInfo } = await Purchases.purchasePackage(pkg);
-      if (typeof customerInfo.entitlements.active["Premium Cats"] !== "undefined") {
-        setPremium(true);
-        router.push("/");
-      }
+      await Purchases.purchasePackage(pkg);
+      // RevenueCat sometimes needs a moment to refresh entitlements after store flow.
+      const info = await Purchases.getCustomerInfo();
+      const active = isPremiumCustomer(info);
+      setPremium(active);
+      if (active) router.replace("/tabs/home");
     } catch (e) {
       console.log("📢 error", e);
     } finally {
@@ -183,11 +192,11 @@ export default function PaywallScreen() {
     setLoading(true);
     try {
       const customerInfo = await Purchases.restorePurchases();
-      const active = typeof customerInfo.entitlements.active["Premium Cats"] !== "undefined";
+      const active = isPremiumCustomer(customerInfo);
       setPremium(active);
       if (active) {
         Alert.alert("Restored", "Your premium status has been restored!");
-        router.push("/");
+        router.replace("/tabs/home");
       } else {
         Alert.alert("No premium found", "We couldn't find an active subscription.");
       }
@@ -245,7 +254,9 @@ export default function PaywallScreen() {
                   <View style={s.featureIconCircle}>
                     <Ionicons name={f.icon} size={15} color={C.blue} />
                   </View>
-                  <Text style={s.featureText}>{f.text}</Text>
+                  <Text style={s.featureText} numberOfLines={1}>
+                    {f.text}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -257,7 +268,7 @@ export default function PaywallScreen() {
                   <TouchableOpacity
                     key={plan.id}
                     activeOpacity={0.85}
-                    onPress={() => !plan.active && setSelectedId(plan.id)}
+                    onPress={() => setSelectedId(plan.id)}
                     style={[s.planCard, selected && s.planCardSelected]}
                   >
                     {plan.badge ? (
@@ -278,20 +289,14 @@ export default function PaywallScreen() {
                         <Text style={s.planLabel}>{plan.label}</Text>
                       </View>
                       <View style={s.planRight}>
-                        {plan.active ? (
-                          <View style={s.activePill}>
-                            <Text style={s.activeText}>ACTIVE</Text>
-                          </View>
-                        ) : (
-                          <View style={s.priceBlock}>
-                            <Text style={s.planPrice}>{plan.price}</Text>
-                            {plan.duration ? (
-                              <Text style={s.planDuration}>
-                                {plan.duration}
-                              </Text>
-                            ) : null}
-                          </View>
-                        )}
+                        <View style={s.priceBlock}>
+                          <Text style={s.planPrice}>{plan.price}</Text>
+                          {plan.duration ? (
+                            <Text style={s.planDuration}>
+                              {plan.duration}
+                            </Text>
+                          ) : null}
+                        </View>
                       </View>
                     </View>
                   </TouchableOpacity>
@@ -352,7 +357,7 @@ const s = StyleSheet.create({
   closeBtn: {
     width: 36,
     height: 36,
-    marginTop: Spacing.sm,
+    marginTop: Spacing.sm+20,
     borderRadius: BorderRadius.round,
     backgroundColor: C.surfaceBtn,
     justifyContent: "center",
@@ -424,7 +429,6 @@ const s = StyleSheet.create({
     fontWeight: "600",
     color: C.text,
     flexShrink: 1,
-    numberOfLines: 1,
   },
   plans: {
     gap: 12,
