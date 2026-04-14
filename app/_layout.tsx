@@ -59,6 +59,7 @@ const RootLayout = () => {
       } else {
         // Use real keys for production or development builds
         const apiKey = Platform.OS === 'ios' ? PROD_KEYS.apple : PROD_KEYS.google;
+        console.log("🚀 apiKey:", apiKey);
         Purchases.configure({ apiKey });
       }
     } catch (e) {
