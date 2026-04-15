@@ -62,7 +62,7 @@ function isPremiumCustomer(info: CustomerInfoLike | null | undefined): boolean {
 const PACKAGE_METADATA: Record<string, { label: string; duration: string; badge?: string; order: number }> = {
   WEEKLY: { label: "Weekly", duration: "/ week", order: 1 },
   MONTHLY: { label: "Monthly", duration: "/ month", order: 2 },
-  ANNUAL: { label: "Yearly", duration: "/ year", badge: "60% OFF", order: 3 },
+  ANNUAL: { label: "Yearly", duration: "/ year", badge: "70% OFF", order: 3 },
   LIFETIME: { label: "Lifetime", duration: "one-time", order: 4 },
 };
 
