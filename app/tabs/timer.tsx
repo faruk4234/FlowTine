@@ -2,10 +2,13 @@ import { routineFeedback } from '@/src/feedback/routine-feedback';
 import { activeRoutineIdAtom, autoAdvanceEnabledAtom, routineCueSoundsEnabledAtom, routinesAtom, soundVibrationEnabledAtom, timerRunningAtom, type Movement, } from '@/src/state/atoms';
 import { BorderRadius, Spacing, Typography } from '@/src/state/theme';
 import { Ionicons } from '@expo/vector-icons';
+import * as Notifications from 'expo-notifications';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  AppState,
+  type AppStateStatus,
   Platform,
   StatusBar,
   StyleSheet,
@@ -177,6 +180,19 @@ export default function TimerScreen() {
   const stepCompleteWorkIdxRef = useRef<number | null>(null);
   const routineCompleteFiredRef = useRef(false);
 
+  // Background-safe timer: drive countdown by an absolute end timestamp.
+  const segmentEndsAtMsRef = useRef<number | null>(null);
+  const notifIdsRef = useRef<string[]>([]);
+  const movIdxRef = useRef(movIdx);
+  const phaseRef = useRef<Phase>(phase);
+  const isRunningRef = useRef(isRunning);
+  const secondsRef = useRef(seconds);
+
+  useEffect(() => { movIdxRef.current = movIdx; }, [movIdx]);
+  useEffect(() => { phaseRef.current = phase; }, [phase]);
+  useEffect(() => { isRunningRef.current = isRunning; }, [isRunning]);
+  useEffect(() => { secondsRef.current = seconds; }, [seconds]);
+
   useEffect(() => {
     goSegmentRef.current = null;
     preCueSegmentRef.current = null;
@@ -187,6 +203,164 @@ export default function TimerScreen() {
   useEffect(() => {
     void routineFeedback.preload();
   }, []);
+
+  useEffect(() => {
+    // Ensure notifications make sound while app is backgrounded/locked.
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      }),
+    });
+  }, []);
+
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const perm = await Notifications.getPermissionsAsync();
+        if (!perm.granted) {
+          await Notifications.requestPermissionsAsync();
+        }
+        if (Platform.OS === 'android') {
+          await Notifications.setNotificationChannelAsync('timer', {
+            name: 'Timer',
+            importance: Notifications.AndroidImportance.MAX,
+            sound: 'default',
+            vibrationPattern: [0, 250, 250, 250],
+            lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+          });
+        }
+      } catch {
+        // If permissions fail, timer still works; background cues won't.
+      }
+    };
+    void init();
+  }, []);
+
+  const cancelTimerNotifs = useCallback(async () => {
+    const ids = notifIdsRef.current;
+    notifIdsRef.current = [];
+    await Promise.allSettled(ids.map((id) => Notifications.cancelScheduledNotificationAsync(id)));
+  }, []);
+
+  const scheduleTimerNotifs = useCallback(async (opts: { phase: Phase; movIdx: number; seconds: number; movementName?: string }) => {
+    await cancelTimerNotifs();
+    if (!isRunningRef.current || opts.phase === 'done' || opts.seconds <= 0) return;
+
+    const title = opts.phase === 'rest' ? 'Rest finished' : 'Work finished';
+    const body = opts.phase === 'rest'
+      ? `Go: ${opts.movementName ?? 'Next movement'}`
+      : `Next up: ${opts.movementName ?? 'Rest'}`;
+
+    try {
+      const endId = await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          sound: 'default',
+          ...(Platform.OS === 'android' ? { channelId: 'timer' } : null),
+        },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: Math.max(1, Math.floor(opts.seconds)), repeats: false },
+      });
+      notifIdsRef.current.push(endId);
+
+      // "Get ready" cue for rest phases ~2s before it ends.
+      if (opts.phase === 'rest' && opts.seconds > 3) {
+        const readyId = await Notifications.scheduleNotificationAsync({
+          content: {
+            title: 'Get ready',
+            body: 'Starting soon',
+            sound: 'default',
+            ...(Platform.OS === 'android' ? { channelId: 'timer' } : null),
+          },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: Math.max(1, Math.floor(opts.seconds - 2)), repeats: false },
+        });
+        notifIdsRef.current.push(readyId);
+      }
+    } catch {
+      // ignore scheduling errors
+    }
+  }, [cancelTimerNotifs]);
+
+  const computeNextAfterZero = useCallback((state: { movIdx: number; phase: Phase; movements: Movement[]; currentMov?: Movement | null }) => {
+    const { movIdx: idx, phase: ph, movements: movs, currentMov: mov } = state;
+    const isLastMovement = idx >= movs.length - 1;
+
+    if (ph === 'work') {
+      if (isLastMovement) {
+        return { movIdx: idx, phase: 'done' as const, seconds: 0 };
+      }
+      const restSec = mov?.restSec ?? 0;
+      if (restSec > 0) {
+        return { movIdx: idx, phase: 'rest' as const, seconds: restSec };
+      }
+      const nextIdx = idx + 1;
+      return { movIdx: nextIdx, phase: 'work' as const, seconds: movementSeconds(movs[nextIdx]) };
+    }
+
+    // rest ended → next movement
+    const nextIdx = idx + 1;
+    if (nextIdx < movs.length) {
+      return { movIdx: nextIdx, phase: 'work' as const, seconds: movementSeconds(movs[nextIdx]) };
+    }
+    return { movIdx: idx, phase: 'done' as const, seconds: 0 };
+  }, []);
+
+  const syncTimerToNow = useCallback(async () => {
+    if (!isRunningRef.current) return;
+    if (phaseRef.current === 'done') return;
+    const endsAt = segmentEndsAtMsRef.current;
+    if (!endsAt) return;
+
+    const now = Date.now();
+    let nextEndsAt = endsAt;
+    let nextMovIdx = movIdxRef.current;
+    let nextPhase: Phase = phaseRef.current;
+    let nextSeconds = secondsRef.current;
+
+    // If we were backgrounded long enough to cross segment boundaries, step forward.
+    while (now >= nextEndsAt) {
+      const current = movements[nextMovIdx];
+      const nextState = computeNextAfterZero({ movIdx: nextMovIdx, phase: nextPhase, movements, currentMov: current });
+      nextMovIdx = nextState.movIdx;
+      nextPhase = nextState.phase;
+      nextSeconds = nextState.seconds;
+      nextEndsAt = nextEndsAt + nextSeconds * 1000;
+      if (nextPhase === 'done') break;
+      if (!isAutoAdvance) {
+        // If auto-advance is off, stop at the boundary.
+        break;
+      }
+    }
+
+    if (nextPhase === 'done') {
+      segmentEndsAtMsRef.current = null;
+      await cancelTimerNotifs();
+      setMovIdx(nextMovIdx);
+      setPhase('done');
+      setSeconds(0);
+      setIsRunning(false);
+      return;
+    }
+
+    const remaining = Math.max(0, Math.ceil((nextEndsAt - now) / 1000));
+    segmentEndsAtMsRef.current = now + remaining * 1000;
+
+    // Apply state if we stepped forward.
+    if (nextMovIdx !== movIdxRef.current) setMovIdx(nextMovIdx);
+    if (nextPhase !== phaseRef.current) setPhase(nextPhase);
+    setSeconds(remaining);
+
+    await scheduleTimerNotifs({
+      phase: nextPhase,
+      movIdx: nextMovIdx,
+      seconds: remaining,
+      movementName: nextPhase === 'rest' ? movements[nextMovIdx + 1]?.name : movements[nextMovIdx]?.name,
+    });
+  }, [cancelTimerNotifs, computeNextAfterZero, isAutoAdvance, movements, scheduleTimerNotifs, setIsRunning]);
 
   // Pre-cue: rest only — ~1–2 s before rest ends (prepare for next work). No pre-cue during work.
   useEffect(() => {
@@ -226,19 +400,30 @@ export default function TimerScreen() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(() => {
     if (isRunning && phase !== 'done') {
-      intervalRef.current = setInterval(() => {
-        setSeconds((s) => {
-          if (s <= 1) {
-            clearInterval(intervalRef.current!);
-            return 0;
-          }
-          return s - 1;
+      // Ensure we have an absolute end timestamp (survives background/lock).
+      if (!segmentEndsAtMsRef.current) {
+        segmentEndsAtMsRef.current = Date.now() + seconds * 1000;
+        void scheduleTimerNotifs({
+          phase,
+          movIdx,
+          seconds,
+          movementName: phase === 'rest' ? movements[movIdx + 1]?.name : movements[movIdx]?.name,
         });
-      }, 1000);
+      }
+
+      intervalRef.current = setInterval(() => {
+        const endsAt = segmentEndsAtMsRef.current;
+        if (!endsAt) return;
+        const now = Date.now();
+        const remaining = Math.max(0, Math.ceil((endsAt - now) / 1000));
+        setSeconds((prev) => (prev === remaining ? prev : remaining));
+      }, 250);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
     }
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, [isRunning, phase]);
 
   // When seconds hit 0 auto-advance
@@ -251,6 +436,29 @@ export default function TimerScreen() {
     }
   }, [seconds, isRunning, advance, isAutoAdvance, setIsRunning]);
 
+  // Update end timestamp + notifications whenever we switch segments while running.
+  useEffect(() => {
+    if (!isRunning || phase === 'done') return;
+    segmentEndsAtMsRef.current = Date.now() + seconds * 1000;
+    void scheduleTimerNotifs({
+      phase,
+      movIdx,
+      seconds,
+      movementName: phase === 'rest' ? movements[movIdx + 1]?.name : movements[movIdx]?.name,
+    });
+  }, [movIdx, phase]);
+
+  // Sync on app resume / foreground.
+  useEffect(() => {
+    const onChange = (state: AppStateStatus) => {
+      if (state === 'active') {
+        void syncTimerToNow();
+      }
+    };
+    const sub = AppState.addEventListener('change', onChange);
+    return () => sub.remove();
+  }, [syncTimerToNow]);
+
   useEffect(() => {
     void routineFeedback.preloadTransport();
   }, []);
@@ -259,6 +467,27 @@ export default function TimerScreen() {
     setIsRunning((wasRunning) => {
       const next = !wasRunning;
       if (phase === 'done' || !currentMov) return next;
+
+      if (next) {
+        // resume
+        segmentEndsAtMsRef.current = Date.now() + secondsRef.current * 1000;
+        void scheduleTimerNotifs({
+          phase: phaseRef.current,
+          movIdx: movIdxRef.current,
+          seconds: secondsRef.current,
+          movementName: phaseRef.current === 'rest' ? movements[movIdxRef.current + 1]?.name : movements[movIdxRef.current]?.name,
+        });
+      } else {
+        // pause
+        const endsAt = segmentEndsAtMsRef.current;
+        if (endsAt) {
+          const remaining = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+          segmentEndsAtMsRef.current = null;
+          setSeconds(remaining);
+        }
+        void cancelTimerNotifs();
+      }
+
       if (feedbackEnabled) {
         const now = Date.now();
         if (now - transportFeedbackAt.current < TRANSPORT_FEEDBACK_GAP_MS) {
@@ -273,7 +502,7 @@ export default function TimerScreen() {
       }
       return next;
     });
-  }, [phase, currentMov, feedbackEnabled, setIsRunning]);
+  }, [phase, currentMov, feedbackEnabled, setIsRunning, cancelTimerNotifs, movements, scheduleTimerNotifs]);
 
   function handleBack() {
     if (phase === 'rest') {
@@ -291,11 +520,15 @@ export default function TimerScreen() {
 
   function handleSkip() {
     setIsRunning(false);
+    segmentEndsAtMsRef.current = null;
+    void cancelTimerNotifs();
     advance();
   }
 
   function handleEnd() {
     if (intervalRef.current) clearInterval(intervalRef.current);
+    segmentEndsAtMsRef.current = null;
+    void cancelTimerNotifs();
     setIsRunning(false);
     setActiveId(null);
     router.back();
