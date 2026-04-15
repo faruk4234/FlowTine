@@ -103,12 +103,10 @@ export default function PaywallScreen() {
       }
 
       const isConfigured = await Purchases.isConfigured();
-      console.log("📢 Purchases.isConfigured():", isConfigured);
 
       const res = await Purchases.getOfferings();
       const info = await Purchases.getCustomerInfo();
       
-      console.log("📢 Raw Offerings Object:", JSON.stringify(res, null, 2));
 
       if (res.current !== null && res.current.availablePackages.length !== 0) {
         setOfferings(res);
@@ -165,8 +163,10 @@ export default function PaywallScreen() {
   }, []);
 
   const handleUpgrade = async () => {
+    console.log("📢 selectedId:", selectedId);
     const plan = dynamicPlans.find(p => p.id === selectedId);
     const pkg = plan?.pkg;
+    console.log("📢 pkg:", pkg);
 
     if (!pkg) {
       Alert.alert("Package not found", "This plan is currently unavailable.");

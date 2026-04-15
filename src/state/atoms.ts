@@ -169,7 +169,7 @@ export const themeModeAtom = atomWithStorage<ThemeMode>('theme.mode', 'system', 
 // ─── App Settings Atoms ───────────────────────────────────────────────────────
 export const notificationsEnabledAtom = atomWithStorage<boolean>('settings.notifications', true, boolStorage);
 export const soundVibrationEnabledAtom = atomWithStorage<boolean>('settings.soundVibration', true, boolStorage);
-export const autoAdvanceEnabledAtom = atomWithStorage<boolean>('settings.autoAdvance', false, boolStorage);
+export const autoAdvanceEnabledAtom = atomWithStorage<boolean>('settings.autoAdvance', true, boolStorage);
 export const countdownSoundEnabledAtom = atomWithStorage<boolean>('settings.countdownSound', true, boolStorage);
 /** Routine timer cue tones (get ready, go, step done, all done). Haptics stay on when this is off. */
 export const routineCueSoundsEnabledAtom = atomWithStorage<boolean>('settings.routineCueSounds', true, boolStorage);

@@ -59,7 +59,6 @@ const RootLayout = () => {
       } else {
         // Use real keys for production or development builds
         const apiKey = Platform.OS === 'ios' ? PROD_KEYS.apple : PROD_KEYS.google;
-        console.log("🚀 apiKey:", apiKey);
         Purchases.configure({ apiKey });
       }
     } catch (e) {
@@ -105,11 +104,7 @@ const RootLayout = () => {
                   productTitle: p?.product?.title ?? null,
                 })) ?? [];
 
-              console.log('[RevenueCat] activeSubscriptions:', info?.activeSubscriptions ?? []);
-              console.log('[RevenueCat] activeEntitlements:', entitlementKeys);
-              console.log('[RevenueCat] entitlementTimeLeftMs:', entitlementTimeLeftMs);
-              console.log('[RevenueCat] currentOffering:', current?.identifier ?? null);
-              console.log('[RevenueCat] availablePackages:', packages);
+           
             } catch (e) {
               console.warn('[RevenueCat] debug log failed:', e);
             }
@@ -157,7 +152,7 @@ const RootLayout = () => {
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="tabs" />
             <Stack.Screen name="onboarding" options={{ presentation: 'fullScreenModal' }} />
-            <Stack.Screen name="settings" options={{ presentation: 'card' }} />
+            <Stack.Screen name="settings" options={{ presentation: 'fullScreenModal' }} />
             <Stack.Screen name="paywall" options={{ presentation: 'fullScreenModal' }} />
             <Stack.Screen name="legal-webview" options={{ presentation: 'card' }} />
           </Stack>

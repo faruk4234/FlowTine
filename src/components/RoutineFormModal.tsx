@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Modal, TextInput, StyleSheet, StatusBar, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { CATEGORY_ICONS, type Routine } from '@/src/state/atoms';
 import { BorderRadius, Spacing, Typography } from '@/src/state/theme';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from 'react';
+import { Alert, Modal, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const C = {
   bg:          '#0F1115',
@@ -76,6 +77,7 @@ export default function RoutineFormModal({ visible, formMode, onClose, onSave, o
   }
 
   return (
+    <SafeAreaView>
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={s.modalContainer}>
         <StatusBar barStyle="light-content" />
@@ -131,6 +133,7 @@ export default function RoutineFormModal({ visible, formMode, onClose, onSave, o
         </ScrollView>
       </View>
     </Modal>
+    </SafeAreaView>
   );
 }
 

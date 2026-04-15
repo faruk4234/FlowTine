@@ -3,7 +3,8 @@ import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useAtom, useAtomValue } from 'jotai';
 import React, { useCallback } from 'react';
-import { Alert, Linking, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Linking, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import SettingRow from '@/src/components/SettiingRow';
 import { LEGAL_URLS } from '@/src/legal/urls';
@@ -60,7 +61,7 @@ export default function SettingsScreen() {
     return (
         <View style={styles.root}>
             <StatusBar barStyle="light-content" backgroundColor={C.bg} />
-            <SafeAreaView style={{ flex: 1 }}>
+            <SafeAreaView style={{ }}>
                 {/* Header Navbar */}
                 <View style={styles.navBar}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -183,7 +184,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: Spacing.screenHorizontal,
-        paddingTop: Platform.OS === 'android' ? 16 : 8,
         paddingBottom: 16,
     },
     backBtn: {},

@@ -1,19 +1,18 @@
+import { onboardingCompletedAtom } from "@/src/state/atoms";
+import { useAppTheme } from "@/src/state/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSetAtom } from "jotai";
 import React from "react";
 import {
   Dimensions,
-  SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
-
-import { onboardingCompletedAtom } from "@/src/state/atoms";
-import { useAppTheme } from "@/src/state/theme";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
