@@ -44,12 +44,12 @@ function formatTime(s: number) {
 /** Sum work durations of movements starting from index `from`. */
 function totalRemainingSeconds(movements: Movement[], fromIndex: number): number {
   return movements.slice(fromIndex).reduce((acc, m) => {
-    return acc + m.durationMin * 60 + m.durationSec;
+    return acc + movementSeconds(m);
   }, 0);
 }
 
 function movementSeconds(m: Movement): number {
-  return m.durationMin * 60 + m.durationSec;
+  return (m.durationMin * 60 + m.durationSec) * Math.max(1, m.repeatCount ?? 1);
 }
 
 // ─── Circular ring ────────────────────────────────────────────────────────────

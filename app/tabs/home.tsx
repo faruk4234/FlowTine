@@ -8,7 +8,6 @@ import {
   deletedDefaultIdsAtom,
   isPremiumAtom,
   routinesAtom,
-  selectedRoutineIdAtom,
   timerRunningAtom,
   timerSecondsAtom,
   type Routine,
@@ -48,11 +47,12 @@ export default function HomeScreen() {
   const router = useRouter();
   const [routines, setRoutines] = useAtom(routinesAtom);
   const [activeRoutineId, setActiveRoutineId] = useAtom(activeRoutineIdAtom);
-  const setSelectedRoutineId = useSetAtom(selectedRoutineIdAtom);
   const setTimerSeconds = useSetAtom(timerSecondsAtom);
   const setTimerRunning = useSetAtom(timerRunningAtom);
   const isPremium = useAtomValue(isPremiumAtom);
-  const [deletedDefaultIds, setDeletedDefaultIds] = useAtom(deletedDefaultIdsAtom);
+  const [deletedDefaultIds, setDeletedDefaultIds] = useAtom(
+    deletedDefaultIdsAtom,
+  );
 
   const [formVisible, setFormVisible] = useState(false);
   const [formMode, setFormMode] = useState<FormMode>({ mode: "create" });
@@ -65,8 +65,6 @@ export default function HomeScreen() {
     if (!a.isActive && b.isActive) return 1;
     return a.createdAt - b.createdAt;
   });
-
-  const activeCount = safeRoutines.filter((r) => r.isActive).length;
 
   function openCreate() {
     if (!isPremium && safeRoutines.length >= 3) {
@@ -81,7 +79,6 @@ export default function HomeScreen() {
     setFormMode({ mode: "edit", routine });
     setFormVisible(true);
   }
-
 
   function handleSave(routine: Routine) {
     const arr = Array.isArray(routines) ? routines : [];
@@ -207,25 +204,7 @@ export default function HomeScreen() {
               />
             ))}
 
-            {/* Inline Add Card (when few routines) */}
-            {sorted.length < 4 && (
-              <TouchableOpacity
-                activeOpacity={0.7}
-                style={s.createCard}
-                onPress={openCreate}
-              >
-                <View style={s.createIconWrap}>
-                  <Ionicons name="add" size={32} color={C.blue} />
-                </View>
-                <Text style={s.createCardText}>Create Routine</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </ScrollView>
-
-        {/* Pinned Bottom Button (when many routines) */}
-        {sorted.length >= 4 && (
-          <View style={s.pinnedBottom}>
+            {/* Always show Create Routine under list */}
             <TouchableOpacity
               activeOpacity={0.7}
               style={s.createCard}
@@ -237,7 +216,7 @@ export default function HomeScreen() {
               <Text style={s.createCardText}>Create Routine</Text>
             </TouchableOpacity>
           </View>
-        )}
+        </ScrollView>
       </SafeAreaView>
 
       <RoutineFormModal
@@ -257,7 +236,7 @@ const s = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: Spacing.screenHorizontal,
     paddingTop: Platform.OS === "android" ? 48 : Spacing.md,
-    paddingBottom: 60,
+    paddingBottom: 84,
   },
 
   // Header
@@ -293,14 +272,6 @@ const s = StyleSheet.create({
 
   // Card List
   cardList: { gap: Spacing.md },
-
-  // Pinned Bottom Container
-  pinnedBottom: {
-    paddingHorizontal: Spacing.screenHorizontal,
-    paddingTop: Spacing.md,
-    paddingBottom: Platform.OS === "ios" ? Spacing.xl : Spacing.lg,
-    backgroundColor: C.bg,
-  },
 
   // Create
   createCard: {

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Alert, Modal, Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useRef, useState } from 'react';
+import { Alert, Modal, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { type Movement } from '@/src/state/atoms';
 import { BorderRadius, Spacing, Typography } from '@/src/state/theme';
 
@@ -20,6 +20,7 @@ const C = {
 
 function pad(n: number) { return String(n).padStart(2, '0'); }
 function generateId() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+function clamp(v: number, lo: number, hi: number) { return Math.min(Math.max(v, lo), hi); }
 
 type EditorProps = {
   visible: boolean;
@@ -38,10 +39,49 @@ export default function MovementEditorModal({ visible, movement, onClose, onSave
   const [description, setDescription] = useState(movement?.description ?? '');
   const [durMin, setDurMin] = useState(movement?.durationMin ?? 0);
   const [durSec, setDurSec] = useState(movement?.durationSec ?? 30);
+  const [repeatCount, setRepeatCount] = useState(movement?.repeatCount ?? 1);
   const [restSec, setRestSec] = useState(movement?.restSec ?? 30);
 
   const [minFocused, setMinFocused] = useState(false);
   const [secFocused, setSecFocused] = useState(false);
+
+  const holdTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const holdIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const holdStartAtRef = useRef<number>(0);
+
+  const clearHoldTimers = useCallback(() => {
+    if (holdTimeoutRef.current) {
+      clearTimeout(holdTimeoutRef.current);
+      holdTimeoutRef.current = null;
+    }
+    if (holdIntervalRef.current) {
+      clearInterval(holdIntervalRef.current);
+      holdIntervalRef.current = null;
+    }
+  }, []);
+
+  const getAccelerationMultiplier = useCallback(() => {
+    const elapsed = Date.now() - holdStartAtRef.current;
+    if (elapsed > 1600) return 4;
+    if (elapsed > 1000) return 3;
+    if (elapsed > 500) return 2;
+    return 1;
+  }, []);
+
+  const startHold = useCallback((stepper: (multiplier: number) => void) => {
+    clearHoldTimers();
+    holdStartAtRef.current = Date.now();
+    stepper(1);
+    holdTimeoutRef.current = setTimeout(() => {
+      holdIntervalRef.current = setInterval(() => {
+        stepper(getAccelerationMultiplier());
+      }, 80);
+    }, 220);
+  }, [clearHoldTimers, getAccelerationMultiplier]);
+
+  const stopHold = useCallback(() => {
+    clearHoldTimers();
+  }, [clearHoldTimers]);
 
 
   React.useEffect(() => {
@@ -50,11 +90,18 @@ export default function MovementEditorModal({ visible, movement, onClose, onSave
       setDescription(movement?.description ?? '');
       setDurMin(movement?.durationMin ?? 0);
       setDurSec(movement?.durationSec ?? 30);
+      setRepeatCount(movement?.repeatCount ?? 1);
       setRestSec(movement?.restSec ?? 30);
+    } else {
+      stopHold();
     }
-  }, [visible, movement]);
+  }, [visible, movement, stopHold]);
 
-  function clamp(v: number, lo: number, hi: number) { return Math.min(Math.max(v, lo), hi); }
+  React.useEffect(() => {
+    return () => {
+      clearHoldTimers();
+    };
+  }, [clearHoldTimers]);
 
   function handleSave() {
     if (!name.trim()) return;
@@ -64,6 +111,7 @@ export default function MovementEditorModal({ visible, movement, onClose, onSave
       description: description.trim(),
       durationMin: durMin,
       durationSec: durSec,
+      repeatCount: clamp(repeatCount, 1, 99),
       restSec,
     });
     onClose();
@@ -118,9 +166,14 @@ export default function MovementEditorModal({ visible, movement, onClose, onSave
           <Text style={[e.fieldLabel, { marginTop: 24, textAlign: 'center' }]}>SET DURATION</Text>
           <View style={e.durationRow}>
             <View style={e.durationCol}>
-              <TouchableOpacity onPress={() => setDurMin((v) => clamp(v + 1, 0, 99))} style={e.durBtn}>
+              <Pressable
+                onPressIn={() => startHold((multiplier) => setDurMin((v) => clamp(v + multiplier, 0, 99)))}
+                onPressOut={stopHold}
+                onTouchCancel={stopHold}
+                style={e.durBtn}
+              >
                 <Ionicons name="chevron-up" size={22} color={C.textMuted} />
-              </TouchableOpacity>
+              </Pressable>
               <TextInput
                 style={[e.durationNum, { minWidth: 80, textAlign: 'center', padding: 0 }]}
                 value={minFocused ? (durMin ? String(durMin) : '') : pad(durMin)}
@@ -134,15 +187,25 @@ export default function MovementEditorModal({ visible, movement, onClose, onSave
                   setDurMin(isNaN(num) ? 0 : clamp(num, 0, 99));
                 }}
               />
-              <TouchableOpacity onPress={() => setDurMin((v) => clamp(v - 1, 0, 99))} style={e.durBtn}>
+              <Pressable
+                onPressIn={() => startHold((multiplier) => setDurMin((v) => clamp(v - multiplier, 0, 99)))}
+                onPressOut={stopHold}
+                onTouchCancel={stopHold}
+                style={e.durBtn}
+              >
                 <Ionicons name="chevron-down" size={22} color={C.textMuted} />
-              </TouchableOpacity>
+              </Pressable>
             </View>
             <Text style={e.durationColon}>:</Text>
             <View style={e.durationCol}>
-              <TouchableOpacity onPress={() => setDurSec((v) => clamp(v + 5, 0, 55))} style={e.durBtn}>
+              <Pressable
+                onPressIn={() => startHold((multiplier) => setDurSec((v) => clamp(v + (5 * multiplier), 0, 55)))}
+                onPressOut={stopHold}
+                onTouchCancel={stopHold}
+                style={e.durBtn}
+              >
                 <Ionicons name="chevron-up" size={22} color={C.textMuted} />
-              </TouchableOpacity>
+              </Pressable>
               <TextInput
                 style={[e.durationNum, { minWidth: 80, textAlign: 'center', padding: 0 }]}
                 value={secFocused ? (durSec ? String(durSec) : '') : pad(durSec)}
@@ -156,9 +219,14 @@ export default function MovementEditorModal({ visible, movement, onClose, onSave
                   setDurSec(isNaN(num) ? 0 : clamp(num, 0, 59));
                 }}
               />
-              <TouchableOpacity onPress={() => setDurSec((v) => clamp(v - 5, 0, 55))} style={e.durBtn}>
+              <Pressable
+                onPressIn={() => startHold((multiplier) => setDurSec((v) => clamp(v - (5 * multiplier), 0, 55)))}
+                onPressOut={stopHold}
+                onTouchCancel={stopHold}
+                style={e.durBtn}
+              >
                 <Ionicons name="chevron-down" size={22} color={C.textMuted} />
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
           <View style={e.durationLabels}>
@@ -175,13 +243,49 @@ export default function MovementEditorModal({ visible, movement, onClose, onSave
               <Text style={e.restTitle}>Rest Duration</Text>
               <Text style={e.restSub}>Between intervals</Text>
             </View>
-            <TouchableOpacity onPress={() => setRestSec((v) => clamp(v - 15, 0, 600))} style={e.restBtn}>
+            <Pressable
+              onPressIn={() => startHold((multiplier) => setRestSec((v) => clamp(v - (15 * multiplier), 0, 600)))}
+              onPressOut={stopHold}
+              onTouchCancel={stopHold}
+              style={e.restBtn}
+            >
               <Text style={e.restBtnText}>−</Text>
-            </TouchableOpacity>
+            </Pressable>
             <Text style={e.restValue}>{`${pad(Math.floor(restSec / 60))}:${pad(restSec % 60)}`}</Text>
-            <TouchableOpacity onPress={() => setRestSec((v) => clamp(v + 15, 0, 600))} style={e.restBtn}>
+            <Pressable
+              onPressIn={() => startHold((multiplier) => setRestSec((v) => clamp(v + (15 * multiplier), 0, 600)))}
+              onPressOut={stopHold}
+              onTouchCancel={stopHold}
+              style={e.restBtn}
+            >
               <Text style={e.restBtnText}>+</Text>
-            </TouchableOpacity>
+            </Pressable>
+          </View>
+
+          {/* Repeat Count */}
+          <View style={e.restCard}>
+            <Ionicons name="repeat" size={22} color={C.blue} />
+            <View style={{ flex: 1, marginHorizontal: 14 }}>
+              <Text style={e.restTitle}>Repeat Count</Text>
+              <Text style={e.restSub}>Repeat work duration</Text>
+            </View>
+            <Pressable
+              onPressIn={() => startHold((multiplier) => setRepeatCount((v) => clamp(v - multiplier, 1, 99)))}
+              onPressOut={stopHold}
+              onTouchCancel={stopHold}
+              style={e.restBtn}
+            >
+              <Text style={e.restBtnText}>−</Text>
+            </Pressable>
+            <Text style={e.restValue}>{repeatCount}</Text>
+            <Pressable
+              onPressIn={() => startHold((multiplier) => setRepeatCount((v) => clamp(v + multiplier, 1, 99)))}
+              onPressOut={stopHold}
+              onTouchCancel={stopHold}
+              style={e.restBtn}
+            >
+              <Text style={e.restBtnText}>+</Text>
+            </Pressable>
           </View>
 
           {/* Haptic alerts — premium only; tap opens paywall when locked */}
