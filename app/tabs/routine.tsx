@@ -189,11 +189,13 @@ export default function RoutineScreen() {
   }
 
   function handleStartRoutine() {
-    const seconds = routine?.durationMin || 1 * 60;
+    if (!routine?.id) return;
+    const seconds = routine.durationMin * 60;
     setTimerSeconds(seconds);
     setTimerRunning(true);
-    routine?.id && setActiveRoutineId(routine?.id);
-    router.push({ pathname: "/tabs/timer", params: { id: routine?.id } });
+    setActiveRoutineId(routine.id);
+    // Relative route: nested Stack under app/tabs resolves "./timer" reliably
+    router.push({ pathname: "./timer", params: { id: routine.id } });
   }
 
   function handleDeleteRoutine() {
@@ -227,11 +229,11 @@ export default function RoutineScreen() {
               void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             } catch {}
           }}
-          onDragEnd={({ data }) => handleReorder(data)}
-          onRelease={() => {
+          onDragEnd={({ data }) => {
             try {
               void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             } catch {}
+            handleReorder(data);
           }}
           renderItem={({
             item,
@@ -411,6 +413,8 @@ const r = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
+    zIndex: 20,
+    elevation: 20,
     flexDirection: "row",
     gap: Spacing.md - 4,
     paddingHorizontal: Spacing.screenHorizontal,

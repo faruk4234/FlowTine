@@ -98,10 +98,18 @@ function CircularRing({ progress, color = C.blue }: RingProps) {
 // ─── Timer screen ─────────────────────────────────────────────────────────────
 type Phase = 'work' | 'rest' | 'done';
 
+function normalizeRouteParam(
+  value: string | string[] | undefined,
+): string | undefined {
+  if (value === undefined) return undefined;
+  return Array.isArray(value) ? value[0] : value;
+}
+
 export default function TimerScreen() {
   const router = useRouter();
   // Get routine ID from URL params for reliability
-  const { id: paramId } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id?: string | string[] }>();
+  const paramId = normalizeRouteParam(params.id);
   const [isRunning, setIsRunning] = useAtom(timerRunningAtom);
   const setActiveId = useSetAtom(activeRoutineIdAtom);
   const activeId = useAtomValue(activeRoutineIdAtom);
@@ -199,6 +207,21 @@ export default function TimerScreen() {
     stepCompleteWorkIdxRef.current = null;
     routineCompleteFiredRef.current = false;
   }, [routineId]);
+
+  // Reset local timer state when the selected routine changes (navigation / hydration).
+  useEffect(() => {
+    const safe = Array.isArray(routines) ? routines : [];
+    const r =
+      routineId !== undefined && routineId !== null && routineId !== ''
+        ? safe.find((x) => x.id === routineId)
+        : safe[0];
+    const movs = Array.isArray(r?.movements) ? r.movements : [];
+    const first = movs[0];
+    setMovIdx(0);
+    setPhase('work');
+    setSeconds(first ? movementSeconds(first) : 0);
+    segmentEndsAtMsRef.current = null;
+  }, [routineId, routines]);
 
   useEffect(() => {
     void routineFeedback.preload();

@@ -75,9 +75,9 @@ export default function SettingsScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.root}>
+    <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.bg} />
-      <SafeAreaView style={{}}>
+      <SafeAreaView style={styles.pageContainer}>
         {/* Header Navbar */}
         <View style={styles.navBar}>
           <TouchableOpacity
@@ -195,7 +195,7 @@ export default function SettingsScreen() {
           <View style={{ height: 40 }} />
         </ScrollView>
       </SafeAreaView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -203,6 +203,11 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: C.bg,
+  },
+  pageContainer: {
+    flex: 1,
+    backgroundColor: C.bg,
+    paddingTop: Platform.OS === "android" ? 48 : 20,
   },
   navBar: {
     flexDirection: "row",

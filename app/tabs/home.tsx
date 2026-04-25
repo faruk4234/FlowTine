@@ -124,7 +124,8 @@ export default function HomeScreen() {
     setTimerSeconds(seconds);
     setTimerRunning(true);
     setActiveRoutineId(routine.id);
-    router.push("/tabs/timer");
+    // Same-stack sibling: absolute "/tabs/timer" can fail to resolve from nested layouts
+    router.push({ pathname: "./timer", params: { id: routine.id } });
   }
 
   return (
