@@ -104,7 +104,7 @@ const RootLayout = () => {
                   productTitle: p?.product?.title ?? null,
                 })) ?? [];
 
-           
+
             } catch (e) {
               console.warn('[RevenueCat] debug log failed:', e);
             }
