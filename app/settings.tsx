@@ -61,7 +61,7 @@ export default function SettingsScreen() {
     return (
         <View style={styles.root}>
             <StatusBar barStyle="light-content" backgroundColor={C.bg} />
-            <SafeAreaView style={{ }}>
+            <SafeAreaView style={{}}>
                 {/* Header Navbar */}
                 <View style={styles.navBar}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -184,7 +184,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: Spacing.screenHorizontal,
-        paddingBottom: 16,
     },
     backBtn: {},
     navTitle: {
