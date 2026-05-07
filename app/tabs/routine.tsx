@@ -9,6 +9,7 @@ import {
   type Routine,
 } from "@/src/state/atoms";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import React, { useState } from "react";
@@ -21,12 +22,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import * as Haptics from "expo-haptics";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 import DraggableFlatList, {
   ScaleDecorator,
   type RenderItemParams,
 } from "react-native-draggable-flatlist";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import MovementEditorModal from "@/src/components/MovementEditorModal";
@@ -111,7 +111,8 @@ export default function RoutineScreen() {
   function computeDuration(movs: Movement[]): number {
     const totalSec = movs.reduce(
       (acc, m) =>
-        acc + (m.durationMin * 60 + m.durationSec) * Math.max(1, m.repeatCount ?? 1),
+        acc +
+        (m.durationMin * 60 + m.durationSec) * Math.max(1, m.repeatCount ?? 1),
       0,
     );
     return Math.max(1, Math.ceil(totalSec / 60));
@@ -189,13 +190,7 @@ export default function RoutineScreen() {
   }
 
   function handleStartRoutine() {
-    if (!routine?.id) return;
-    const seconds = routine.durationMin * 60;
-    setTimerSeconds(seconds);
-    setTimerRunning(true);
-    setActiveRoutineId(routine.id);
-    // Relative route: nested Stack under app/tabs resolves "./timer" reliably
-    router.push({ pathname: "./timer", params: { id: routine.id } });
+    router.push({ pathname: "./home", params: {} });
   }
 
   function handleDeleteRoutine() {
@@ -254,7 +249,10 @@ export default function RoutineScreen() {
             <>
               {/* Header */}
               <View style={r.header}>
-                <TouchableOpacity onPress={() => router.back()} style={r.backBtn}>
+                <TouchableOpacity
+                  onPress={() => router.back()}
+                  style={r.backBtn}
+                >
                   <Ionicons name="arrow-back" size={22} color={C.text} />
                 </TouchableOpacity>
               </View>
@@ -269,7 +267,11 @@ export default function RoutineScreen() {
                 }}
               >
                 <View style={[r.catIcon, { backgroundColor: cat.bgColor }]}>
-                  <Ionicons name={cat.name as any} size={22} color={cat.color} />
+                  <Ionicons
+                    name={cat.name as any}
+                    size={22}
+                    color={cat.color}
+                  />
                 </View>
                 <Text style={r.routineTitle}>{routine.title}</Text>
                 <TouchableOpacity
@@ -284,7 +286,9 @@ export default function RoutineScreen() {
               {/* Movements section */}
               <View style={r.sectionHeader}>
                 <Text style={r.sectionTitle}>Movements</Text>
-                <Text style={r.sectionCount}>{movements.length} items total</Text>
+                <Text style={r.sectionCount}>
+                  {movements.length} items total
+                </Text>
               </View>
             </>
           }
