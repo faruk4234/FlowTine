@@ -153,7 +153,7 @@ export default function HomeScreen() {
                 marginTop: Spacing.xs,
               }}
             >
-              {isPremium ? (
+              {!isPremium ? (
                 <TouchableOpacity
                   style={[
                     s.settingsBtn,

@@ -59,7 +59,7 @@ export default function SettingsScreen() {
     }, []);
 
     return (
-        <View style={styles.root}>
+        <SafeAreaView style={styles.root}>
             <StatusBar barStyle="light-content" backgroundColor={C.bg} />
             <SafeAreaView style={{}}>
                 {/* Header Navbar */}
@@ -170,7 +170,7 @@ export default function SettingsScreen() {
                     <View style={{ height: 40 }} />
                 </ScrollView>
             </SafeAreaView>
-        </View>
+        </SafeAreaView>
     );
 }
 
