@@ -14,7 +14,6 @@ module.exports = function (api) {
           extensions: ['.tsx', '.ts', '.js', '.jsx', '.json'],
         },
       ],
-      'expo-router/babel',
       'react-native-reanimated/plugin',
     ],
   };

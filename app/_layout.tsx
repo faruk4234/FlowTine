@@ -5,7 +5,6 @@ import { useEffect } from 'react';
 import { AppState, Platform } from 'react-native';
 import Purchases from 'react-native-purchases';
 import 'react-native-reanimated';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppThemeProvider } from '@/src/providers/app-theme-provider';
 import { isPremiumAtom } from '@/src/state/atoms';
@@ -146,19 +145,17 @@ const RootLayout = () => {
   }, []);
 
   return (
-    <SafeAreaProvider>
       <JotaiProvider store={appStore}>
         <AppThemeProvider>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="tabs" />
             <Stack.Screen name="onboarding" options={{ presentation: 'fullScreenModal' }} />
-            <Stack.Screen name="settings" options={{ presentation: 'fullScreenModal' }} />
+            <Stack.Screen name="settings" options={{ presentation: 'pageSheet' }} />
             <Stack.Screen name="paywall" options={{ presentation: 'fullScreenModal' }} />
             <Stack.Screen name="legal-webview" options={{ presentation: 'card' }} />
           </Stack>
         </AppThemeProvider>
       </JotaiProvider>
-    </SafeAreaProvider>
   );
 }
 

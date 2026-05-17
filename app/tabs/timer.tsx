@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AppState,
   type AppStateStatus,
@@ -41,15 +41,28 @@ function formatTime(s: number) {
   return `${pad(s / 60)}:${pad(s % 60)}`;
 }
 
-/** Sum work durations of movements starting from index `from`. */
-function totalRemainingSeconds(movements: Movement[], fromIndex: number): number {
-  return movements.slice(fromIndex).reduce((acc, m) => {
-    return acc + m.durationMin * 60 + m.durationSec;
-  }, 0);
+function repeatTotal(m: Movement | null | undefined): number {
+  return Math.max(1, m?.repeatCount ?? 1);
 }
 
-function movementSeconds(m: Movement): number {
+function movementWorkSeconds(m: Movement | null | undefined): number {
+  if (!m) return 0;
   return m.durationMin * 60 + m.durationSec;
+}
+
+/** Sum work durations of movements starting from index `from`. */
+function totalRemainingSeconds(
+  movements: Movement[],
+  fromIndex: number,
+  currentRepeat: number,
+  phase: Phase,
+): number {
+  return movements.slice(fromIndex).reduce((acc, m, offset) => {
+    const repeatsLeft = offset === 0
+      ? Math.max(0, repeatTotal(m) - currentRepeat + (phase === 'work' ? 1 : 0))
+      : repeatTotal(m);
+    return acc + movementWorkSeconds(m) * repeatsLeft;
+  }, 0);
 }
 
 // ─── Circular ring ────────────────────────────────────────────────────────────
@@ -98,10 +111,18 @@ function CircularRing({ progress, color = C.blue }: RingProps) {
 // ─── Timer screen ─────────────────────────────────────────────────────────────
 type Phase = 'work' | 'rest' | 'done';
 
+function normalizeRouteParam(
+  value: string | string[] | undefined,
+): string | undefined {
+  if (value === undefined) return undefined;
+  return Array.isArray(value) ? value[0] : value;
+}
+
 export default function TimerScreen() {
   const router = useRouter();
   // Get routine ID from URL params for reliability
-  const { id: paramId } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id?: string | string[] }>();
+  const paramId = normalizeRouteParam(params.id);
   const [isRunning, setIsRunning] = useAtom(timerRunningAtom);
   const setActiveId = useSetAtom(activeRoutineIdAtom);
   const activeId = useAtomValue(activeRoutineIdAtom);
@@ -116,22 +137,28 @@ export default function TimerScreen() {
   // Prefer URL param ID over atom (avoids hydration race)
   const routineId = paramId ?? activeId;
   const routine = safeRoutines.find((r) => r.id === routineId) ?? safeRoutines[0];
-  const movements: Movement[] = Array.isArray(routine?.movements) ? routine!.movements : [];
+  const movements = useMemo<Movement[]>(
+    () => (Array.isArray(routine?.movements) ? routine.movements : []),
+    [routine],
+  );
 
   // ── per-movement / per-phase state ──
   const [movIdx, setMovIdx] = useState(0);
+  const [currentRepeat, setCurrentRepeat] = useState(1);
   const [phase, setPhase] = useState<Phase>('work');
-  const [seconds, setSeconds] = useState(() => movementSeconds(movements[0] ?? { durationMin: 0, durationSec: 30, id: '', name: '', description: '', restSec: 0 }));
+  const [seconds, setSeconds] = useState(() => movementWorkSeconds(movements[0] ?? { durationMin: 0, durationSec: 30, id: '', name: '', description: '', restSec: 0 }));
 
   const currentMov = movements[movIdx];
-  const nextMov = movements[movIdx + 1] ?? null;
+  const nextMov = currentRepeat < repeatTotal(currentMov)
+    ? currentMov
+    : (movements[movIdx + 1] ?? null);
 
   // Total remaining work time (not counting current phase — just info label)
-  const totalRemaining = totalRemainingSeconds(movements, movIdx);
+  const totalRemaining = totalRemainingSeconds(movements, movIdx, currentRepeat, phase);
 
   // Phase duration for the ring to compute progress correctly
   const phaseDuration = phase === 'work'
-    ? movementSeconds(currentMov ?? { durationMin: 0, durationSec: 30, id: '', name: '', description: '', restSec: 0 })
+    ? movementWorkSeconds(currentMov ?? { durationMin: 0, durationSec: 30, id: '', name: '', description: '', restSec: 0 })
     : (currentMov?.restSec ?? 30);
   const progress = phaseDuration > 0 ? (phaseDuration - seconds) / phaseDuration : 0;
 
@@ -141,8 +168,22 @@ export default function TimerScreen() {
   // ── advance logic ──
   const advance = useCallback(() => {
     const isLastMovement = movIdx >= movements.length - 1;
+    const hasMoreRepeats = currentRepeat < repeatTotal(currentMov);
 
     if (phase === 'work') {
+      const restSec = currentMov?.restSec ?? 0;
+      if (hasMoreRepeats) {
+        if (restSec > 0) {
+          setPhase('rest');
+          setSeconds(restSec);
+        } else {
+          setCurrentRepeat((prev) => prev + 1);
+          setPhase('work');
+          setSeconds(movementWorkSeconds(currentMov));
+        }
+        return;
+      }
+
       // Last movement: skip rest entirely → done
       if (isLastMovement) {
         setPhase('done');
@@ -150,45 +191,55 @@ export default function TimerScreen() {
         return;
       }
       // Not last: enter rest if configured, otherwise go straight to next
-      const restSec = currentMov?.restSec ?? 0;
       if (restSec > 0) {
         setPhase('rest');
         setSeconds(restSec);
       } else {
         const nextIdx = movIdx + 1;
         setMovIdx(nextIdx);
+        setCurrentRepeat(1);
         setPhase('work');
-        setSeconds(movementSeconds(movements[nextIdx]));
+        setSeconds(movementWorkSeconds(movements[nextIdx]));
       }
     } else {
       // rest ended → next movement (rest only happens between movements, never after last)
+      if (hasMoreRepeats) {
+        setCurrentRepeat((prev) => prev + 1);
+        setPhase('work');
+        setSeconds(movementWorkSeconds(currentMov));
+        return;
+      }
+
       const nextIdx = movIdx + 1;
       if (nextIdx < movements.length) {
         setMovIdx(nextIdx);
+        setCurrentRepeat(1);
         setPhase('work');
-        setSeconds(movementSeconds(movements[nextIdx]));
+        setSeconds(movementWorkSeconds(movements[nextIdx]));
       } else {
         setPhase('done');
         setIsRunning(false);
       }
     }
-  }, [phase, movIdx, movements, currentMov, setIsRunning]);
+  }, [phase, movIdx, movements, currentMov, currentRepeat, setIsRunning]);
 
-  const segmentKey = `${movIdx}-${phase}`;
+  const segmentKey = `${movIdx}-${currentRepeat}-${phase}`;
   const goSegmentRef = useRef<string | null>(null);
   const preCueSegmentRef = useRef<string | null>(null);
-  const stepCompleteWorkIdxRef = useRef<number | null>(null);
+  const stepCompleteSegmentRef = useRef<string | null>(null);
   const routineCompleteFiredRef = useRef(false);
 
   // Background-safe timer: drive countdown by an absolute end timestamp.
   const segmentEndsAtMsRef = useRef<number | null>(null);
   const notifIdsRef = useRef<string[]>([]);
   const movIdxRef = useRef(movIdx);
+  const currentRepeatRef = useRef(currentRepeat);
   const phaseRef = useRef<Phase>(phase);
   const isRunningRef = useRef(isRunning);
   const secondsRef = useRef(seconds);
 
   useEffect(() => { movIdxRef.current = movIdx; }, [movIdx]);
+  useEffect(() => { currentRepeatRef.current = currentRepeat; }, [currentRepeat]);
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { isRunningRef.current = isRunning; }, [isRunning]);
   useEffect(() => { secondsRef.current = seconds; }, [seconds]);
@@ -196,9 +247,25 @@ export default function TimerScreen() {
   useEffect(() => {
     goSegmentRef.current = null;
     preCueSegmentRef.current = null;
-    stepCompleteWorkIdxRef.current = null;
+    stepCompleteSegmentRef.current = null;
     routineCompleteFiredRef.current = false;
   }, [routineId]);
+
+  // Reset local timer state when the selected routine changes (navigation / hydration).
+  useEffect(() => {
+    const safe = Array.isArray(routines) ? routines : [];
+    const r =
+      routineId !== undefined && routineId !== null && routineId !== ''
+        ? safe.find((x) => x.id === routineId)
+        : safe[0];
+    const movs = Array.isArray(r?.movements) ? r.movements : [];
+    const first = movs[0];
+    setMovIdx(0);
+    setCurrentRepeat(1);
+    setPhase('work');
+    setSeconds(first ? movementWorkSeconds(first) : 0);
+    segmentEndsAtMsRef.current = null;
+  }, [routineId, routines]);
 
   useEffect(() => {
     void routineFeedback.preload();
@@ -285,28 +352,38 @@ export default function TimerScreen() {
     }
   }, [cancelTimerNotifs]);
 
-  const computeNextAfterZero = useCallback((state: { movIdx: number; phase: Phase; movements: Movement[]; currentMov?: Movement | null }) => {
-    const { movIdx: idx, phase: ph, movements: movs, currentMov: mov } = state;
+  const computeNextAfterZero = useCallback((state: { movIdx: number; currentRepeat: number; phase: Phase; movements: Movement[]; currentMov?: Movement | null }) => {
+    const { movIdx: idx, currentRepeat: repeat, phase: ph, movements: movs, currentMov: mov } = state;
     const isLastMovement = idx >= movs.length - 1;
+    const hasMoreRepeats = repeat < repeatTotal(mov);
 
     if (ph === 'work') {
-      if (isLastMovement) {
-        return { movIdx: idx, phase: 'done' as const, seconds: 0 };
-      }
       const restSec = mov?.restSec ?? 0;
+      if (hasMoreRepeats) {
+        if (restSec > 0) {
+          return { movIdx: idx, currentRepeat: repeat, phase: 'rest' as const, seconds: restSec };
+        }
+        return { movIdx: idx, currentRepeat: repeat + 1, phase: 'work' as const, seconds: movementWorkSeconds(mov) };
+      }
+      if (isLastMovement) {
+        return { movIdx: idx, currentRepeat: repeat, phase: 'done' as const, seconds: 0 };
+      }
       if (restSec > 0) {
-        return { movIdx: idx, phase: 'rest' as const, seconds: restSec };
+        return { movIdx: idx, currentRepeat: repeat, phase: 'rest' as const, seconds: restSec };
       }
       const nextIdx = idx + 1;
-      return { movIdx: nextIdx, phase: 'work' as const, seconds: movementSeconds(movs[nextIdx]) };
+      return { movIdx: nextIdx, currentRepeat: 1, phase: 'work' as const, seconds: movementWorkSeconds(movs[nextIdx]) };
     }
 
     // rest ended → next movement
+    if (hasMoreRepeats) {
+      return { movIdx: idx, currentRepeat: repeat + 1, phase: 'work' as const, seconds: movementWorkSeconds(mov) };
+    }
     const nextIdx = idx + 1;
     if (nextIdx < movs.length) {
-      return { movIdx: nextIdx, phase: 'work' as const, seconds: movementSeconds(movs[nextIdx]) };
+      return { movIdx: nextIdx, currentRepeat: 1, phase: 'work' as const, seconds: movementWorkSeconds(movs[nextIdx]) };
     }
-    return { movIdx: idx, phase: 'done' as const, seconds: 0 };
+    return { movIdx: idx, currentRepeat: repeat, phase: 'done' as const, seconds: 0 };
   }, []);
 
   const syncTimerToNow = useCallback(async () => {
@@ -318,14 +395,16 @@ export default function TimerScreen() {
     const now = Date.now();
     let nextEndsAt = endsAt;
     let nextMovIdx = movIdxRef.current;
+    let nextCurrentRepeat = currentRepeatRef.current;
     let nextPhase: Phase = phaseRef.current;
     let nextSeconds = secondsRef.current;
 
     // If we were backgrounded long enough to cross segment boundaries, step forward.
     while (now >= nextEndsAt) {
       const current = movements[nextMovIdx];
-      const nextState = computeNextAfterZero({ movIdx: nextMovIdx, phase: nextPhase, movements, currentMov: current });
+      const nextState = computeNextAfterZero({ movIdx: nextMovIdx, currentRepeat: nextCurrentRepeat, phase: nextPhase, movements, currentMov: current });
       nextMovIdx = nextState.movIdx;
+      nextCurrentRepeat = nextState.currentRepeat;
       nextPhase = nextState.phase;
       nextSeconds = nextState.seconds;
       nextEndsAt = nextEndsAt + nextSeconds * 1000;
@@ -340,6 +419,7 @@ export default function TimerScreen() {
       segmentEndsAtMsRef.current = null;
       await cancelTimerNotifs();
       setMovIdx(nextMovIdx);
+      setCurrentRepeat(nextCurrentRepeat);
       setPhase('done');
       setSeconds(0);
       setIsRunning(false);
@@ -351,6 +431,7 @@ export default function TimerScreen() {
 
     // Apply state if we stepped forward.
     if (nextMovIdx !== movIdxRef.current) setMovIdx(nextMovIdx);
+    if (nextCurrentRepeat !== currentRepeatRef.current) setCurrentRepeat(nextCurrentRepeat);
     if (nextPhase !== phaseRef.current) setPhase(nextPhase);
     setSeconds(remaining);
 
@@ -358,7 +439,11 @@ export default function TimerScreen() {
       phase: nextPhase,
       movIdx: nextMovIdx,
       seconds: remaining,
-      movementName: nextPhase === 'rest' ? movements[nextMovIdx + 1]?.name : movements[nextMovIdx]?.name,
+      movementName: nextPhase === 'rest'
+        ? (nextCurrentRepeat < repeatTotal(movements[nextMovIdx])
+          ? movements[nextMovIdx]?.name
+          : movements[nextMovIdx + 1]?.name)
+        : movements[nextMovIdx]?.name,
     });
   }, [cancelTimerNotifs, computeNextAfterZero, isAutoAdvance, movements, scheduleTimerNotifs, setIsRunning]);
 
@@ -384,10 +469,10 @@ export default function TimerScreen() {
   // Work segment finished (natural countdown only — not skip)
   useEffect(() => {
     if (seconds !== 0 || phase !== 'work' || !isRunning) return;
-    if (stepCompleteWorkIdxRef.current === movIdx) return;
-    stepCompleteWorkIdxRef.current = movIdx;
+    if (stepCompleteSegmentRef.current === segmentKey) return;
+    stepCompleteSegmentRef.current = segmentKey;
     void routineFeedback.playStepComplete(routineSoundsOn);
-  }, [seconds, phase, movIdx, isRunning, routineSoundsOn]);
+  }, [seconds, phase, isRunning, routineSoundsOn, segmentKey]);
 
   // Routine finished
   useEffect(() => {
@@ -407,7 +492,11 @@ export default function TimerScreen() {
           phase,
           movIdx,
           seconds,
-          movementName: phase === 'rest' ? movements[movIdx + 1]?.name : movements[movIdx]?.name,
+          movementName: phase === 'rest'
+            ? (currentRepeat < repeatTotal(movements[movIdx])
+              ? movements[movIdx]?.name
+              : movements[movIdx + 1]?.name)
+            : movements[movIdx]?.name,
         });
       }
 
@@ -424,7 +513,7 @@ export default function TimerScreen() {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isRunning, phase]);
+  }, [currentRepeat, isRunning, movIdx, movements, phase, scheduleTimerNotifs, seconds]);
 
   // When seconds hit 0 auto-advance
   useEffect(() => {
@@ -444,9 +533,13 @@ export default function TimerScreen() {
       phase,
       movIdx,
       seconds,
-      movementName: phase === 'rest' ? movements[movIdx + 1]?.name : movements[movIdx]?.name,
+      movementName: phase === 'rest'
+        ? (currentRepeat < repeatTotal(movements[movIdx])
+          ? movements[movIdx]?.name
+          : movements[movIdx + 1]?.name)
+        : movements[movIdx]?.name,
     });
-  }, [movIdx, phase]);
+  }, [currentRepeat, isRunning, movIdx, movements, phase, scheduleTimerNotifs, seconds]);
 
   // Sync on app resume / foreground.
   useEffect(() => {
@@ -475,7 +568,11 @@ export default function TimerScreen() {
           phase: phaseRef.current,
           movIdx: movIdxRef.current,
           seconds: secondsRef.current,
-          movementName: phaseRef.current === 'rest' ? movements[movIdxRef.current + 1]?.name : movements[movIdxRef.current]?.name,
+          movementName: phaseRef.current === 'rest'
+            ? (currentRepeatRef.current < repeatTotal(movements[movIdxRef.current])
+              ? movements[movIdxRef.current]?.name
+              : movements[movIdxRef.current + 1]?.name)
+            : movements[movIdxRef.current]?.name,
         });
       } else {
         // pause
@@ -508,12 +605,13 @@ export default function TimerScreen() {
     if (phase === 'rest') {
       // Jump back to work phase of current movement
       setPhase('work');
-      setSeconds(movementSeconds(currentMov));
+      setSeconds(movementWorkSeconds(currentMov));
     } else if (movIdx > 0) {
       const prevIdx = movIdx - 1;
       setMovIdx(prevIdx);
+      setCurrentRepeat(repeatTotal(movements[prevIdx]));
       setPhase('work');
-      setSeconds(movementSeconds(movements[prevIdx]));
+      setSeconds(movementWorkSeconds(movements[prevIdx]));
     }
     setIsRunning(false);
   }
@@ -588,6 +686,9 @@ export default function TimerScreen() {
 
           {/* Current movement name */}
           <Text style={ts.movementName} numberOfLines={2}>{currentMov.name}</Text>
+          {repeatTotal(currentMov) > 1 && (
+            <Text style={ts.repeatLabel}>Repeat {currentRepeat} / {repeatTotal(currentMov)}</Text>
+          )}
 
           {/* Ring + timer */}
           <View style={ts.ringSection}>
@@ -669,6 +770,7 @@ const ts = StyleSheet.create({
 
   // Movement name
   movementName: { ...Typography.title, fontSize: 22, fontWeight: '800', color: C.text, textAlign: 'center', marginTop: Spacing.xs + 2, lineHeight: 28 },
+  repeatLabel: { ...Typography.caption, fontSize: 12, color: C.textMuted, fontWeight: '600', marginTop: Spacing.xs },
 
   // Ring
   ringSection: { alignItems: 'center', justifyContent: 'center' },
