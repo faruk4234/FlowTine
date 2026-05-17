@@ -2,7 +2,7 @@
   "expo": {
     "name": "FlowTine",
     "slug": "FlowTine",
-    "version": "1.0.2",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./src/assets/images/app-icon.png",
     "scheme": "flowtine",

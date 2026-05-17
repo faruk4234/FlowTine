@@ -88,7 +88,7 @@ export default function SettingsScreen() {
                                 isLink={true}
                             />
                         ) : (
-                            <View style={[styles.settingRow, { opacity: 0.8 }]}>
+                            <TouchableOpacity onPress={handleUpgrade} style={[styles.settingRow, { opacity: 0.8 }]}>
                                 <View style={styles.iconContainer}>
                                     <Ionicons name="checkmark-circle" size={20} color={C.green} />
                                 </View>
@@ -96,7 +96,7 @@ export default function SettingsScreen() {
                                     <Text style={styles.rowTitle}>Pro Membership Active</Text>
                                     <Text style={styles.rowSubtitle}>Thanks for your support!</Text>
                                 </View>
-                            </View>
+                            </TouchableOpacity>
                         )}
                     </View>
 
