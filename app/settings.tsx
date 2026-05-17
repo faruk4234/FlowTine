@@ -4,25 +4,25 @@ import * as WebBrowser from "expo-web-browser";
 import { useAtom, useAtomValue } from "jotai";
 import React, { useCallback } from "react";
 import {
-  Alert,
-  Linking,
-  Platform,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Alert,
+    Linking,
+    Platform,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import SettingRow from "@/src/components/SettiingRow";
 import { LEGAL_URLS } from "@/src/legal/urls";
 import {
-  autoAdvanceEnabledAtom,
-  isPremiumAtom,
-  routineCueSoundsEnabledAtom,
-  soundVibrationEnabledAtom,
+    autoAdvanceEnabledAtom,
+    isPremiumAtom,
+    routineCueSoundsEnabledAtom,
+    soundVibrationEnabledAtom,
 } from "@/src/state/atoms";
 import { Spacing } from "@/src/state/theme";
 
@@ -75,7 +75,7 @@ export default function SettingsScreen() {
   }, []);
 
   return (
-    <View style={styles.root}>
+    <SafeAreaView style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.bg} />
       <SafeAreaView style={styles.pageContainer}>
         {/* Header Navbar */}
@@ -195,7 +195,7 @@ export default function SettingsScreen() {
           <View style={{ height: 40 }} />
         </ScrollView>
       </SafeAreaView>
-    </View>
+    </SafeAreaView>
   );
 }
 
