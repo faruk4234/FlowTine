@@ -1,5 +1,14 @@
 import { routineFeedback } from '@/src/feedback/routine-feedback';
-import { activeRoutineIdAtom, autoAdvanceEnabledAtom, routineCueSoundsEnabledAtom, routinesAtom, soundVibrationEnabledAtom, timerRunningAtom, type Movement, } from '@/src/state/atoms';
+import {
+  autoAdvanceEnabledAtom,
+  routineCueSoundsEnabledAtom,
+  routinesAtom,
+  soundVibrationEnabledAtom,
+  timerSessionAtom,
+  movementWorkSeconds,
+  type Movement,
+  type TimerPhase,
+} from '@/src/state/atoms';
 import { AppPalette as C } from '@/src/state/colors';
 import { BorderRadius, Spacing, Typography } from '@/src/state/theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,11 +39,6 @@ function formatTime(s: number) {
 
 function repeatTotal(m: Movement | null | undefined): number {
   return Math.max(1, m?.repeatCount ?? 1);
-}
-
-function movementWorkSeconds(m: Movement | null | undefined): number {
-  if (!m) return 0;
-  return m.durationMin * 60 + m.durationSec;
 }
 
 /** Sum work durations of movements starting from index `from`. */
@@ -96,7 +100,7 @@ function CircularRing({ progress, color = C.blue }: RingProps) {
 }
 
 // ─── Timer screen ─────────────────────────────────────────────────────────────
-type Phase = 'work' | 'rest' | 'done';
+type Phase = TimerPhase;
 
 function normalizeRouteParam(
   value: string | string[] | undefined,
@@ -110,9 +114,8 @@ export default function TimerScreen() {
   // Get routine ID from URL params for reliability
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const paramId = normalizeRouteParam(params.id);
-  const [isRunning, setIsRunning] = useAtom(timerRunningAtom);
-  const setActiveId = useSetAtom(activeRoutineIdAtom);
-  const activeId = useAtomValue(activeRoutineIdAtom);
+  const [timerSession, setTimerSession] = useAtom(timerSessionAtom);
+  const [isRunning, setIsRunning] = useState(false);
   const routines = useAtomValue(routinesAtom);
   const isAutoAdvance = useAtomValue(autoAdvanceEnabledAtom);
   const routineSoundsOn = useAtomValue(routineCueSoundsEnabledAtom);
@@ -122,7 +125,7 @@ export default function TimerScreen() {
 
   const safeRoutines = Array.isArray(routines) ? routines : [];
   // Prefer URL param ID over atom (avoids hydration race)
-  const routineId = paramId ?? activeId;
+  const routineId = paramId ?? timerSession?.routineId;
   const routine = safeRoutines.find((r) => r.id === routineId) ?? safeRoutines[0];
   const movements = useMemo<Movement[]>(
     () => (Array.isArray(routine?.movements) ? routine.movements : []),
@@ -238,8 +241,9 @@ export default function TimerScreen() {
     routineCompleteFiredRef.current = false;
   }, [routineId]);
 
-  // Reset local timer state when the selected routine changes (navigation / hydration).
-  useEffect(() => {
+  const sessionAppliedRef = useRef<string | null>(null);
+
+  const applyFreshTimer = useCallback(() => {
     const safe = Array.isArray(routines) ? routines : [];
     const r =
       routineId !== undefined && routineId !== null && routineId !== ''
@@ -247,11 +251,15 @@ export default function TimerScreen() {
         : safe[0];
     const movs = Array.isArray(r?.movements) ? r.movements : [];
     const first = movs[0];
+    const initialSeconds = first ? movementWorkSeconds(first) : 0;
     setMovIdx(0);
     setCurrentRepeat(1);
     setPhase('work');
-    setSeconds(first ? movementWorkSeconds(first) : 0);
-    segmentEndsAtMsRef.current = null;
+    setSeconds(initialSeconds);
+    setIsRunning(true);
+    segmentEndsAtMsRef.current =
+      initialSeconds > 0 ? Date.now() + initialSeconds * 1000 : null;
+    sessionAppliedRef.current = `fresh:${routineId}`;
   }, [routineId, routines]);
 
   useEffect(() => {
@@ -434,6 +442,71 @@ export default function TimerScreen() {
     });
   }, [cancelTimerNotifs, computeNextAfterZero, isAutoAdvance, movements, scheduleTimerNotifs, setIsRunning]);
 
+  // Hydrate from persisted session or reset when starting a new routine.
+  useEffect(() => {
+    if (!routineId) return;
+
+    const saved = timerSession;
+    if (saved?.routineId === routineId && saved.phase !== 'done') {
+      const hydrateKey = `${saved.routineId}:${saved.movIdx}:${saved.currentRepeat}:${saved.phase}:${saved.isRunning}`;
+      if (sessionAppliedRef.current === hydrateKey) return;
+      sessionAppliedRef.current = hydrateKey;
+
+      setMovIdx(saved.movIdx);
+      setCurrentRepeat(saved.currentRepeat);
+      setPhase(saved.phase);
+      setSeconds(saved.seconds);
+      setIsRunning(saved.isRunning);
+      segmentEndsAtMsRef.current = saved.segmentEndsAtMs;
+
+      if (saved.isRunning && saved.segmentEndsAtMs) {
+        void syncTimerToNow();
+      }
+      return;
+    }
+
+    if (saved !== null && saved.routineId !== routineId) {
+      applyFreshTimer();
+      return;
+    }
+
+    if (saved === null && sessionAppliedRef.current === `fresh:${routineId}`) {
+      return;
+    }
+
+    if (saved === null) {
+      applyFreshTimer();
+    }
+  }, [timerSession, routineId, applyFreshTimer, syncTimerToNow]);
+
+  useEffect(() => {
+    if (phase === 'done') {
+      setTimerSession(null);
+    }
+  }, [phase, setTimerSession]);
+
+  // Persist timer progress for resume across app restarts.
+  useEffect(() => {
+    if (!routineId || phase === 'done') return;
+    setTimerSession({
+      routineId,
+      movIdx,
+      currentRepeat,
+      phase,
+      seconds,
+      isRunning,
+      segmentEndsAtMs: segmentEndsAtMsRef.current,
+    });
+  }, [
+    routineId,
+    movIdx,
+    currentRepeat,
+    phase,
+    seconds,
+    isRunning,
+    setTimerSession,
+  ]);
+
   // Pre-cue: rest only — ~1–2 s before rest ends (prepare for next work). No pre-cue during work.
   useEffect(() => {
     if (!isRunning || phase !== 'rest') return;
@@ -615,7 +688,8 @@ export default function TimerScreen() {
     segmentEndsAtMsRef.current = null;
     void cancelTimerNotifs();
     setIsRunning(false);
-    setActiveId(null);
+    setTimerSession(null);
+    sessionAppliedRef.current = null;
     router.back();
   }
 

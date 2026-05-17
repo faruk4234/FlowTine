@@ -159,12 +159,15 @@ export async function seedDefaultRoutines(): Promise<void> {
 /** ID of the routine detail screen currently open. Transient. */
 export const selectedRoutineIdAtom = atom<string | null>(null);
 
-/** ID of the currently running routine (null = none). Transient. */
-export const activeRoutineIdAtom = atom<string | null>(null);
-
-/** Timer state: seconds remaining while a routine is running. Transient. */
-export const timerSecondsAtom = atom<number>(0);
-export const timerRunningAtom = atom<boolean>(false);
+export {
+  timerSessionAtom,
+  getActiveRoutineId,
+  createFreshTimerSession,
+  formatMovementStep,
+  movementWorkSeconds,
+  type TimerSession,
+  type TimerPhase,
+} from "./timer-session";
 
 // ─── User-flow persistent atoms ───────────────────────────────────────────────
 export const onboardingCompletedAtom = atomWithStorage<boolean>(
