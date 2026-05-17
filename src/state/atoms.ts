@@ -103,7 +103,52 @@ export type Routine = {
 };
 
 // ─── Default data ─────────────────────────────────────────────────────────────
-export const DEFAULT_ROUTINES: Routine[] = [];
+export const DEFAULT_ROUTINES: Routine[] = [
+  /* {
+     id: 'default-1',
+     title: 'Morning Yoga',
+     subtitle: 'Vinyasa Flow focus',
+     durationMin: 15,
+     movementCount: 3,
+     categoryIconIndex: 0,
+     isActive: true,
+     createdAt: 1_000_000_001,
+     movements: [
+       { id: 'm1-1', name: 'Sun Salutation A', description: '', durationMin: 5, durationSec: 0, restSec: 30 },
+       { id: 'm1-2', name: 'Deep Breath Isometric', description: '', durationMin: 2, durationSec: 0, restSec: 15 },
+       { id: 'm1-3', name: 'Warrior Flow II', description: '', durationMin: 8, durationSec: 0, restSec: 60 },
+     ],
+   },*/
+  {
+    id: 'default-2',
+    title: 'Deep Work Pomodoro',
+    subtitle: '4 cycles • Focus blocks',
+    durationMin: 50,
+    movementCount: 4,
+    categoryIconIndex: 5,
+    isActive: false,
+    createdAt: 1_000_000_002,
+    movements: [
+      { id: 'm2-1', name: 'Focus Block 1', description: 'No distractions', durationMin: 25, durationSec: 0, restSec: 300 },
+      { id: 'm2-2', name: 'Focus Block 2', description: '', durationMin: 25, durationSec: 0, restSec: 300 },
+    ],
+  },
+  {
+    id: 'default-3',
+    title: 'Quick HIIT',
+    subtitle: 'Full body • Intensity focus',
+    durationMin: 12,
+    movementCount: 3,
+    categoryIconIndex: 2,
+    isActive: false,
+    createdAt: 1_000_000_003,
+    movements: [
+      { id: 'm3-1', name: 'Burpees', description: 'Full body explosive', durationMin: 0, durationSec: 40, restSec: 20 },
+      { id: 'm3-2', name: 'Jump Squats', description: '', durationMin: 0, durationSec: 40, restSec: 20 },
+      { id: 'm3-3', name: 'Mountain Climbers', description: '', durationMin: 0, durationSec: 40, restSec: 20 },
+    ],
+  },
+];
 const LEGACY_DEFAULT_ROUTINE_IDS = ["default-1", "default-2", "default-3"];
 
 // ─── Persistent atoms ─────────────────────────────────────────────────────────
