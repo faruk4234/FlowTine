@@ -15,16 +15,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const C = {
-  bg: "#0F1115",
-  surface: "#1A1D23",
-  surfaceHigh: "#22262F",
-  border: "#2A2E38",
-  text: "#F1F5F9",
-  textMuted: "#9CA3AF",
-  textDim: "#64748B",
-  blue: "#3B82F6",
-};
+import { AppPalette as C } from "@/src/state/colors";
 
 function generateId() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -197,7 +188,7 @@ export default function RoutineFormModal({
 
             {isEdit && (
               <TouchableOpacity style={s.deleteBtn} onPress={handleDelete}>
-                <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                <Ionicons name="trash-outline" size={18} color={C.red} />
                 <Text style={s.deleteBtnText}>Delete Routine</Text>
               </TouchableOpacity>
             )}
@@ -272,12 +263,12 @@ const s = StyleSheet.create({
     marginTop: Spacing.xl + 4,
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.lg,
-    backgroundColor: "rgba(239,68,68,0.1)",
+    backgroundColor: C.redDim,
     borderWidth: 1,
-    borderColor: "rgba(239,68,68,0.3)",
+    borderColor: C.redBorder,
   },
   deleteBtnText: {
-    color: "#EF4444",
+    color: C.red,
     ...Typography.bodyMedium,
     fontSize: 15,
     fontWeight: "600",

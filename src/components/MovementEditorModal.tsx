@@ -5,18 +5,7 @@ import { Alert, Modal, Platform, Pressable, ScrollView, StatusBar, StyleSheet, T
 import { type Movement } from '@/src/state/atoms';
 import { BorderRadius, Spacing, Typography } from '@/src/state/theme';
 
-const C = {
-  bg: '#0F1115',
-  surface: '#1A1D23',
-  surfaceHigh: '#22262F',
-  border: '#2A2E38',
-  text: '#F1F5F9',
-  textMuted: '#9CA3AF',
-  textDim: '#64748B',
-  blue: '#3B82F6',
-  red: '#EF4444',
-  redDim: 'rgba(239,68,68,0.1)',
-};
+import { AppPalette as C } from '@/src/state/colors';
 
 function pad(n: number) { return String(n).padStart(2, '0'); }
 function generateId() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
@@ -371,8 +360,8 @@ const e = StyleSheet.create({
   hapticSub: { ...Typography.caption, color: C.textDim },
 
   doneBtn: { backgroundColor: C.blue, borderRadius: BorderRadius.md + 6, paddingVertical: Spacing.md + 2, alignItems: 'center' },
-  doneBtnText: { ...Typography.bodyMedium, fontWeight: '700', color: '#FFF' },
+  doneBtnText: { ...Typography.bodyMedium, fontWeight: '700', color: C.white },
   bottomBar: { paddingHorizontal: Spacing.lg, paddingBottom: Platform.OS === 'ios' ? Spacing.xl + 2 : Spacing.md + 4, paddingTop: Spacing.md - 4, borderTopWidth: 1, borderTopColor: C.border, backgroundColor: C.bg },
-  deleteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md, borderRadius: BorderRadius.md + 4, backgroundColor: C.redDim, borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)', marginTop: Spacing.sm + 4 },
+  deleteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md, borderRadius: BorderRadius.md + 4, backgroundColor: C.redDim, borderWidth: 1, borderColor: C.redBorder, marginTop: Spacing.sm + 4 },
   deleteBtnText: { color: C.red, ...Typography.bodyMedium, fontSize: 15, fontWeight: '600' },
 });

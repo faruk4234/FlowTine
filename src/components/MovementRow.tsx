@@ -4,13 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-const C = {
-  surface: "#1A1D23",
-  border: "#2A2E38",
-  text: "#F1F5F9",
-  textDim: "#64748B",
-  blue: "#3B82F6",
-};
+import { AppPalette as C } from "@/src/state/colors";
 
 function pad(n: number) {
   return String(n).padStart(2, "0");

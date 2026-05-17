@@ -34,22 +34,8 @@ import MovementRow from "@/src/components/MovementRow";
 import RoutineFormModal, {
   type FormMode,
 } from "@/src/components/RoutineFormModal";
+import { AppPalette as C } from "@/src/state/colors";
 import { BorderRadius, Spacing, Typography } from "@/src/state/theme";
-
-// ─── Design tokens ────────────────────────────────────────────────────────────
-const C = {
-  bg: "#0F1115",
-  surface: "#1A1D23",
-  surfaceHigh: "#22262F",
-  border: "#2A2E38",
-  text: "#F1F5F9",
-  textMuted: "#9CA3AF",
-  textDim: "#64748B",
-  blue: "#3B82F6",
-  blueDim: "rgba(59,130,246,0.15)",
-  red: "#EF4444",
-  redDim: "rgba(239,68,68,0.1)",
-};
 
 // ─── Routine Detail Screen ────────────────────────────────────────────────────
 export default function RoutineScreen() {
@@ -310,7 +296,7 @@ export default function RoutineScreen() {
             <Text style={r.finalizeBtnText}>Finalize Routine</Text>
           </TouchableOpacity>
           <TouchableOpacity style={r.deleteBtn} onPress={handleDeleteRoutine}>
-            <Ionicons name="trash" size={20} color="#FFF" />
+            <Ionicons name="trash" size={20} color={C.white} />
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -438,7 +424,7 @@ const r = StyleSheet.create({
   finalizeBtnText: {
     ...Typography.bodyMedium,
     fontWeight: "700",
-    color: "#FFF",
+    color: C.white,
   },
   deleteBtn: {
     width: 56,

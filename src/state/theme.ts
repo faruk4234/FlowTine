@@ -61,4 +61,4 @@ export const useAppTheme = (): AppTheme => {
     };
 };
 
-export { Colors };
+export { AppPalette, Colors, PaywallPalette, palette } from './colors';

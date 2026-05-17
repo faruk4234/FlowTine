@@ -3,18 +3,7 @@ import React from 'react';
 import { Platform, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { BorderRadius } from '../state/theme';
 
-const C = {
-    bg: '#0F1115',
-    surface: '#1A1D23',
-    surfaceHigh: '#22262F',
-    border: '#2A2E38',
-    text: '#F1F5F9',
-    textMuted: '#9CA3AF',
-    textDim: '#64748B',
-    blue: '#3B82F6',
-    blueDim: 'rgba(59,130,246,0.15)',
-    green: '#10B981',
-};
+import { AppPalette as C, palette } from '@/src/state/colors';
 
 interface SettingRowProps {
     icon: string;
@@ -45,7 +34,7 @@ export const SettingRow = ({ icon, title, subtitle, isSwitch, switchValue, onVal
                 value={switchValue}
                 onValueChange={onValueChange}
                 trackColor={{ false: C.surfaceHigh, true: C.blue }}
-                thumbColor={Platform.OS === 'ios' ? '#FFF' : (switchValue ? '#FFF' : '#f4f3f4')}
+                thumbColor={Platform.OS === 'ios' ? C.white : (switchValue ? C.white : palette.switchThumbOff)}
             />
         ) : isLink ? (
             <Ionicons name="chevron-forward" size={20} color={C.textDim} />

@@ -1,4 +1,5 @@
 import { onboardingCompletedAtom } from "@/src/state/atoms";
+import { AppPalette as C } from "@/src/state/colors";
 import { useAppTheme } from "@/src/state/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -16,19 +17,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
-// ─── Design tokens (Stitch Obsidian Kinetic) ─────────────────────────────────
-const C = {
-  bg: "#0F1115",
-  surface: "#1A1D23",
-  surfaceHigh: "#22262F",
-  border: "#2A2E38",
-  text: "#F1F5F9",
-  textMuted: "#9CA3AF",
-  textDim: "#64748B",
-  blue: "#3B82F6",
-  blueDim: "rgba(59,130,246,0.15)",
-  green: "#10B981",
-};
 const FEATURES = [
   {
     icon: "add-circle-outline" as const,
@@ -140,7 +128,7 @@ export default function OnboardingScreen() {
             <Text
               style={[
                 styles.buttonText,
-                { ...theme.typography.heading, color: "#FFFFFF" },
+                { ...theme.typography.heading, color: C.white },
               ]}
             >
               Get Started
@@ -148,7 +136,7 @@ export default function OnboardingScreen() {
             <Ionicons
               name="arrow-forward"
               size={20}
-              color="#FFFFFF"
+              color={C.white}
               style={{ marginLeft: 8 }}
             />
           </TouchableOpacity>
@@ -225,7 +213,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 24,
-    shadowColor: "#3B82F6",
+    shadowColor: C.blue,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

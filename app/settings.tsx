@@ -24,21 +24,8 @@ import {
     routineCueSoundsEnabledAtom,
     soundVibrationEnabledAtom,
 } from "@/src/state/atoms";
+import { AppPalette as C } from "@/src/state/colors";
 import { Spacing } from "@/src/state/theme";
-
-// ─── Design tokens (Stitch Obsidian Kinetic) ─────────────────────────────────
-const C = {
-  bg: "#0F1115",
-  surface: "#1A1D23",
-  surfaceHigh: "#22262F",
-  border: "#2A2E38",
-  text: "#F1F5F9",
-  textMuted: "#9CA3AF",
-  textDim: "#64748B",
-  blue: "#3B82F6",
-  blueDim: "rgba(59,130,246,0.15)",
-  green: "#10B981",
-};
 
 export default function SettingsScreen() {
   const router = useRouter();

@@ -13,13 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 
-const C = {
-  bg: '#0F1115',
-  surface: '#1A1D23',
-  text: '#F1F5F9',
-  textMuted: '#9CA3AF',
-  blue: '#3B82F6',
-};
+import { AppPalette as C, palette } from '@/src/state/colors';
 
 export default function LegalWebViewScreen() {
   const router = useRouter();
@@ -113,7 +107,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     paddingTop: Platform.OS === 'android' ? 4 : 0,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#2A2E38',
+    borderBottomColor: C.border,
     backgroundColor: C.surface,
   },
   backBtn: {
@@ -133,17 +127,17 @@ const styles = StyleSheet.create({
   },
   webWrap: {
     flex: 1,
-    backgroundColor: '#FFF',
+    backgroundColor: palette.white,
   },
   webview: {
     flex: 1,
-    backgroundColor: '#FFF',
+    backgroundColor: palette.white,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(15,17,21,0.35)',
+    backgroundColor: palette.appOverlay,
     zIndex: 1,
   },
   loadingText: {

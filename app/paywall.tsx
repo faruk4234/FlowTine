@@ -1,5 +1,6 @@
 import { LEGAL_URLS } from "@/src/legal/urls";
 import { isPremiumAtom } from "@/src/state/atoms";
+import { PaywallPalette as C } from "@/src/state/colors";
 import { BorderRadius, Spacing, Typography } from "@/src/state/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -20,20 +21,6 @@ import {
 } from "react-native";
 import Purchases, { type PurchasesPackage } from "react-native-purchases";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-const C = {
-  bg: "#070B12",
-  surface: "#171A22",
-  surfaceSoft: "#11151D",
-  surfaceBtn: "#121722",
-  text: "#F4F7FC",
-  textMuted: "#A6AFBF",
-  textDim: "#6F7A8C",
-  blue: "#3B82F6",
-  yellow: "#FACC15",
-  border: "#242C38",
-  borderSelected: "#3B82F6",
-};
 
 type PlanId = "free" | "weekly" | "monthly" | "yearly" | "lifetime";
 
@@ -313,7 +300,7 @@ export default function PaywallScreen() {
               activeOpacity={0.9}
             >
               {loading ? (
-                <ActivityIndicator color="#FFF" />
+                <ActivityIndicator color={C.white} />
               ) : (
                 <Text style={s.upgradeBtnText}>Continue</Text>
               )}
@@ -419,7 +406,7 @@ const s = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: C.overlay,
     justifyContent: "center",
     alignItems: "center",
     flexShrink: 0,
@@ -466,7 +453,7 @@ const s = StyleSheet.create({
   badgeText: {
     fontSize: 10,
     fontWeight: "800",
-    color: "#111827",
+    color: C.ctaText,
     letterSpacing: 0.5,
   },
   planRowInner: {
@@ -521,13 +508,13 @@ const s = StyleSheet.create({
     backgroundColor: C.blue,
   },
   activePill: {
-    backgroundColor: "#40444A",
+    backgroundColor: C.mutedSurface,
     borderRadius: 6,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
   activeText: {
-    color: "#D1D5DB",
+    color: C.mutedText,
     fontSize: 10,
     fontWeight: "700",
     letterSpacing: 0.8,
@@ -550,7 +537,7 @@ const s = StyleSheet.create({
     ...Typography.bodyMedium,
     fontSize: 19,
     fontWeight: "700",
-    color: "#FFF",
+    color: C.white,
     letterSpacing: 0.2,
   },
   restoreWrap: {

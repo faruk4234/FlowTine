@@ -1,5 +1,6 @@
 import { routineFeedback } from '@/src/feedback/routine-feedback';
 import { activeRoutineIdAtom, autoAdvanceEnabledAtom, routineCueSoundsEnabledAtom, routinesAtom, soundVibrationEnabledAtom, timerRunningAtom, type Movement, } from '@/src/state/atoms';
+import { AppPalette as C } from '@/src/state/colors';
 import { BorderRadius, Spacing, Typography } from '@/src/state/theme';
 import { Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
@@ -16,20 +17,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-// ─── Design tokens ────────────────────────────────────────────────────────────
-const C = {
-  bg: '#0F1115',
-  surface: '#1A1D23',
-  surfaceHigh: '#22262F',
-  border: '#2A2E38',
-  text: '#F1F5F9',
-  textMuted: '#9CA3AF',
-  textDim: '#64748B',
-  blue: '#3B82F6',
-  orange: '#F97316',
-  green: '#10B981',
-};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function pad(n: number) { return String(Math.floor(Math.max(0, n))).padStart(2, '0'); }
@@ -721,7 +708,7 @@ export default function TimerScreen() {
               <Ionicons
                 name={isRunning ? 'pause' : 'play'}
                 size={32}
-                color="#FFF"
+                color={C.white}
                 style={{ marginLeft: isRunning ? 0 : 4 }}
               />
             </TouchableOpacity>
@@ -794,12 +781,12 @@ const ts = StyleSheet.create({
 
   // End
   endBtn: { paddingVertical: Spacing.sm - 2 },
-  endBtnText: { ...Typography.caption, fontWeight: '700', color: '#EF4444', letterSpacing: 1.2 },
+  endBtnText: { ...Typography.caption, fontWeight: '700', color: C.red, letterSpacing: 1.2 },
 
   // Done screen
   doneIconWrap: { width: 96, height: 96, borderRadius: 48, backgroundColor: `${C.green}20`, justifyContent: 'center', alignItems: 'center', marginBottom: Spacing.screenHorizontal },
   doneTitle: { ...Typography.title, fontSize: 28, fontWeight: '800', color: C.text, marginBottom: Spacing.sm },
   doneSub: { ...Typography.bodyMedium, color: C.textMuted, marginBottom: Spacing.screenHorizontal * 2 },
   doneBtn: { backgroundColor: C.blue, borderRadius: BorderRadius.lg, paddingVertical: Spacing.md + 2, paddingHorizontal: 48 },
-  doneBtnText: { ...Typography.bodyMedium, fontWeight: '700', color: '#FFF' },
+  doneBtnText: { ...Typography.bodyMedium, fontWeight: '700', color: C.white },
 });

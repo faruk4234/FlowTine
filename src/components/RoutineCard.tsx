@@ -4,16 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-const C = {
-  surface: '#1A1D23',
-  surfaceHigh: '#22262F',
-  border: '#2A2E38',
-  text: '#F1F5F9',
-  textMuted: '#9CA3AF',
-  textDim: '#64748B',
-  blue: '#3B82F6',
-  green: '#10B981',
-};
+import { AppPalette as C } from '@/src/state/colors';
 
 function ActiveBadge() {
   return (
@@ -68,7 +59,7 @@ export default function RoutineCard({ routine, isRunning, onPress, onPlay, onEdi
         <Ionicons
           name={isRunning ? 'pause' : 'play'}
           size={20}
-          color="#FFF"
+          color={C.white}
           style={{ marginLeft: isRunning ? 0 : 3 }}
         />
       </TouchableOpacity>
