@@ -196,9 +196,9 @@ export default function PaywallScreen() {
 
   const features = useMemo(
     () => [
-      { icon: "infinite" as const, text: "Unlimited Routines" },
-      { icon: "layers" as const, text: "Unlimited Movements" },
-      { icon: "phone-portrait" as const, text: "Haptic Alerts" },
+      { icon: "infinite" as const, text: "Unlimited Media Compression" },
+      { icon: "layers" as const, text: "Multi-select Files" },
+      { icon: "save" as const, text: "Replace Originals directly" },
       { icon: "ban-outline" as const, text: "No Ads" },
     ],
     [],
@@ -228,11 +228,11 @@ export default function PaywallScreen() {
             <View>
               <View style={s.brandRow}>
                 <Ionicons name="flash" size={13} color={C.blue} />
-                <Text style={s.brandText}>FLOWTINE PREMIUM</Text>
+                <Text style={s.brandText}>MINIFY PREMIUM</Text>
               </View>
 
-              <Text style={s.headline}>Flowtine</Text>
-              <Text style={s.subHeadline}>Routine and Habit Tracker</Text>
+              <Text style={s.headline}>Minify</Text>
+              <Text style={s.subHeadline}>Media Compressor & Resizer</Text>
             </View>
 
             <View style={s.featureGrid}>

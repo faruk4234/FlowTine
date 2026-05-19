@@ -22,8 +22,8 @@ export const SettingRow = ({ icon, title, subtitle, isSwitch, switchValue, onVal
         activeOpacity={isSwitch ? 1 : 0.7}
         onPress={isSwitch ? () => onValueChange?.(!switchValue) : onPress}
     >
-        <View style={styles.iconContainer}>
-            <Ionicons name={icon} size={20} color={C.blue} />
+        <View style={[styles.iconContainer, { backgroundColor: C.surface }]}>
+            <Ionicons name={icon as any} size={20} color={C.blue} />
         </View>
         <View style={styles.textContainer}>
             <Text style={styles.rowTitle}>{title}</Text>

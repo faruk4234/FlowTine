@@ -19,20 +19,20 @@ const { width } = Dimensions.get("window");
 
 const FEATURES = [
   {
-    icon: "add-circle-outline" as const,
-    title: "Create Routine",
-    description: "Build your own custom routines matching your lifestyle.",
+    icon: "images-outline" as const,
+    title: "Compress Photos & Videos",
+    description: "Easily reduce the file size of your photos and videos.",
   },
   {
-    icon: "time-outline" as const,
-    title: "Movements & Time",
-    description: "Add routine movexPments or steps with precise time controls.",
+    icon: "resize-outline" as const,
+    title: "Resize Media",
+    description: "Change the dimensions of your media to fit any platform.",
   },
   {
-    icon: "checkmark-circle-outline" as const,
-    title: "Make It Easy",
+    icon: "save-outline" as const,
+    title: "Save Space",
     description:
-      "Follow your routine seamlessly and effortlessly every single day.",
+      "Free up storage on your device without losing visual quality.",
   },
 ];
 
@@ -55,12 +55,12 @@ export default function OnboardingScreen() {
           style={styles.header}
         >
           <View style={[styles.iconContainer, { backgroundColor: C.blueDim }]}>
-            <Ionicons name="sparkles" size={40} color={C.blue} />
+            <Ionicons name="images" size={40} color={C.blue} />
           </View>
           <Text
             style={[styles.title, { color: C.text, ...theme.typography.hero }]}
           >
-            Welcome to FlowTine
+            Welcome to Minify
           </Text>
           <Text
             style={[
@@ -68,7 +68,7 @@ export default function OnboardingScreen() {
               { color: C.textMuted, ...theme.typography.bodyLarge },
             ]}
           >
-            Master your daily flow
+            Compress & resize your media
           </Text>
         </Animated.View>
 

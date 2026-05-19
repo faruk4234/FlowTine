@@ -32,7 +32,7 @@ export const Typography = {
 };
 
 export type AppTheme = {
-    colors: typeof Colors.light;
+    colors: typeof Colors.light | typeof Colors.dark;
     spacing: typeof Spacing;
     borderRadius: typeof BorderRadius;
     typography: typeof Typography;

@@ -1,24 +1,14 @@
-import RoutineCard from "@/src/components/RoutineCard";
-import RoutineFormModal, {
-  type FormMode,
-} from "@/src/components/RoutineFormModal";
-import {
-  DEFAULT_ROUTINES,
-  activeRoutineIdAtom,
-  deletedDefaultIdsAtom,
-  isPremiumAtom,
-  routinesAtom,
-  timerRunningAtom,
-  timerSecondsAtom,
-  type Routine,
-} from "@/src/state/atoms";
+import { isPremiumAtom, selectedMediaAtom } from "@/src/state/atoms";
 import { AppPalette as C } from "@/src/state/colors";
 import { BorderRadius, Spacing, Typography } from "@/src/state/theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import * as MediaLibrary from "expo-media-library";
 import { useRouter } from "expo-router";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import React, { useState } from "react";
+import { useAtomValue, useSetAtom } from "jotai";
+import React from "react";
 import {
+  Alert,
   Platform,
   ScrollView,
   StatusBar,
@@ -28,192 +18,90 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { BannerAd, BannerAdSize, TestIds } from "react-native-google-mobile-ads";
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function HomeScreen() {
   const router = useRouter();
-  const [routines, setRoutines] = useAtom(routinesAtom);
-  const [activeRoutineId, setActiveRoutineId] = useAtom(activeRoutineIdAtom);
-  const setTimerSeconds = useSetAtom(timerSecondsAtom);
-  const setTimerRunning = useSetAtom(timerRunningAtom);
   const isPremium = useAtomValue(isPremiumAtom);
-  const [deletedDefaultIds, setDeletedDefaultIds] = useAtom(
-    deletedDefaultIdsAtom,
-  );
+  const setSelectedMedia = useSetAtom(selectedMediaAtom);
 
-  const [formVisible, setFormVisible] = useState(false);
-  const [formMode, setFormMode] = useState<FormMode>({ mode: "create" });
-
-  // Ensure we always work with a real array (fixes atomWithStorage initial-state edge case)
-  const safeRoutines: Routine[] = Array.isArray(routines) ? routines : [];
-
-  const sorted = [...safeRoutines].sort((a, b) => {
-    if (a.isActive && !b.isActive) return -1;
-    if (!a.isActive && b.isActive) return 1;
-    return a.createdAt - b.createdAt;
-  });
-
-  function openCreate() {
-    if (!isPremium && safeRoutines.length >= 3) {
-      router.push("/paywall");
+  const handlePickMedia = async () => {
+    const { status } = await MediaLibrary.requestPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission Needed", "We need media library permissions to pick and save files.");
       return;
     }
-    setFormMode({ mode: "create" });
-    setFormVisible(true);
-  }
 
-  function openEdit(routine: Routine) {
-    setFormMode({ mode: "edit", routine });
-    setFormVisible(true);
-  }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images', 'videos'],
+      allowsMultipleSelection: isPremium,
+      quality: 1,
+    });
 
-  function handleSave(routine: Routine) {
-    const arr = Array.isArray(routines) ? routines : [];
-    const idx = arr.findIndex((r) => r.id === routine.id);
-    let updated;
-    if (idx >= 0) {
-      updated = [...arr];
-      updated[idx] = routine;
-    } else {
-      // Free users can create max 3 routines
-      if (!isPremium && arr.length >= 3) {
-        setFormVisible(false);
-        router.push("/paywall");
-        return;
+    if (!result.canceled && result.assets) {
+      let items = result.assets;
+      if (!isPremium && items.length > 1) {
+        Alert.alert("Premium Feature", "Selecting multiple files is a premium feature.");
+        items = [items[0]];
       }
-      updated = [...arr, routine];
+
+      setSelectedMedia(items);
+      router.push("/config");
     }
-    setRoutines(updated);
-  }
-
-  function handleDelete(id: string) {
-    const arr = Array.isArray(routines) ? routines : [];
-    const updated = arr.filter((r) => r.id !== id);
-    setRoutines(updated);
-
-    if (activeRoutineId === id) setActiveRoutineId(null);
-
-    // Track if user deleted a default routine so it won't be re-seeded
-    const isDefault = DEFAULT_ROUTINES.some((d) => d.id === id);
-    if (isDefault) {
-      const nextDeleted = [...new Set([...deletedDefaultIds, id])];
-      setDeletedDefaultIds(nextDeleted);
-    }
-  }
-
-  function handleOpen(routine: Routine) {
-    // Pass the ID as a URL param — avoids async hydration race with atomWithStorage
-    router.push({ pathname: "/tabs/routine", params: { id: routine.id } });
-  }
-
-  function handlePlay(routine: Routine) {
-    const seconds = routine.durationMin * 60;
-    setTimerSeconds(seconds);
-    setTimerRunning(true);
-    setActiveRoutineId(routine.id);
-    // Same-stack sibling: absolute "/tabs/timer" can fail to resolve from nested layouts
-    router.push({ pathname: "./timer", params: { id: routine.id } });
-  }
+  };
 
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.bg} />
       <SafeAreaView style={{ flex: 1 }}>
-        <ScrollView
-          contentContainerStyle={s.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
+        <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
           {/* Header */}
           <View style={s.header}>
             <View style={{ flex: 1 }}>
-              <Text style={s.headerTitle}>Your{"\n"}Routines</Text>
+              <Text style={s.headerTitle}>Minify{"\n"}Media</Text>
               <Text style={s.headerSub}>
-                KINETIC FLOW • {isPremium ? " • PRO" : ""}
+                COMPRESS & RESIZE • {isPremium ? "PRO" : "FREE"}
               </Text>
             </View>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                marginTop: Spacing.xs,
-              }}
-            >
+            <View style={{ flexDirection: "row", alignItems: "center", marginTop: Spacing.xs }}>
               {!isPremium ? (
                 <TouchableOpacity
-                  style={[
-                    s.settingsBtn,
-                    { marginTop: 0, marginRight: Spacing.sm },
-                  ]}
+                  style={[s.settingsBtn, { marginTop: 0, marginRight: Spacing.sm }]}
                   onPress={() => router.push("../paywall")}
                 >
-                  <MaterialCommunityIcons
-                    name="crown-outline"
-                    size={24}
-                    color={C.textMuted}
-                  />
+                  <MaterialCommunityIcons name="crown-outline" size={24} color={C.textMuted} />
                 </TouchableOpacity>
               ) : (
-                <View
-                  style={[
-                    s.settingsBtn,
-                    {
-                      marginTop: 0,
-                      marginRight: Spacing.sm,
-                      backgroundColor: C.blueDim,
-                    },
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name="crown"
-                    size={24}
-                    color={C.blue}
-                  />
+                <View style={[s.settingsBtn, { marginTop: 0, marginRight: Spacing.sm, backgroundColor: C.blueDim }]}>
+                  <MaterialCommunityIcons name="crown" size={24} color={C.blue} />
                 </View>
               )}
-              <TouchableOpacity
-                style={[s.settingsBtn, { marginTop: 0 }]}
-                onPress={() => router.push("../settings")}
-              >
+              <TouchableOpacity style={[s.settingsBtn, { marginTop: 0 }]} onPress={() => router.push("../settings")}>
                 <Ionicons name="settings-sharp" size={22} color={C.text} />
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Cards */}
+          {/* MAIN CONTENT AREA */}
           <View style={s.cardList}>
-            {sorted.map((routine) => (
-              <RoutineCard
-                key={routine.id}
-                routine={routine}
-                isRunning={activeRoutineId === routine.id}
-                onPress={() => handleOpen(routine)}
-                onPlay={() => handlePlay(routine)}
-                onEdit={() => openEdit(routine)}
-              />
-            ))}
-
-            {/* Always show Create Routine under list */}
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={s.createCard}
-              onPress={openCreate}
-            >
+            <TouchableOpacity activeOpacity={0.7} style={s.createCard} onPress={handlePickMedia}>
               <View style={s.createIconWrap}>
-                <Ionicons name="add" size={32} color={C.blue} />
+                <Ionicons name="images-outline" size={32} color={C.blue} />
               </View>
-              <Text style={s.createCardText}>Create Routine</Text>
+              <Text style={s.createCardText}>Select Media to Minify</Text>
+              {!isPremium && <Text style={s.subText}>Max 1 file per time (Pro for multi-select)</Text>}
             </TouchableOpacity>
           </View>
+          
+          {/* ADS FOR FREE USERS */}
+          {!isPremium && (
+            <View style={{ marginTop: Spacing.xl, alignItems: "center" }}>
+               <BannerAd unitId={TestIds.BANNER} size={BannerAdSize.BANNER} requestOptions={{ requestNonPersonalizedAdsOnly: true }} />
+            </View>
+          )}
+
         </ScrollView>
       </SafeAreaView>
-
-      <RoutineFormModal
-        visible={formVisible}
-        formMode={formMode}
-        onClose={() => setFormVisible(false)}
-        onSave={handleSave}
-        onDelete={handleDelete}
-      />
     </View>
   );
 }
@@ -221,69 +109,14 @@ export default function HomeScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
-  scrollContent: {
-    paddingHorizontal: Spacing.screenHorizontal,
-    paddingTop: Platform.OS === "android" ? 48 : Spacing.md,
-    paddingBottom: 84,
-  },
-
-  // Header
-  header: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: Spacing.xl,
-  },
-  headerTitle: {
-    ...Typography.hero,
-    fontSize: 38,
-    fontWeight: "800",
-    color: C.text,
-    lineHeight: 44,
-    letterSpacing: -0.5,
-  },
-  headerSub: {
-    ...Typography.caption,
-    fontWeight: "700",
-    color: C.textMuted,
-    letterSpacing: 1.2,
-    marginTop: Spacing.sm,
-  },
-  settingsBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: BorderRadius.round,
-    backgroundColor: C.surface,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: Spacing.xs,
-  },
-
-  // Card List
+  scrollContent: { paddingHorizontal: Spacing.screenHorizontal, paddingTop: Platform.OS === "android" ? 48 : Spacing.md, paddingBottom: 84 },
+  header: { flexDirection: "row", alignItems: "flex-start", marginBottom: Spacing.xl },
+  headerTitle: { ...Typography.hero, fontSize: 38, fontWeight: "800", color: C.text, lineHeight: 44, letterSpacing: -0.5 },
+  headerSub: { ...Typography.caption, fontWeight: "700", color: C.textMuted, letterSpacing: 1.2, marginTop: Spacing.sm },
+  settingsBtn: { width: 46, height: 46, borderRadius: BorderRadius.round, backgroundColor: C.surface, justifyContent: "center", alignItems: "center", marginTop: Spacing.xs },
   cardList: { gap: Spacing.md },
-
-  // Create
-  createCard: {
-    borderWidth: 1.5,
-    borderColor: C.border,
-    borderStyle: "dashed",
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    justifyContent: "center",
-    alignItems: "center",
-    flexDirection: "column",
-  },
-  createIconWrap: {
-    width: 45,
-    height: 45,
-    borderRadius: BorderRadius.md,
-    backgroundColor: C.blueDim,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  createCardText: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: C.blue,
-    marginTop: Spacing.sm,
-  },
+  createCard: { borderWidth: 1.5, borderColor: C.border, borderStyle: "dashed", borderRadius: BorderRadius.lg, padding: Spacing.xl, justifyContent: "center", alignItems: "center", flexDirection: "column" },
+  createIconWrap: { width: 45, height: 45, borderRadius: BorderRadius.md, backgroundColor: C.blueDim, justifyContent: "center", alignItems: "center" },
+  createCardText: { fontSize: 20, fontWeight: "700", color: C.text, marginTop: Spacing.sm },
+  subText: { fontSize: 13, color: C.textMuted, marginTop: 8 },
 });

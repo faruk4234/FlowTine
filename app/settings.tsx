@@ -19,10 +19,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import SettingRow from "@/src/components/SettiingRow";
 import { LEGAL_URLS } from "@/src/legal/urls";
 import {
-    autoAdvanceEnabledAtom,
     isPremiumAtom,
-    routineCueSoundsEnabledAtom,
-    soundVibrationEnabledAtom,
 } from "@/src/state/atoms";
 import { AppPalette as C } from "@/src/state/colors";
 import { Spacing } from "@/src/state/theme";
@@ -30,14 +27,7 @@ import { Spacing } from "@/src/state/theme";
 export default function SettingsScreen() {
   const router = useRouter();
 
-  const [soundVibration, setSoundVibration] = useAtom(
-    soundVibrationEnabledAtom,
-  );
-  const [autoAdvance, setAutoAdvance] = useAtom(autoAdvanceEnabledAtom);
-  // const [countdownSound, setCountdownSound] = useAtom(countdownSoundEnabledAtom);
-  const [routineCueSounds, setRoutineCueSounds] = useAtom(
-    routineCueSoundsEnabledAtom,
-  );
+  // Timer settings removed
 
   const isPremium = useAtomValue(isPremiumAtom);
 
@@ -112,47 +102,7 @@ export default function SettingsScreen() {
             )}
           </View>
 
-          {/* Section: Timer Settings */}
-          <Text style={styles.sectionTitle}>TIMER SETTINGS</Text>
-          <View style={styles.cardGroup}>
-            <SettingRow
-              icon="volume-medium-outline"
-              title="Sound & Vibration"
-              subtitle="Tactile feedback and audio tones"
-              isSwitch={true}
-              switchValue={soundVibration}
-              onValueChange={setSoundVibration}
-            />
-            <View style={styles.divider} />
-            <SettingRow
-              icon="musical-notes-outline"
-              title="Routine sounds"
-              subtitle="Get ready, go, step done, and finish cues"
-              isSwitch={true}
-              switchValue={routineCueSounds}
-              onValueChange={setRoutineCueSounds}
-            />
-            <View style={styles.divider} />
-            <SettingRow
-              icon="play-forward-outline"
-              title="Auto-advance"
-              subtitle="Automatically start next routine step"
-              isSwitch={true}
-              switchValue={autoAdvance}
-              onValueChange={setAutoAdvance}
-            />
-            <View style={styles.divider} />
-            {/*}
-                        <SettingRow
-                            icon="timer-outline"
-                            title="Countdown sound"
-                            subtitle="Ticker sound during last 5 seconds"
-                            isSwitch={true}
-                            switchValue={countdownSound}
-                            onValueChange={setCountdownSound}
-                        />
-                        */}
-          </View>
+
 
           {/* Section: Legal & Support */}
           <Text style={styles.sectionTitle}>SUPPORT & LEGAL</Text>
