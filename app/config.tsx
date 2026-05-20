@@ -7,7 +7,7 @@ import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import * as MediaLibrary from "expo-media-library";
 import { useRouter } from "expo-router";
-import { useAtomValue, useSetAtom } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -45,7 +45,7 @@ const formatBytes = (bytes: number) => {
 
 export default function ConfigScreen() {
   const router = useRouter();
-  const isPremium = useAtomValue(isPremiumAtom);
+  const [isPremium, setPremium] = useAtom(isPremiumAtom);
   const selectedMedia = useAtomValue(selectedMediaAtom);
   const setSelectedMedia = useSetAtom(selectedMediaAtom);
 

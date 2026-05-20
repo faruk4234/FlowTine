@@ -5,7 +5,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as MediaLibrary from "expo-media-library";
 import { useRouter } from "expo-router";
-import { useAtomValue, useSetAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import React from "react";
 import {
   Alert,
@@ -17,12 +17,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { BannerAd, BannerAdSize, TestIds } from "react-native-google-mobile-ads";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
   const router = useRouter();
-  const isPremium = useAtomValue(isPremiumAtom);
+  const [isPremium, setPremium] = useAtom(isPremiumAtom);
   const setSelectedMedia = useSetAtom(selectedMediaAtom);
 
   const handlePickMedia = async () => {
@@ -72,9 +72,12 @@ export default function HomeScreen() {
                   <MaterialCommunityIcons name="crown-outline" size={24} color={C.textMuted} />
                 </TouchableOpacity>
               ) : (
-                <View style={[s.settingsBtn, { marginTop: 0, marginRight: Spacing.sm, backgroundColor: C.blueDim }]}>
+                <TouchableOpacity
+                  style={[s.settingsBtn, { marginTop: 0, marginRight: Spacing.sm, backgroundColor: C.blueDim }]}
+                  onPress={() => setPremium(true)}
+                >
                   <MaterialCommunityIcons name="crown" size={24} color={C.blue} />
-                </View>
+                </TouchableOpacity>
               )}
               <TouchableOpacity style={[s.settingsBtn, { marginTop: 0 }]} onPress={() => router.push("../settings")}>
                 <Ionicons name="settings-sharp" size={22} color={C.text} />
@@ -92,15 +95,15 @@ export default function HomeScreen() {
               {!isPremium && <Text style={s.subText}>Max 1 file per time (Pro for multi-select)</Text>}
             </TouchableOpacity>
           </View>
-          
-          {/* ADS FOR FREE USERS */}
-          {!isPremium && (
-            <View style={{ marginTop: Spacing.xl, alignItems: "center" }}>
-               <BannerAd unitId={TestIds.BANNER} size={BannerAdSize.BANNER} requestOptions={{ requestNonPersonalizedAdsOnly: true }} />
-            </View>
-          )}
 
         </ScrollView>
+
+        {/* ADS FOR FREE USERS */}
+        {!isPremium && (
+          <View style={{ alignItems: "center", backgroundColor: C.bg, paddingBottom: Platform.OS === 'ios' ? 0 : 10 }}>
+            <BannerAd unitId={TestIds.BANNER} size={BannerAdSize.BANNER} requestOptions={{ requestNonPersonalizedAdsOnly: true }} />
+          </View>
+        )}
       </SafeAreaView>
     </View>
   );
@@ -114,7 +117,7 @@ const s = StyleSheet.create({
   headerTitle: { ...Typography.hero, fontSize: 38, fontWeight: "800", color: C.text, lineHeight: 44, letterSpacing: -0.5 },
   headerSub: { ...Typography.caption, fontWeight: "700", color: C.textMuted, letterSpacing: 1.2, marginTop: Spacing.sm },
   settingsBtn: { width: 46, height: 46, borderRadius: BorderRadius.round, backgroundColor: C.surface, justifyContent: "center", alignItems: "center", marginTop: Spacing.xs },
-  cardList: { gap: Spacing.md },
+  cardList: { gap: Spacing.md, marginBottom: 50 },
   createCard: { borderWidth: 1.5, borderColor: C.border, borderStyle: "dashed", borderRadius: BorderRadius.lg, padding: Spacing.xl, justifyContent: "center", alignItems: "center", flexDirection: "column" },
   createIconWrap: { width: 45, height: 45, borderRadius: BorderRadius.md, backgroundColor: C.blueDim, justifyContent: "center", alignItems: "center" },
   createCardText: { fontSize: 20, fontWeight: "700", color: C.text, marginTop: Spacing.sm },

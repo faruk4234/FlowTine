@@ -18,7 +18,7 @@ const palette = {
   appOverlay: 'rgba(15,17,21,0.35)',
 
   // Brand / semantic
-  primary: '#3B82F6',
+  primary: '#10B981',
   primaryDim: 'rgba(59,130,246,0.15)',
   primaryMuted: '#1E40AF',
   success: '#10B981',
