@@ -58,67 +58,25 @@ export default function RoutineCard({
 }: CardProps) {
   const cat = CATEGORY_ICONS[routine.categoryIconIndex] ?? CATEGORY_ICONS[0];
 
-  if (isActive) {
-    return (
-      <TouchableOpacity
-        activeOpacity={0.75}
-        onPress={onPress}
-        style={[s.card, s.cardActive]}
-      >
-        <View style={s.cardInner}>
-          <View style={s.activeTopRow}>
-            <ActiveBadge />
-            <Text style={s.activeDuration}>{routine.durationMin} MIN</Text>
-          </View>
-
-          <View style={s.activeBodyRow}>
-            <View style={[s.activeIconWrap, { backgroundColor: cat.bgColor }]}>
-              <Ionicons
-                name={cat.name as keyof typeof Ionicons.glyphMap}
-                size={24}
-                color={cat.color}
-              />
-            </View>
-
-            <View style={s.activeTextCol}>
-              <Text style={s.cardTitle}>{routine.title}</Text>
-              <Text style={s.cardSubtitle}>{routine.subtitle}</Text>
-              <Text style={s.cardMeta}>{routine.movementCount} MOVEMENTS</Text>
-            </View>
-
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={[s.playBtn, s.playBtnActive]}
-              onPress={onPlay}
-            >
-              <Ionicons
-                name="play"
-                size={22}
-                color={C.white}
-                style={{ marginLeft: 3 }}
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  }
-
   return (
     <TouchableOpacity
       activeOpacity={0.75}
       onPress={onPress}
-      style={s.card}
+      style={[s.card, isActive && s.cardActive]}
     >
       <View style={s.cardInner}>
         <View style={s.topRow}>
-          <View style={[s.cardIconWrap, { backgroundColor: cat.bgColor }]}>
-            <Ionicons
-              name={cat.name as keyof typeof Ionicons.glyphMap}
-              size={22}
-              color={cat.color}
-            />
-          </View>
+          {isActive ? (
+            <ActiveBadge />
+          ) : (
+            <View style={[s.cardIconWrap, { backgroundColor: cat.bgColor }]}>
+              <Ionicons
+                name={cat.name as keyof typeof Ionicons.glyphMap}
+                size={22}
+                color={cat.color}
+              />
+            </View>
+          )}
           <View style={s.topRowRight}>
             <Text style={s.cardDuration}>{routine.durationMin} MIN</Text>
             <TouchableOpacity
@@ -140,13 +98,13 @@ export default function RoutineCard({
 
           <TouchableOpacity
             activeOpacity={0.85}
-            style={[s.playBtn, s.playBtnInactive]}
+            style={[s.playBtn, isActive ? s.playBtnActive : s.playBtnInactive]}
             onPress={onPlay}
           >
             <Ionicons
               name="play"
               size={22}
-              color={C.blue}
+              color={isActive ? C.white : C.blue}
               style={{ marginLeft: 3 }}
             />
           </TouchableOpacity>
@@ -171,11 +129,16 @@ const s = StyleSheet.create({
   },
   cardInner: { gap: Spacing.md },
 
-  activeTopRow: {
+  topRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    minHeight: 20,
+    minHeight: 28,
+  },
+  topRowRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: "auto",
   },
   activeBadge: {
     flexDirection: "row",
@@ -194,44 +157,6 @@ const s = StyleSheet.create({
     fontWeight: "800",
     color: palette.successBright,
     letterSpacing: 1.4,
-  },
-  activeDuration: {
-    ...Typography.caption,
-    fontSize: 11,
-    fontWeight: "800",
-    color: C.textMuted,
-    letterSpacing: 1.2,
-  },
-
-  activeBodyRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-  },
-  activeIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: BorderRadius.md,
-    justifyContent: "center",
-    alignItems: "center",
-    flexShrink: 0,
-  },
-  activeTextCol: {
-    flex: 1,
-    gap: Spacing.xs,
-    paddingRight: Spacing.sm,
-  },
-
-  topRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    minHeight: 28,
-  },
-  topRowRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginLeft: "auto",
   },
   cardDuration: {
     ...Typography.caption,

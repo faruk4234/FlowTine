@@ -56,10 +56,6 @@ export default function HomeScreen() {
     return a.createdAt - b.createdAt;
   });
 
-  const activeRoutine = activeRoutineId
-    ? safeRoutines.find((r) => r.id === activeRoutineId)
-    : undefined;
-
   useEffect(() => {
     if (!timerSession || timerSession.phase === "done") return;
     if (!timerSession.isRunning || !timerSession.segmentEndsAtMs) return;
@@ -142,11 +138,6 @@ export default function HomeScreen() {
     router.push({ pathname: "./timer", params: { id: routine.id } });
   }
 
-  function handleResume() {
-    if (!activeRoutine) return;
-    router.push({ pathname: "./timer", params: { id: activeRoutine.id } });
-  }
-
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.bg} />
@@ -210,24 +201,6 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
           </View>
-
-          {activeRoutine && timerSession ? (
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={s.resumeBanner}
-              onPress={handleResume}
-            >
-              <View style={s.resumeBannerText}>
-                <Text style={s.resumeLabel}>RESUME ACTIVE ROUTINE</Text>
-                <Text style={s.resumeTitle} numberOfLines={1}>
-                  {activeRoutine.title}
-                </Text>
-              </View>
-              <View style={s.resumePlayBtn}>
-                <Ionicons name="play" size={18} color={C.white} />
-              </View>
-            </TouchableOpacity>
-          ) : null}
 
           {/* Cards */}
           <View style={s.cardList}>
@@ -309,41 +282,6 @@ const s = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginTop: Spacing.xs,
-  },
-
-  resumeBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: C.surfaceHigh,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: C.border,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
-    gap: Spacing.md,
-  },
-  resumeBannerText: { flex: 1, gap: 2 },
-  resumeLabel: {
-    ...Typography.caption,
-    fontSize: 10,
-    fontWeight: "800",
-    color: C.green,
-    letterSpacing: 1.2,
-  },
-  resumeTitle: {
-    ...Typography.heading,
-    fontSize: 18,
-    fontWeight: "800",
-    color: C.text,
-  },
-  resumePlayBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.md,
-    backgroundColor: C.blue,
-    justifyContent: "center",
-    alignItems: "center",
   },
 
   // Card List
