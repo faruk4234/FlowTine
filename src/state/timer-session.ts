@@ -1,8 +1,8 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { atomWithStorage, createJSONStorage } from 'jotai/utils';
-import type { Movement } from './atoms';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { atomWithStorage, createJSONStorage } from "jotai/utils";
+import type { Movement } from "./atoms";
 
-export type TimerPhase = 'work' | 'rest' | 'done';
+export type TimerPhase = "work" | "rest" | "done";
 
 export type TimerSession = {
   routineId: string;
@@ -15,7 +15,7 @@ export type TimerSession = {
 };
 
 export const timerSessionAtom = atomWithStorage<TimerSession | null>(
-  'timer.session',
+  "timer.session",
   null,
   createJSONStorage<TimerSession | null>(() => AsyncStorage),
 );
@@ -25,8 +25,10 @@ export function movementWorkSeconds(m: Movement | null | undefined): number {
   return m.durationMin * 60 + m.durationSec;
 }
 
-export function getActiveRoutineId(session: TimerSession | null | undefined): string | null {
-  if (!session || session.phase === 'done') return null;
+export function getActiveRoutineId(
+  session: TimerSession | null | undefined,
+): string | null {
+  if (!session || session.phase === "done") return null;
   return session.routineId;
 }
 
@@ -41,7 +43,7 @@ export function createFreshTimerSession(
     routineId,
     movIdx: 0,
     currentRepeat: 1,
-    phase: 'work',
+    phase: "work",
     seconds,
     isRunning: true,
     segmentEndsAtMs: seconds > 0 ? now + seconds * 1000 : null,
@@ -49,5 +51,5 @@ export function createFreshTimerSession(
 }
 
 export function formatMovementStep(movIdx: number): string {
-  return String(movIdx + 1).padStart(2, '0');
+  return String(movIdx + 1).padStart(2, "0");
 }
