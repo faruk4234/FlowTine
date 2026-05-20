@@ -58,6 +58,16 @@ export default function RoutineCard({
 }: CardProps) {
   const cat = CATEGORY_ICONS[routine.categoryIconIndex] ?? CATEGORY_ICONS[0];
 
+  const routineIcon = (
+    <View style={[s.cardIconWrap, { backgroundColor: cat.bgColor }]}>
+      <Ionicons
+        name={cat.name as keyof typeof Ionicons.glyphMap}
+        size={22}
+        color={cat.color}
+      />
+    </View>
+  );
+
   return (
     <TouchableOpacity
       activeOpacity={0.75}
@@ -66,17 +76,12 @@ export default function RoutineCard({
     >
       <View style={s.cardInner}>
         <View style={s.topRow}>
+          {routineIcon}
           {isActive ? (
-            <ActiveBadge />
-          ) : (
-            <View style={[s.cardIconWrap, { backgroundColor: cat.bgColor }]}>
-              <Ionicons
-                name={cat.name as keyof typeof Ionicons.glyphMap}
-                size={22}
-                color={cat.color}
-              />
+            <View style={s.activeBadgeWrap}>
+              <ActiveBadge />
             </View>
-          )}
+          ) : null}
           <View style={s.topRowRight}>
             <Text style={s.cardDuration}>{routine.durationMin} MIN</Text>
             <TouchableOpacity
@@ -129,6 +134,11 @@ const s = StyleSheet.create({
   },
   cardInner: { gap: Spacing.md },
 
+  activeBadgeWrap: {
+    flex: 1,
+    marginLeft: Spacing.sm,
+    justifyContent: "center",
+  },
   topRow: {
     flexDirection: "row",
     alignItems: "center",
