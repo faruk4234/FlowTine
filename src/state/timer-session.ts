@@ -12,10 +12,11 @@ export type TimerSession = {
   seconds: number;
   isRunning: boolean;
   segmentEndsAtMs: number | null;
+  savedAt?: number;
 };
 
 export const timerSessionAtom = atomWithStorage<TimerSession | null>(
-  "timer.session",
+  "activeTimerState",
   null,
   createJSONStorage<TimerSession | null>(() => AsyncStorage),
 );

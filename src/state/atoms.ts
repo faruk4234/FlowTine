@@ -245,6 +245,18 @@ export async function seedDefaultRoutines(): Promise<void> {
 export const selectedRoutineIdAtom = atom<string | null>(null);
 
 export {
+  buildTimerSnapshot,
+  clearTimerSession,
+  isValidTimerSession,
+  loadTimerSession,
+  reconcileTimerSession,
+  saveTimerSession,
+  sessionStartedAt,
+  TIMER_STATE_KEY,
+  type TimerSnapshotInput,
+} from "./timer-persistence";
+
+export {
   createFreshTimerSession,
   formatMovementStep,
   getActiveRoutineId,

@@ -1,5 +1,5 @@
 import { CATEGORY_ICONS, type Routine } from "@/src/state/atoms";
-import { AppPalette as C } from "@/src/state/colors";
+import { AppPalette as C, palette } from "@/src/state/colors";
 import { BorderRadius, Spacing, Typography } from "@/src/state/theme";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useRef } from "react";
@@ -44,7 +44,6 @@ function ActiveBadge() {
 export type CardProps = {
   routine: Routine;
   isActive: boolean;
-  activeStepLabel?: string;
   onPress: () => void;
   onPlay: () => void;
   onEdit: () => void;
@@ -53,32 +52,73 @@ export type CardProps = {
 export default function RoutineCard({
   routine,
   isActive,
-  activeStepLabel,
   onPress,
   onPlay,
   onEdit,
 }: CardProps) {
   const cat = CATEGORY_ICONS[routine.categoryIconIndex] ?? CATEGORY_ICONS[0];
 
+  if (isActive) {
+    return (
+      <TouchableOpacity
+        activeOpacity={0.75}
+        onPress={onPress}
+        style={[s.card, s.cardActive]}
+      >
+        <View style={s.cardInner}>
+          <View style={s.activeTopRow}>
+            <ActiveBadge />
+            <Text style={s.activeDuration}>{routine.durationMin} MIN</Text>
+          </View>
+
+          <View style={s.activeBodyRow}>
+            <View style={[s.activeIconWrap, { backgroundColor: cat.bgColor }]}>
+              <Ionicons
+                name={cat.name as keyof typeof Ionicons.glyphMap}
+                size={24}
+                color={cat.color}
+              />
+            </View>
+
+            <View style={s.activeTextCol}>
+              <Text style={s.cardTitle}>{routine.title}</Text>
+              <Text style={s.cardSubtitle}>{routine.subtitle}</Text>
+              <Text style={s.cardMeta}>{routine.movementCount} MOVEMENTS</Text>
+            </View>
+
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={[s.playBtn, s.playBtnActive]}
+              onPress={onPlay}
+            >
+              <Ionicons
+                name="play"
+                size={22}
+                color={C.white}
+                style={{ marginLeft: 3 }}
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  }
+
   return (
     <TouchableOpacity
       activeOpacity={0.75}
       onPress={onPress}
-      style={[s.card, isActive && s.cardActive]}
+      style={s.card}
     >
       <View style={s.cardInner}>
         <View style={s.topRow}>
-          {isActive ? (
-            <ActiveBadge />
-          ) : (
-            <View style={[s.cardIconWrap, { backgroundColor: cat.bgColor }]}>
-              <Ionicons
-                name={cat.name as keyof typeof Ionicons.glyphMap}
-                size={22}
-                color={cat.color}
-              />
-            </View>
-          )}
+          <View style={[s.cardIconWrap, { backgroundColor: cat.bgColor }]}>
+            <Ionicons
+              name={cat.name as keyof typeof Ionicons.glyphMap}
+              size={22}
+              color={cat.color}
+            />
+          </View>
           <View style={s.topRowRight}>
             <Text style={s.cardDuration}>{routine.durationMin} MIN</Text>
             <TouchableOpacity
@@ -93,12 +133,6 @@ export default function RoutineCard({
 
         <View style={s.bodyRow}>
           <View style={s.textCol}>
-            {isActive && activeStepLabel ? (
-              <View style={s.stepRow}>
-                <View style={s.stepBar} />
-                <Text style={s.stepLabel}>{activeStepLabel}</Text>
-              </View>
-            ) : null}
             <Text style={s.cardTitle}>{routine.title}</Text>
             <Text style={s.cardSubtitle}>{routine.subtitle}</Text>
             <Text style={s.cardMeta}>{routine.movementCount} MOVEMENTS</Text>
@@ -106,13 +140,13 @@ export default function RoutineCard({
 
           <TouchableOpacity
             activeOpacity={0.85}
-            style={[s.playBtn, isActive ? s.playBtnActive : s.playBtnInactive]}
+            style={[s.playBtn, s.playBtnInactive]}
             onPress={onPlay}
           >
             <Ionicons
               name="play"
               size={22}
-              color={isActive ? C.white : C.blue}
+              color={C.blue}
               style={{ marginLeft: 3 }}
             />
           </TouchableOpacity>
@@ -137,6 +171,57 @@ const s = StyleSheet.create({
   },
   cardInner: { gap: Spacing.md },
 
+  activeTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    minHeight: 20,
+  },
+  activeBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs + 2,
+  },
+  activeDot: {
+    width: 7,
+    height: 7,
+    borderRadius: BorderRadius.round,
+    backgroundColor: palette.successBright,
+  },
+  activeBadgeText: {
+    ...Typography.caption,
+    fontSize: 9,
+    fontWeight: "800",
+    color: palette.successBright,
+    letterSpacing: 1.4,
+  },
+  activeDuration: {
+    ...Typography.caption,
+    fontSize: 11,
+    fontWeight: "800",
+    color: C.textMuted,
+    letterSpacing: 1.2,
+  },
+
+  activeBodyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+  },
+  activeIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.md,
+    justifyContent: "center",
+    alignItems: "center",
+    flexShrink: 0,
+  },
+  activeTextCol: {
+    flex: 1,
+    gap: Spacing.xs,
+    paddingRight: Spacing.sm,
+  },
+
   topRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -157,26 +242,6 @@ const s = StyleSheet.create({
   },
   editBtn: { marginLeft: Spacing.sm },
 
-  activeBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.xs,
-    paddingBottom: Spacing.md,
-  },
-  activeDot: {
-    width: 7,
-    height: 7,
-    borderRadius: BorderRadius.round,
-    backgroundColor: C.green,
-  },
-  activeBadgeText: {
-    ...Typography.caption,
-    fontSize: 9,
-    fontWeight: "800",
-    color: C.green,
-    letterSpacing: 1.4,
-  },
-
   cardIconWrap: {
     width: 40,
     height: 40,
@@ -187,26 +252,6 @@ const s = StyleSheet.create({
 
   bodyRow: { flexDirection: "row", alignItems: "center" },
   textCol: { flex: 1, paddingRight: Spacing.md, gap: Spacing.xs },
-
-  stepRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    marginBottom: Spacing.xs,
-  },
-  stepBar: {
-    width: 3,
-    height: 28,
-    borderRadius: 2,
-    backgroundColor: C.textDim,
-  },
-  stepLabel: {
-    fontSize: 36,
-    fontWeight: "800",
-    color: C.text,
-    letterSpacing: -1,
-    lineHeight: 40,
-  },
 
   cardTitle: {
     ...Typography.heading,
@@ -231,6 +276,7 @@ const s = StyleSheet.create({
     borderRadius: BorderRadius.md,
     justifyContent: "center",
     alignItems: "center",
+    flexShrink: 0,
   },
   playBtnActive: {
     backgroundColor: C.blue,

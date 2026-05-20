@@ -1,9 +1,15 @@
 import { routineFeedback } from "@/src/feedback/routine-feedback";
 import {
   autoAdvanceEnabledAtom,
+  buildTimerSnapshot,
+  clearTimerSession,
+  isValidTimerSession,
+  loadTimerSession,
   movementWorkSeconds,
+  reconcileTimerSession,
   routineCueSoundsEnabledAtom,
   routinesAtom,
+  saveTimerSession,
   soundVibrationEnabledAtom,
   timerSessionAtom,
   type Movement,
@@ -12,6 +18,7 @@ import {
 import { AppPalette as C } from "@/src/state/colors";
 import { BorderRadius, Spacing, Typography } from "@/src/state/theme";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import * as Notifications from "expo-notifications";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useAtom, useAtomValue } from "jotai";
@@ -173,6 +180,8 @@ export default function TimerScreen() {
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const paramId = normalizeRouteParam(params.id);
   const [timerSession, setTimerSession] = useAtom(timerSessionAtom);
+  const [storageReady, setStorageReady] = useState(false);
+  const [sessionInitialized, setSessionInitialized] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const routines = useAtomValue(routinesAtom);
   const isAutoAdvance = useAtomValue(autoAdvanceEnabledAtom);
@@ -336,9 +345,41 @@ export default function TimerScreen() {
     preCueSegmentRef.current = null;
     stepCompleteSegmentRef.current = null;
     routineCompleteFiredRef.current = false;
+    endingRef.current = false;
   }, [routineId]);
 
   const sessionAppliedRef = useRef<string | null>(null);
+  const endingRef = useRef(false);
+
+  const routineIds = useMemo(
+    () => new Set(safeRoutines.map((r) => r.id)),
+    [safeRoutines],
+  );
+
+  // Load persisted snapshot before any hydrate / fresh-start decisions.
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      const loaded = await loadTimerSession();
+      if (cancelled) return;
+
+      if (loaded) {
+        setTimerSession(loaded);
+      }
+
+      setStorageReady(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [setTimerSession]);
+
+  useEffect(() => {
+    setSessionInitialized(false);
+    sessionAppliedRef.current = null;
+  }, [routineId]);
 
   const applyFreshTimer = useCallback(() => {
     const safe = Array.isArray(routines) ? routines : [];
@@ -357,6 +398,7 @@ export default function TimerScreen() {
     segmentEndsAtMsRef.current =
       initialSeconds > 0 ? Date.now() + initialSeconds * 1000 : null;
     sessionAppliedRef.current = `fresh:${routineId}`;
+    setSessionInitialized(true);
   }, [routineId, routines]);
 
   useEffect(() => {
@@ -630,24 +672,54 @@ export default function TimerScreen() {
     setIsRunning,
   ]);
 
+  const saveCurrentTimerSnapshot = useCallback(() => {
+    if (!routineId || endingRef.current || phaseRef.current === "done") return;
+
+    const snapshot = buildTimerSnapshot({
+      routineId,
+      movIdx: movIdxRef.current,
+      currentRepeat: currentRepeatRef.current,
+      phase: phaseRef.current,
+      seconds: secondsRef.current,
+      isRunning: isRunningRef.current,
+      segmentEndsAtMs: segmentEndsAtMsRef.current,
+    });
+
+    setTimerSession(snapshot);
+    void saveTimerSession(snapshot);
+  }, [routineId, setTimerSession]);
+
   // Hydrate from persisted session or reset when starting a new routine.
   useEffect(() => {
-    if (!routineId) return;
+    if (!routineId || !storageReady || sessionInitialized) return;
 
     const saved = timerSession;
+
+    if (saved && routineIds.size > 0 && !isValidTimerSession(saved, routineIds)) {
+      setTimerSession(null);
+      void clearTimerSession();
+      router.back();
+      return;
+    }
+
     if (saved?.routineId === routineId && saved.phase !== "done") {
-      const hydrateKey = `${saved.routineId}:${saved.movIdx}:${saved.currentRepeat}:${saved.phase}:${saved.isRunning}`;
-      if (sessionAppliedRef.current === hydrateKey) return;
+      const reconciled = reconcileTimerSession(saved);
+      const hydrateKey = `${reconciled.routineId}:${reconciled.movIdx}:${reconciled.currentRepeat}:${reconciled.phase}:${reconciled.isRunning}:${reconciled.seconds}`;
+      const shouldSync =
+        sessionAppliedRef.current !== hydrateKey &&
+        reconciled.isRunning &&
+        reconciled.segmentEndsAtMs !== null;
+
+      setMovIdx(reconciled.movIdx);
+      setCurrentRepeat(reconciled.currentRepeat);
+      setPhase(reconciled.phase);
+      setSeconds(reconciled.seconds);
+      setIsRunning(reconciled.isRunning);
+      segmentEndsAtMsRef.current = reconciled.segmentEndsAtMs;
       sessionAppliedRef.current = hydrateKey;
+      setSessionInitialized(true);
 
-      setMovIdx(saved.movIdx);
-      setCurrentRepeat(saved.currentRepeat);
-      setPhase(saved.phase);
-      setSeconds(saved.seconds);
-      setIsRunning(saved.isRunning);
-      segmentEndsAtMsRef.current = saved.segmentEndsAtMs;
-
-      if (saved.isRunning && saved.segmentEndsAtMs) {
+      if (shouldSync) {
         void syncTimerToNow();
       }
       return;
@@ -658,6 +730,10 @@ export default function TimerScreen() {
       return;
     }
 
+    if (saved === null && endingRef.current) {
+      return;
+    }
+
     if (saved === null && sessionAppliedRef.current === `fresh:${routineId}`) {
       return;
     }
@@ -665,18 +741,38 @@ export default function TimerScreen() {
     if (saved === null) {
       applyFreshTimer();
     }
-  }, [timerSession, routineId, applyFreshTimer, syncTimerToNow]);
+  }, [
+    timerSession,
+    routineId,
+    routineIds,
+    storageReady,
+    sessionInitialized,
+    applyFreshTimer,
+    syncTimerToNow,
+    setTimerSession,
+    router,
+  ]);
 
   useEffect(() => {
     if (phase === "done") {
       setTimerSession(null);
+      void clearTimerSession();
     }
   }, [phase, setTimerSession]);
 
   // Persist timer progress for resume across app restarts.
   useEffect(() => {
-    if (!routineId || phase === "done") return;
-    setTimerSession({
+    if (
+      !routineId ||
+      !storageReady ||
+      !sessionInitialized ||
+      phase === "done" ||
+      endingRef.current
+    ) {
+      return;
+    }
+
+    const snapshot = buildTimerSnapshot({
       routineId,
       movIdx,
       currentRepeat,
@@ -685,6 +781,8 @@ export default function TimerScreen() {
       isRunning,
       segmentEndsAtMs: segmentEndsAtMsRef.current,
     });
+
+    setTimerSession(snapshot);
   }, [
     routineId,
     movIdx,
@@ -692,6 +790,8 @@ export default function TimerScreen() {
     phase,
     seconds,
     isRunning,
+    sessionInitialized,
+    storageReady,
     setTimerSession,
   ]);
 
@@ -807,16 +907,30 @@ export default function TimerScreen() {
     seconds,
   ]);
 
-  // Sync on app resume / foreground.
+  // Sync on app resume / foreground; snapshot when backgrounded.
   useEffect(() => {
     const onChange = (state: AppStateStatus) => {
       if (state === "active") {
         void syncTimerToNow();
+      } else {
+        saveCurrentTimerSnapshot();
       }
     };
     const sub = AppState.addEventListener("change", onChange);
     return () => sub.remove();
-  }, [syncTimerToNow]);
+  }, [syncTimerToNow, saveCurrentTimerSnapshot]);
+
+  useFocusEffect(
+    useCallback(() => {
+      endingRef.current = false;
+      setSessionInitialized(false);
+      sessionAppliedRef.current = null;
+
+      return () => {
+        saveCurrentTimerSnapshot();
+      };
+    }, [saveCurrentTimerSnapshot]),
+  );
 
   useEffect(() => {
     void routineFeedback.preloadTransport();
@@ -902,12 +1016,19 @@ export default function TimerScreen() {
     advance();
   }
 
+  function handleHeaderBack() {
+    saveCurrentTimerSnapshot();
+    router.back();
+  }
+
   function handleEnd() {
+    endingRef.current = true;
     if (intervalRef.current) clearInterval(intervalRef.current);
     segmentEndsAtMsRef.current = null;
     void cancelTimerNotifs();
     setIsRunning(false);
     setTimerSession(null);
+    void clearTimerSession();
     sessionAppliedRef.current = null;
     router.back();
   }
@@ -957,6 +1078,14 @@ export default function TimerScreen() {
         <View style={ts.container}>
           {/* Top: routine name + movement progress */}
           <View style={ts.topBar}>
+            <TouchableOpacity
+              onPress={handleHeaderBack}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}
+              style={ts.backBtn}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="chevron-back" size={22} color={C.textMuted} />
+            </TouchableOpacity>
             <Text style={ts.routineLabel} numberOfLines={1}>
               {routine?.title}
             </Text>
@@ -1098,6 +1227,9 @@ const ts = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     width: "100%",
+  },
+  backBtn: {
+    paddingRight: Spacing.xs,
   },
   routineLabel: {
     ...Typography.bodySmall,
