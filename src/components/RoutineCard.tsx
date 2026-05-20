@@ -68,20 +68,61 @@ export default function RoutineCard({
     </View>
   );
 
+  if (isActive) {
+    return (
+      <TouchableOpacity
+        activeOpacity={0.75}
+        onPress={onPress}
+        style={[s.card, s.cardActive]}
+      >
+        <View style={s.cardInner}>
+          <View style={s.activeStatusRow}>
+            <View style={s.activeLeftStack}>
+              <ActiveBadge />
+              {routineIcon}
+            </View>
+            <View style={s.topRowRight}>
+              <Text style={s.cardDuration}>{routine.durationMin} MIN</Text>
+              <TouchableOpacity
+                onPress={onEdit}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={s.editBtn}
+              >
+                <Ionicons name="pencil" size={15} color={C.textDim} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={s.bodyRow}>
+            <View style={s.textCol}>
+              <Text style={s.cardTitle}>{routine.title}</Text>
+              <Text style={s.cardSubtitle}>{routine.subtitle}</Text>
+              <Text style={s.cardMeta}>{routine.movementCount} MOVEMENTS</Text>
+            </View>
+
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={[s.playBtn, s.playBtnActive]}
+              onPress={onPlay}
+            >
+              <Ionicons
+                name="play"
+                size={22}
+                color={C.white}
+                style={{ marginLeft: 3 }}
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  }
+
   return (
-    <TouchableOpacity
-      activeOpacity={0.75}
-      onPress={onPress}
-      style={[s.card, isActive && s.cardActive]}
-    >
+    <TouchableOpacity activeOpacity={0.75} onPress={onPress} style={s.card}>
       <View style={s.cardInner}>
         <View style={s.topRow}>
           {routineIcon}
-          {isActive ? (
-            <View style={s.activeBadgeWrap}>
-              <ActiveBadge />
-            </View>
-          ) : null}
           <View style={s.topRowRight}>
             <Text style={s.cardDuration}>{routine.durationMin} MIN</Text>
             <TouchableOpacity
@@ -103,13 +144,13 @@ export default function RoutineCard({
 
           <TouchableOpacity
             activeOpacity={0.85}
-            style={[s.playBtn, isActive ? s.playBtnActive : s.playBtnInactive]}
+            style={[s.playBtn, s.playBtnInactive]}
             onPress={onPlay}
           >
             <Ionicons
               name="play"
               size={22}
-              color={isActive ? C.white : C.blue}
+              color={C.blue}
               style={{ marginLeft: 3 }}
             />
           </TouchableOpacity>
@@ -131,13 +172,18 @@ const s = StyleSheet.create({
   cardActive: {
     backgroundColor: C.surfaceHigh,
     borderColor: C.border,
+    paddingTop: Spacing.xl,
   },
   cardInner: { gap: Spacing.md },
 
-  activeBadgeWrap: {
-    flex: 1,
-    marginLeft: Spacing.sm,
-    justifyContent: "center",
+  activeStatusRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+  },
+  activeLeftStack: {
+    gap: Spacing.md,
+    alignItems: "flex-start",
   },
   topRow: {
     flexDirection: "row",
