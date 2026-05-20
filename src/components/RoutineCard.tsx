@@ -1,9 +1,15 @@
-import { CATEGORY_ICONS, type Routine } from '@/src/state/atoms';
-import { AppPalette as C } from '@/src/state/colors';
-import { BorderRadius, Spacing, Typography } from '@/src/state/theme';
-import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { CATEGORY_ICONS, type Routine } from "@/src/state/atoms";
+import { AppPalette as C } from "@/src/state/colors";
+import { BorderRadius, Spacing, Typography } from "@/src/state/theme";
+import { Ionicons } from "@expo/vector-icons";
+import React, { useEffect, useRef } from "react";
+import {
+  Animated,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 function ActiveBadge() {
   const opacity = useRef(new Animated.Value(1)).current;
@@ -11,8 +17,16 @@ function ActiveBadge() {
   useEffect(() => {
     const pulse = Animated.loop(
       Animated.sequence([
-        Animated.timing(opacity, { toValue: 0.25, duration: 700, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(opacity, {
+          toValue: 0.25,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 700,
+          useNativeDriver: true,
+        }),
       ]),
     );
     pulse.start();
@@ -58,7 +72,11 @@ export default function RoutineCard({
             <ActiveBadge />
           ) : (
             <View style={[s.cardIconWrap, { backgroundColor: cat.bgColor }]}>
-              <Ionicons name={cat.name as keyof typeof Ionicons.glyphMap} size={22} color={cat.color} />
+              <Ionicons
+                name={cat.name as keyof typeof Ionicons.glyphMap}
+                size={22}
+                color={cat.color}
+              />
             </View>
           )}
           <View style={s.topRowRight}>
@@ -111,7 +129,7 @@ const s = StyleSheet.create({
     paddingVertical: Spacing.lg,
     paddingHorizontal: Spacing.lg,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: "transparent",
   },
   cardActive: {
     backgroundColor: C.surfaceHigh,
@@ -120,27 +138,41 @@ const s = StyleSheet.create({
   cardInner: { gap: Spacing.md },
 
   topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     minHeight: 28,
   },
-  topRowRight: { flexDirection: 'row', alignItems: 'center', marginLeft: 'auto' },
+  topRowRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: "auto",
+  },
   cardDuration: {
     ...Typography.caption,
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: "800",
     color: C.text,
     letterSpacing: 1.2,
   },
   editBtn: { marginLeft: Spacing.sm },
 
-  activeBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
-  activeDot: { width: 7, height: 7, borderRadius: BorderRadius.round, backgroundColor: C.green },
+  activeBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    paddingBottom: Spacing.md,
+  },
+  activeDot: {
+    width: 7,
+    height: 7,
+    borderRadius: BorderRadius.round,
+    backgroundColor: C.green,
+  },
   activeBadgeText: {
     ...Typography.caption,
     fontSize: 9,
-    fontWeight: '800',
+    fontWeight: "800",
     color: C.green,
     letterSpacing: 1.4,
   },
@@ -149,18 +181,28 @@ const s = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: BorderRadius.md,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
 
-  bodyRow: { flexDirection: 'row', alignItems: 'center' },
+  bodyRow: { flexDirection: "row", alignItems: "center" },
   textCol: { flex: 1, paddingRight: Spacing.md, gap: Spacing.xs },
 
-  stepRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.xs },
-  stepBar: { width: 3, height: 28, borderRadius: 2, backgroundColor: C.textDim },
+  stepRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  stepBar: {
+    width: 3,
+    height: 28,
+    borderRadius: 2,
+    backgroundColor: C.textDim,
+  },
   stepLabel: {
     fontSize: 36,
-    fontWeight: '800',
+    fontWeight: "800",
     color: C.text,
     letterSpacing: -1,
     lineHeight: 40,
@@ -169,7 +211,7 @@ const s = StyleSheet.create({
   cardTitle: {
     ...Typography.heading,
     fontSize: 22,
-    fontWeight: '800',
+    fontWeight: "800",
     color: C.text,
     letterSpacing: -0.3,
   },
@@ -177,7 +219,7 @@ const s = StyleSheet.create({
   cardMeta: {
     ...Typography.caption,
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: "700",
     color: C.textDim,
     letterSpacing: 1.2,
     marginTop: Spacing.xs,
@@ -187,13 +229,11 @@ const s = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: BorderRadius.md,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   playBtnActive: {
     backgroundColor: C.blue,
-    borderWidth: 2,
-    borderColor: C.bg,
     shadowColor: C.blue,
     shadowOpacity: 0.45,
     shadowRadius: 12,
@@ -201,8 +241,8 @@ const s = StyleSheet.create({
     elevation: 6,
   },
   playBtnInactive: {
-    backgroundColor: C.bg,
-    borderWidth: 2,
+    backgroundColor: C.surface,
+    borderWidth: 1,
     borderColor: C.blue,
   },
 });
