@@ -35,6 +35,8 @@ export default function HomeScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images', 'videos'],
       allowsMultipleSelection: isPremium,
+      selectionLimit: isPremium ? 1000 : 1,
+      orderedSelection: true,
       quality: 1,
     });
 
@@ -67,14 +69,14 @@ export default function HomeScreen() {
               {!isPremium ? (
                 <TouchableOpacity
                   style={[s.settingsBtn, { marginTop: 0, marginRight: Spacing.sm }]}
-                  onPress={() => router.push("../paywall")}
+                  onPress={() => setPremium(true)} // Debug: Quick toggle to premium
                 >
                   <MaterialCommunityIcons name="crown-outline" size={24} color={C.textMuted} />
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
                   style={[s.settingsBtn, { marginTop: 0, marginRight: Spacing.sm, backgroundColor: C.blueDim }]}
-                  onPress={() => setPremium(true)}
+                  onPress={() => setPremium(false)} // Debug: Quick toggle to free
                 >
                   <MaterialCommunityIcons name="crown" size={24} color={C.blue} />
                 </TouchableOpacity>
