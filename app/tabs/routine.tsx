@@ -381,7 +381,7 @@ const r = StyleSheet.create({
     borderColor: C.border,
     borderStyle: "dashed",
     borderRadius: BorderRadius.lg,
-    paddingVertical: Spacing.md + 2,
+    paddingVertical: Spacing.md + 6,
     marginTop: Spacing.xs,
   },
   addMovText: {
