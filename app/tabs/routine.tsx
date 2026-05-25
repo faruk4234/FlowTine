@@ -299,24 +299,23 @@ export default function RoutineScreen() {
             <Ionicons name="trash" size={20} color={C.white} />
           </TouchableOpacity>
         </View>
+        <MovementEditorModal
+          visible={editorVisible}
+          movement={editingMovement}
+          isPremium={isPremium}
+          onClose={() => setEditorVisible(false)}
+          onSave={saveMovement}
+          onDelete={deleteMovement}
+        />
+
+        <RoutineFormModal
+          visible={routineFormVisible}
+          formMode={routineFormMode}
+          onClose={() => setRoutineFormVisible(false)}
+          onSave={handleSaveRoutine}
+          onDelete={() => {}} // Not rendering delete here since it's already in the action bar, or we can reuse handleDeleteRoutine
+        />
       </SafeAreaView>
-
-      <MovementEditorModal
-        visible={editorVisible}
-        movement={editingMovement}
-        isPremium={isPremium}
-        onClose={() => setEditorVisible(false)}
-        onSave={saveMovement}
-        onDelete={deleteMovement}
-      />
-
-      <RoutineFormModal
-        visible={routineFormVisible}
-        formMode={routineFormMode}
-        onClose={() => setRoutineFormVisible(false)}
-        onSave={handleSaveRoutine}
-        onDelete={() => {}} // Not rendering delete here since it's already in the action bar, or we can reuse handleDeleteRoutine
-      />
     </GestureHandlerRootView>
   );
 }
