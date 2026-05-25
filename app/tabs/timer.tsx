@@ -1,25 +1,50 @@
-import { routineFeedback } from '@/src/feedback/routine-feedback';
-import { activeRoutineIdAtom, autoAdvanceEnabledAtom, routineCueSoundsEnabledAtom, routinesAtom, soundVibrationEnabledAtom, timerRunningAtom, type Movement, } from '@/src/state/atoms';
-import { AppPalette as C } from '@/src/state/colors';
-import { BorderRadius, Spacing, Typography } from '@/src/state/theme';
-import { Ionicons } from '@expo/vector-icons';
-import * as Notifications from 'expo-notifications';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { routineFeedback } from "@/src/feedback/routine-feedback";
+import {
+  autoAdvanceEnabledAtom,
+  buildTimerSnapshot,
+  clearTimerSession,
+  isValidTimerSession,
+  loadTimerSession,
+  movementWorkSeconds,
+  reconcileTimerSession,
+  routineCueSoundsEnabledAtom,
+  routinesAtom,
+  saveTimerSession,
+  soundVibrationEnabledAtom,
+  timerSessionAtom,
+  type Movement,
+  type TimerPhase,
+} from "@/src/state/atoms";
+import { AppPalette as C } from "@/src/state/colors";
+import { BorderRadius, Spacing, Typography } from "@/src/state/theme";
+import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
+import * as Notifications from "expo-notifications";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useAtom, useAtomValue } from "jotai";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   AppState,
-  type AppStateStatus,
   Platform,
   StatusBar,
   StyleSheet,
-  Text, TouchableOpacity,
+  Text,
+  TouchableOpacity,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+  type AppStateStatus,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-function pad(n: number) { return String(Math.floor(Math.max(0, n))).padStart(2, '0'); }
+function pad(n: number) {
+  return String(Math.floor(Math.max(0, n))).padStart(2, "0");
+}
 
 function formatTime(s: number) {
   if (s >= 3600) {
@@ -32,11 +57,6 @@ function repeatTotal(m: Movement | null | undefined): number {
   return Math.max(1, m?.repeatCount ?? 1);
 }
 
-function movementWorkSeconds(m: Movement | null | undefined): number {
-  if (!m) return 0;
-  return m.durationMin * 60 + m.durationSec;
-}
-
 /** Sum work durations of movements starting from index `from`. */
 function totalRemainingSeconds(
   movements: Movement[],
@@ -45,9 +65,13 @@ function totalRemainingSeconds(
   phase: Phase,
 ): number {
   return movements.slice(fromIndex).reduce((acc, m, offset) => {
-    const repeatsLeft = offset === 0
-      ? Math.max(0, repeatTotal(m) - currentRepeat + (phase === 'work' ? 1 : 0))
-      : repeatTotal(m);
+    const repeatsLeft =
+      offset === 0
+        ? Math.max(
+            0,
+            repeatTotal(m) - currentRepeat + (phase === "work" ? 1 : 0),
+          )
+        : repeatTotal(m);
     return acc + movementWorkSeconds(m) * repeatsLeft;
   }, 0);
 }
@@ -65,38 +89,83 @@ function CircularRing({ progress, color = C.blue }: RingProps) {
   const leftDeg = p <= 0.5 ? 0 : (p - 0.5) * 360;
 
   return (
-    <View style={{ width: RING, height: RING, alignItems: 'center', justifyContent: 'center' }}>
+    <View
+      style={{
+        width: RING,
+        height: RING,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
       {/* Background Track */}
-      <View style={{
-        position: 'absolute', width: RING, height: RING, borderRadius: half,
-        borderWidth: STROKE, borderColor: color, // The entire circle starts full (colored)
-      }} />
+      <View
+        style={{
+          position: "absolute",
+          width: RING,
+          height: RING,
+          borderRadius: half,
+          borderWidth: STROKE,
+          borderColor: color, // The entire circle starts full (colored)
+        }}
+      />
 
       {/* Right Hemisphere Mask (0° to 180°, 12 o'clock to 6 o'clock) */}
-      <View style={{ position: 'absolute', left: half, width: half, height: RING, overflow: 'hidden' }}>
-        <View style={{
-          position: 'absolute', left: -half, width: RING, height: RING, borderRadius: half,
-          borderWidth: STROKE, borderColor: 'transparent',
-          borderTopColor: C.surface, borderLeftColor: C.surface, // The sweeping eraser track (gray)
-          transform: [{ rotate: '-45deg' }, { rotate: `${rightDeg}deg` }],
-        }} />
+      <View
+        style={{
+          position: "absolute",
+          left: half,
+          width: half,
+          height: RING,
+          overflow: "hidden",
+        }}
+      >
+        <View
+          style={{
+            position: "absolute",
+            left: -half,
+            width: RING,
+            height: RING,
+            borderRadius: half,
+            borderWidth: STROKE,
+            borderColor: "transparent",
+            borderTopColor: C.surface,
+            borderLeftColor: C.surface, // The sweeping eraser track (gray)
+            transform: [{ rotate: "-45deg" }, { rotate: `${rightDeg}deg` }],
+          }}
+        />
       </View>
 
       {/* Left Hemisphere Mask (180° to 360°, 6 o'clock to 12 o'clock) */}
-      <View style={{ position: 'absolute', left: 0, width: half, height: RING, overflow: 'hidden' }}>
-        <View style={{
-          position: 'absolute', left: 0, width: RING, height: RING, borderRadius: half,
-          borderWidth: STROKE, borderColor: 'transparent',
-          borderBottomColor: C.surface, borderRightColor: C.surface, // The sweeping eraser track (gray)
-          transform: [{ rotate: '-45deg' }, { rotate: `${leftDeg}deg` }],
-        }} />
+      <View
+        style={{
+          position: "absolute",
+          left: 0,
+          width: half,
+          height: RING,
+          overflow: "hidden",
+        }}
+      >
+        <View
+          style={{
+            position: "absolute",
+            left: 0,
+            width: RING,
+            height: RING,
+            borderRadius: half,
+            borderWidth: STROKE,
+            borderColor: "transparent",
+            borderBottomColor: C.surface,
+            borderRightColor: C.surface, // The sweeping eraser track (gray)
+            transform: [{ rotate: "-45deg" }, { rotate: `${leftDeg}deg` }],
+          }}
+        />
       </View>
     </View>
   );
 }
 
 // ─── Timer screen ─────────────────────────────────────────────────────────────
-type Phase = 'work' | 'rest' | 'done';
+type Phase = TimerPhase;
 
 function normalizeRouteParam(
   value: string | string[] | undefined,
@@ -110,9 +179,10 @@ export default function TimerScreen() {
   // Get routine ID from URL params for reliability
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const paramId = normalizeRouteParam(params.id);
-  const [isRunning, setIsRunning] = useAtom(timerRunningAtom);
-  const setActiveId = useSetAtom(activeRoutineIdAtom);
-  const activeId = useAtomValue(activeRoutineIdAtom);
+  const [timerSession, setTimerSession] = useAtom(timerSessionAtom);
+  const [storageReady, setStorageReady] = useState(false);
+  const [sessionInitialized, setSessionInitialized] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
   const routines = useAtomValue(routinesAtom);
   const isAutoAdvance = useAtomValue(autoAdvanceEnabledAtom);
   const routineSoundsOn = useAtomValue(routineCueSoundsEnabledAtom);
@@ -122,8 +192,9 @@ export default function TimerScreen() {
 
   const safeRoutines = Array.isArray(routines) ? routines : [];
   // Prefer URL param ID over atom (avoids hydration race)
-  const routineId = paramId ?? activeId;
-  const routine = safeRoutines.find((r) => r.id === routineId) ?? safeRoutines[0];
+  const routineId = paramId ?? timerSession?.routineId;
+  const routine =
+    safeRoutines.find((r) => r.id === routineId) ?? safeRoutines[0];
   const movements = useMemo<Movement[]>(
     () => (Array.isArray(routine?.movements) ? routine.movements : []),
     [routine],
@@ -132,40 +203,68 @@ export default function TimerScreen() {
   // ── per-movement / per-phase state ──
   const [movIdx, setMovIdx] = useState(0);
   const [currentRepeat, setCurrentRepeat] = useState(1);
-  const [phase, setPhase] = useState<Phase>('work');
-  const [seconds, setSeconds] = useState(() => movementWorkSeconds(movements[0] ?? { durationMin: 0, durationSec: 30, id: '', name: '', description: '', restSec: 0 }));
+  const [phase, setPhase] = useState<Phase>("work");
+  const [seconds, setSeconds] = useState(() =>
+    movementWorkSeconds(
+      movements[0] ?? {
+        durationMin: 0,
+        durationSec: 30,
+        id: "",
+        name: "",
+        description: "",
+        restSec: 0,
+      },
+    ),
+  );
 
   const currentMov = movements[movIdx];
-  const nextMov = currentRepeat < repeatTotal(currentMov)
-    ? currentMov
-    : (movements[movIdx + 1] ?? null);
+  const nextMov =
+    currentRepeat < repeatTotal(currentMov)
+      ? currentMov
+      : (movements[movIdx + 1] ?? null);
 
   // Total remaining work time (not counting current phase — just info label)
-  const totalRemaining = totalRemainingSeconds(movements, movIdx, currentRepeat, phase);
+  const totalRemaining = totalRemainingSeconds(
+    movements,
+    movIdx,
+    currentRepeat,
+    phase,
+  );
 
   // Phase duration for the ring to compute progress correctly
-  const phaseDuration = phase === 'work'
-    ? movementWorkSeconds(currentMov ?? { durationMin: 0, durationSec: 30, id: '', name: '', description: '', restSec: 0 })
-    : (currentMov?.restSec ?? 30);
-  const progress = phaseDuration > 0 ? (phaseDuration - seconds) / phaseDuration : 0;
+  const phaseDuration =
+    phase === "work"
+      ? movementWorkSeconds(
+          currentMov ?? {
+            durationMin: 0,
+            durationSec: 30,
+            id: "",
+            name: "",
+            description: "",
+            restSec: 0,
+          },
+        )
+      : (currentMov?.restSec ?? 30);
+  const progress =
+    phaseDuration > 0 ? (phaseDuration - seconds) / phaseDuration : 0;
 
   // Ring color: blue for work, orange for rest
-  const ringColor = phase === 'rest' ? C.orange : C.blue;
+  const ringColor = phase === "rest" ? C.orange : C.blue;
 
   // ── advance logic ──
   const advance = useCallback(() => {
     const isLastMovement = movIdx >= movements.length - 1;
     const hasMoreRepeats = currentRepeat < repeatTotal(currentMov);
 
-    if (phase === 'work') {
+    if (phase === "work") {
       const restSec = currentMov?.restSec ?? 0;
       if (hasMoreRepeats) {
         if (restSec > 0) {
-          setPhase('rest');
+          setPhase("rest");
           setSeconds(restSec);
         } else {
           setCurrentRepeat((prev) => prev + 1);
-          setPhase('work');
+          setPhase("work");
           setSeconds(movementWorkSeconds(currentMov));
         }
         return;
@@ -173,26 +272,26 @@ export default function TimerScreen() {
 
       // Last movement: skip rest entirely → done
       if (isLastMovement) {
-        setPhase('done');
+        setPhase("done");
         setIsRunning(false);
         return;
       }
       // Not last: enter rest if configured, otherwise go straight to next
       if (restSec > 0) {
-        setPhase('rest');
+        setPhase("rest");
         setSeconds(restSec);
       } else {
         const nextIdx = movIdx + 1;
         setMovIdx(nextIdx);
         setCurrentRepeat(1);
-        setPhase('work');
+        setPhase("work");
         setSeconds(movementWorkSeconds(movements[nextIdx]));
       }
     } else {
       // rest ended → next movement (rest only happens between movements, never after last)
       if (hasMoreRepeats) {
         setCurrentRepeat((prev) => prev + 1);
-        setPhase('work');
+        setPhase("work");
         setSeconds(movementWorkSeconds(currentMov));
         return;
       }
@@ -201,10 +300,10 @@ export default function TimerScreen() {
       if (nextIdx < movements.length) {
         setMovIdx(nextIdx);
         setCurrentRepeat(1);
-        setPhase('work');
+        setPhase("work");
         setSeconds(movementWorkSeconds(movements[nextIdx]));
       } else {
-        setPhase('done');
+        setPhase("done");
         setIsRunning(false);
       }
     }
@@ -225,33 +324,81 @@ export default function TimerScreen() {
   const isRunningRef = useRef(isRunning);
   const secondsRef = useRef(seconds);
 
-  useEffect(() => { movIdxRef.current = movIdx; }, [movIdx]);
-  useEffect(() => { currentRepeatRef.current = currentRepeat; }, [currentRepeat]);
-  useEffect(() => { phaseRef.current = phase; }, [phase]);
-  useEffect(() => { isRunningRef.current = isRunning; }, [isRunning]);
-  useEffect(() => { secondsRef.current = seconds; }, [seconds]);
+  useEffect(() => {
+    movIdxRef.current = movIdx;
+  }, [movIdx]);
+  useEffect(() => {
+    currentRepeatRef.current = currentRepeat;
+  }, [currentRepeat]);
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
+  useEffect(() => {
+    isRunningRef.current = isRunning;
+  }, [isRunning]);
+  useEffect(() => {
+    secondsRef.current = seconds;
+  }, [seconds]);
 
   useEffect(() => {
     goSegmentRef.current = null;
     preCueSegmentRef.current = null;
     stepCompleteSegmentRef.current = null;
     routineCompleteFiredRef.current = false;
+    endingRef.current = false;
   }, [routineId]);
 
-  // Reset local timer state when the selected routine changes (navigation / hydration).
+  const sessionAppliedRef = useRef<string | null>(null);
+  const endingRef = useRef(false);
+
+  const routineIds = useMemo(
+    () => new Set(safeRoutines.map((r) => r.id)),
+    [safeRoutines],
+  );
+
+  // Load persisted snapshot before any hydrate / fresh-start decisions.
   useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      const loaded = await loadTimerSession();
+      if (cancelled) return;
+
+      if (loaded) {
+        setTimerSession(loaded);
+      }
+
+      setStorageReady(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [setTimerSession]);
+
+  useEffect(() => {
+    setSessionInitialized(false);
+    sessionAppliedRef.current = null;
+  }, [routineId]);
+
+  const applyFreshTimer = useCallback(() => {
     const safe = Array.isArray(routines) ? routines : [];
     const r =
-      routineId !== undefined && routineId !== null && routineId !== ''
+      routineId !== undefined && routineId !== null && routineId !== ""
         ? safe.find((x) => x.id === routineId)
         : safe[0];
     const movs = Array.isArray(r?.movements) ? r.movements : [];
     const first = movs[0];
+    const initialSeconds = first ? movementWorkSeconds(first) : 0;
     setMovIdx(0);
     setCurrentRepeat(1);
-    setPhase('work');
-    setSeconds(first ? movementWorkSeconds(first) : 0);
-    segmentEndsAtMsRef.current = null;
+    setPhase("work");
+    setSeconds(initialSeconds);
+    setIsRunning(true);
+    segmentEndsAtMsRef.current =
+      initialSeconds > 0 ? Date.now() + initialSeconds * 1000 : null;
+    sessionAppliedRef.current = `fresh:${routineId}`;
+    setSessionInitialized(true);
   }, [routineId, routines]);
 
   useEffect(() => {
@@ -278,13 +425,14 @@ export default function TimerScreen() {
         if (!perm.granted) {
           await Notifications.requestPermissionsAsync();
         }
-        if (Platform.OS === 'android') {
-          await Notifications.setNotificationChannelAsync('timer', {
-            name: 'Timer',
+        if (Platform.OS === "android") {
+          await Notifications.setNotificationChannelAsync("timer", {
+            name: "Timer",
             importance: Notifications.AndroidImportance.MAX,
-            sound: 'default',
+            sound: "default",
             vibrationPattern: [0, 250, 250, 250],
-            lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+            lockscreenVisibility:
+              Notifications.AndroidNotificationVisibility.PUBLIC,
           });
         }
       } catch {
@@ -297,85 +445,160 @@ export default function TimerScreen() {
   const cancelTimerNotifs = useCallback(async () => {
     const ids = notifIdsRef.current;
     notifIdsRef.current = [];
-    await Promise.allSettled(ids.map((id) => Notifications.cancelScheduledNotificationAsync(id)));
+    await Promise.allSettled(
+      ids.map((id) => Notifications.cancelScheduledNotificationAsync(id)),
+    );
   }, []);
 
-  const scheduleTimerNotifs = useCallback(async (opts: { phase: Phase; movIdx: number; seconds: number; movementName?: string }) => {
-    await cancelTimerNotifs();
-    if (!isRunningRef.current || opts.phase === 'done' || opts.seconds <= 0) return;
+  const scheduleTimerNotifs = useCallback(
+    async (opts: {
+      phase: Phase;
+      movIdx: number;
+      seconds: number;
+      movementName?: string;
+    }) => {
+      await cancelTimerNotifs();
+      if (!isRunningRef.current || opts.phase === "done" || opts.seconds <= 0)
+        return;
 
-    const title = opts.phase === 'rest' ? 'Rest finished' : 'Work finished';
-    const body = opts.phase === 'rest'
-      ? `Go: ${opts.movementName ?? 'Next movement'}`
-      : `Next up: ${opts.movementName ?? 'Rest'}`;
+      const title = opts.phase === "rest" ? "Rest finished" : "Work finished";
+      const body =
+        opts.phase === "rest"
+          ? `Go: ${opts.movementName ?? "Next movement"}`
+          : `Next up: ${opts.movementName ?? "Rest"}`;
 
-    try {
-      const endId = await Notifications.scheduleNotificationAsync({
-        content: {
-          title,
-          body,
-          sound: 'default',
-          ...(Platform.OS === 'android' ? { channelId: 'timer' } : null),
-        },
-        trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: Math.max(1, Math.floor(opts.seconds)), repeats: false },
-      });
-      notifIdsRef.current.push(endId);
-
-      // "Get ready" cue for rest phases ~2s before it ends.
-      if (opts.phase === 'rest' && opts.seconds > 3) {
-        const readyId = await Notifications.scheduleNotificationAsync({
+      try {
+        const endId = await Notifications.scheduleNotificationAsync({
           content: {
-            title: 'Get ready',
-            body: 'Starting soon',
-            sound: 'default',
-            ...(Platform.OS === 'android' ? { channelId: 'timer' } : null),
+            title,
+            body,
+            sound: "default",
+            ...(Platform.OS === "android" ? { channelId: "timer" } : null),
           },
-          trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: Math.max(1, Math.floor(opts.seconds - 2)), repeats: false },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+            seconds: Math.max(1, Math.floor(opts.seconds)),
+            repeats: false,
+          },
         });
-        notifIdsRef.current.push(readyId);
-      }
-    } catch {
-      // ignore scheduling errors
-    }
-  }, [cancelTimerNotifs]);
+        notifIdsRef.current.push(endId);
 
-  const computeNextAfterZero = useCallback((state: { movIdx: number; currentRepeat: number; phase: Phase; movements: Movement[]; currentMov?: Movement | null }) => {
-    const { movIdx: idx, currentRepeat: repeat, phase: ph, movements: movs, currentMov: mov } = state;
-    const isLastMovement = idx >= movs.length - 1;
-    const hasMoreRepeats = repeat < repeatTotal(mov);
-
-    if (ph === 'work') {
-      const restSec = mov?.restSec ?? 0;
-      if (hasMoreRepeats) {
-        if (restSec > 0) {
-          return { movIdx: idx, currentRepeat: repeat, phase: 'rest' as const, seconds: restSec };
+        // "Get ready" cue for rest phases ~2s before it ends.
+        if (opts.phase === "rest" && opts.seconds > 3) {
+          const readyId = await Notifications.scheduleNotificationAsync({
+            content: {
+              title: "Get ready",
+              body: "Starting soon",
+              sound: "default",
+              ...(Platform.OS === "android" ? { channelId: "timer" } : null),
+            },
+            trigger: {
+              type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+              seconds: Math.max(1, Math.floor(opts.seconds - 2)),
+              repeats: false,
+            },
+          });
+          notifIdsRef.current.push(readyId);
         }
-        return { movIdx: idx, currentRepeat: repeat + 1, phase: 'work' as const, seconds: movementWorkSeconds(mov) };
+      } catch {
+        // ignore scheduling errors
       }
-      if (isLastMovement) {
-        return { movIdx: idx, currentRepeat: repeat, phase: 'done' as const, seconds: 0 };
+    },
+    [cancelTimerNotifs],
+  );
+
+  const computeNextAfterZero = useCallback(
+    (state: {
+      movIdx: number;
+      currentRepeat: number;
+      phase: Phase;
+      movements: Movement[];
+      currentMov?: Movement | null;
+    }) => {
+      const {
+        movIdx: idx,
+        currentRepeat: repeat,
+        phase: ph,
+        movements: movs,
+        currentMov: mov,
+      } = state;
+      const isLastMovement = idx >= movs.length - 1;
+      const hasMoreRepeats = repeat < repeatTotal(mov);
+
+      if (ph === "work") {
+        const restSec = mov?.restSec ?? 0;
+        if (hasMoreRepeats) {
+          if (restSec > 0) {
+            return {
+              movIdx: idx,
+              currentRepeat: repeat,
+              phase: "rest" as const,
+              seconds: restSec,
+            };
+          }
+          return {
+            movIdx: idx,
+            currentRepeat: repeat + 1,
+            phase: "work" as const,
+            seconds: movementWorkSeconds(mov),
+          };
+        }
+        if (isLastMovement) {
+          return {
+            movIdx: idx,
+            currentRepeat: repeat,
+            phase: "done" as const,
+            seconds: 0,
+          };
+        }
+        if (restSec > 0) {
+          return {
+            movIdx: idx,
+            currentRepeat: repeat,
+            phase: "rest" as const,
+            seconds: restSec,
+          };
+        }
+        const nextIdx = idx + 1;
+        return {
+          movIdx: nextIdx,
+          currentRepeat: 1,
+          phase: "work" as const,
+          seconds: movementWorkSeconds(movs[nextIdx]),
+        };
       }
-      if (restSec > 0) {
-        return { movIdx: idx, currentRepeat: repeat, phase: 'rest' as const, seconds: restSec };
+
+      // rest ended → next movement
+      if (hasMoreRepeats) {
+        return {
+          movIdx: idx,
+          currentRepeat: repeat + 1,
+          phase: "work" as const,
+          seconds: movementWorkSeconds(mov),
+        };
       }
       const nextIdx = idx + 1;
-      return { movIdx: nextIdx, currentRepeat: 1, phase: 'work' as const, seconds: movementWorkSeconds(movs[nextIdx]) };
-    }
-
-    // rest ended → next movement
-    if (hasMoreRepeats) {
-      return { movIdx: idx, currentRepeat: repeat + 1, phase: 'work' as const, seconds: movementWorkSeconds(mov) };
-    }
-    const nextIdx = idx + 1;
-    if (nextIdx < movs.length) {
-      return { movIdx: nextIdx, currentRepeat: 1, phase: 'work' as const, seconds: movementWorkSeconds(movs[nextIdx]) };
-    }
-    return { movIdx: idx, currentRepeat: repeat, phase: 'done' as const, seconds: 0 };
-  }, []);
+      if (nextIdx < movs.length) {
+        return {
+          movIdx: nextIdx,
+          currentRepeat: 1,
+          phase: "work" as const,
+          seconds: movementWorkSeconds(movs[nextIdx]),
+        };
+      }
+      return {
+        movIdx: idx,
+        currentRepeat: repeat,
+        phase: "done" as const,
+        seconds: 0,
+      };
+    },
+    [],
+  );
 
   const syncTimerToNow = useCallback(async () => {
     if (!isRunningRef.current) return;
-    if (phaseRef.current === 'done') return;
+    if (phaseRef.current === "done") return;
     const endsAt = segmentEndsAtMsRef.current;
     if (!endsAt) return;
 
@@ -389,25 +612,31 @@ export default function TimerScreen() {
     // If we were backgrounded long enough to cross segment boundaries, step forward.
     while (now >= nextEndsAt) {
       const current = movements[nextMovIdx];
-      const nextState = computeNextAfterZero({ movIdx: nextMovIdx, currentRepeat: nextCurrentRepeat, phase: nextPhase, movements, currentMov: current });
+      const nextState = computeNextAfterZero({
+        movIdx: nextMovIdx,
+        currentRepeat: nextCurrentRepeat,
+        phase: nextPhase,
+        movements,
+        currentMov: current,
+      });
       nextMovIdx = nextState.movIdx;
       nextCurrentRepeat = nextState.currentRepeat;
       nextPhase = nextState.phase;
       nextSeconds = nextState.seconds;
       nextEndsAt = nextEndsAt + nextSeconds * 1000;
-      if (nextPhase === 'done') break;
+      if (nextPhase === "done") break;
       if (!isAutoAdvance) {
         // If auto-advance is off, stop at the boundary.
         break;
       }
     }
 
-    if (nextPhase === 'done') {
+    if (nextPhase === "done") {
       segmentEndsAtMsRef.current = null;
       await cancelTimerNotifs();
       setMovIdx(nextMovIdx);
       setCurrentRepeat(nextCurrentRepeat);
-      setPhase('done');
+      setPhase("done");
       setSeconds(0);
       setIsRunning(false);
       return;
@@ -418,7 +647,8 @@ export default function TimerScreen() {
 
     // Apply state if we stepped forward.
     if (nextMovIdx !== movIdxRef.current) setMovIdx(nextMovIdx);
-    if (nextCurrentRepeat !== currentRepeatRef.current) setCurrentRepeat(nextCurrentRepeat);
+    if (nextCurrentRepeat !== currentRepeatRef.current)
+      setCurrentRepeat(nextCurrentRepeat);
     if (nextPhase !== phaseRef.current) setPhase(nextPhase);
     setSeconds(remaining);
 
@@ -426,17 +656,148 @@ export default function TimerScreen() {
       phase: nextPhase,
       movIdx: nextMovIdx,
       seconds: remaining,
-      movementName: nextPhase === 'rest'
-        ? (nextCurrentRepeat < repeatTotal(movements[nextMovIdx])
-          ? movements[nextMovIdx]?.name
-          : movements[nextMovIdx + 1]?.name)
-        : movements[nextMovIdx]?.name,
+      movementName:
+        nextPhase === "rest"
+          ? nextCurrentRepeat < repeatTotal(movements[nextMovIdx])
+            ? movements[nextMovIdx]?.name
+            : movements[nextMovIdx + 1]?.name
+          : movements[nextMovIdx]?.name,
     });
-  }, [cancelTimerNotifs, computeNextAfterZero, isAutoAdvance, movements, scheduleTimerNotifs, setIsRunning]);
+  }, [
+    cancelTimerNotifs,
+    computeNextAfterZero,
+    isAutoAdvance,
+    movements,
+    scheduleTimerNotifs,
+    setIsRunning,
+  ]);
+
+  const saveCurrentTimerSnapshot = useCallback(() => {
+    if (!routineId || endingRef.current || phaseRef.current === "done") return;
+
+    const snapshot = buildTimerSnapshot({
+      routineId,
+      movIdx: movIdxRef.current,
+      currentRepeat: currentRepeatRef.current,
+      phase: phaseRef.current,
+      seconds: secondsRef.current,
+      isRunning: isRunningRef.current,
+      segmentEndsAtMs: segmentEndsAtMsRef.current,
+    });
+
+    setTimerSession(snapshot);
+    void saveTimerSession(snapshot);
+  }, [routineId, setTimerSession]);
+
+  // Hydrate from persisted session or reset when starting a new routine.
+  useEffect(() => {
+    if (!routineId || !storageReady || sessionInitialized) return;
+
+    const saved = timerSession;
+
+    if (saved && routineIds.size > 0 && !isValidTimerSession(saved, routineIds)) {
+      setTimerSession(null);
+      void clearTimerSession();
+      router.back();
+      return;
+    }
+
+    if (saved?.routineId === routineId && saved.phase !== "done") {
+      const reconciled = reconcileTimerSession(saved);
+      const hydrateKey = `${reconciled.routineId}:${reconciled.movIdx}:${reconciled.currentRepeat}:${reconciled.phase}:${reconciled.isRunning}:${reconciled.seconds}`;
+      const shouldSync =
+        sessionAppliedRef.current !== hydrateKey &&
+        reconciled.isRunning &&
+        reconciled.segmentEndsAtMs !== null;
+
+      setMovIdx(reconciled.movIdx);
+      setCurrentRepeat(reconciled.currentRepeat);
+      setPhase(reconciled.phase);
+      setSeconds(reconciled.seconds);
+      setIsRunning(reconciled.isRunning);
+      segmentEndsAtMsRef.current = reconciled.segmentEndsAtMs;
+      sessionAppliedRef.current = hydrateKey;
+      setSessionInitialized(true);
+
+      if (shouldSync) {
+        void syncTimerToNow();
+      }
+      return;
+    }
+
+    if (saved !== null && saved.routineId !== routineId) {
+      applyFreshTimer();
+      return;
+    }
+
+    if (saved === null && endingRef.current) {
+      return;
+    }
+
+    if (saved === null && sessionAppliedRef.current === `fresh:${routineId}`) {
+      return;
+    }
+
+    if (saved === null) {
+      applyFreshTimer();
+    }
+  }, [
+    timerSession,
+    routineId,
+    routineIds,
+    storageReady,
+    sessionInitialized,
+    applyFreshTimer,
+    syncTimerToNow,
+    setTimerSession,
+    router,
+  ]);
+
+  useEffect(() => {
+    if (phase === "done") {
+      setTimerSession(null);
+      void clearTimerSession();
+    }
+  }, [phase, setTimerSession]);
+
+  // Persist timer progress for resume across app restarts.
+  useEffect(() => {
+    if (
+      !routineId ||
+      !storageReady ||
+      !sessionInitialized ||
+      phase === "done" ||
+      endingRef.current
+    ) {
+      return;
+    }
+
+    const snapshot = buildTimerSnapshot({
+      routineId,
+      movIdx,
+      currentRepeat,
+      phase,
+      seconds,
+      isRunning,
+      segmentEndsAtMs: segmentEndsAtMsRef.current,
+    });
+
+    setTimerSession(snapshot);
+  }, [
+    routineId,
+    movIdx,
+    currentRepeat,
+    phase,
+    seconds,
+    isRunning,
+    sessionInitialized,
+    storageReady,
+    setTimerSession,
+  ]);
 
   // Pre-cue: rest only — ~1–2 s before rest ends (prepare for next work). No pre-cue during work.
   useEffect(() => {
-    if (!isRunning || phase !== 'rest') return;
+    if (!isRunning || phase !== "rest") return;
     if (phaseDuration <= 2 || seconds !== 2) return;
     const key = `${segmentKey}-pre`;
     if (preCueSegmentRef.current === key) return;
@@ -446,7 +807,7 @@ export default function TimerScreen() {
 
   // "Go!" — work phases only (never when rest starts or ends)
   useEffect(() => {
-    if (!isRunning || phase !== 'work') return;
+    if (!isRunning || phase !== "work") return;
     if (seconds !== phaseDuration) return;
     if (goSegmentRef.current === segmentKey) return;
     goSegmentRef.current = segmentKey;
@@ -455,7 +816,7 @@ export default function TimerScreen() {
 
   // Work segment finished (natural countdown only — not skip)
   useEffect(() => {
-    if (seconds !== 0 || phase !== 'work' || !isRunning) return;
+    if (seconds !== 0 || phase !== "work" || !isRunning) return;
     if (stepCompleteSegmentRef.current === segmentKey) return;
     stepCompleteSegmentRef.current = segmentKey;
     void routineFeedback.playStepComplete(routineSoundsOn);
@@ -463,7 +824,7 @@ export default function TimerScreen() {
 
   // Routine finished
   useEffect(() => {
-    if (phase !== 'done' || routineCompleteFiredRef.current) return;
+    if (phase !== "done" || routineCompleteFiredRef.current) return;
     routineCompleteFiredRef.current = true;
     void routineFeedback.playRoutineComplete(routineSoundsOn);
   }, [phase, routineSoundsOn]);
@@ -471,7 +832,7 @@ export default function TimerScreen() {
   // ── countdown tick ──
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(() => {
-    if (isRunning && phase !== 'done') {
+    if (isRunning && phase !== "done") {
       // Ensure we have an absolute end timestamp (survives background/lock).
       if (!segmentEndsAtMsRef.current) {
         segmentEndsAtMsRef.current = Date.now() + seconds * 1000;
@@ -479,11 +840,12 @@ export default function TimerScreen() {
           phase,
           movIdx,
           seconds,
-          movementName: phase === 'rest'
-            ? (currentRepeat < repeatTotal(movements[movIdx])
-              ? movements[movIdx]?.name
-              : movements[movIdx + 1]?.name)
-            : movements[movIdx]?.name,
+          movementName:
+            phase === "rest"
+              ? currentRepeat < repeatTotal(movements[movIdx])
+                ? movements[movIdx]?.name
+                : movements[movIdx + 1]?.name
+              : movements[movIdx]?.name,
         });
       }
 
@@ -500,7 +862,15 @@ export default function TimerScreen() {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [currentRepeat, isRunning, movIdx, movements, phase, scheduleTimerNotifs, seconds]);
+  }, [
+    currentRepeat,
+    isRunning,
+    movIdx,
+    movements,
+    phase,
+    scheduleTimerNotifs,
+    seconds,
+  ]);
 
   // When seconds hit 0 auto-advance
   useEffect(() => {
@@ -514,30 +884,53 @@ export default function TimerScreen() {
 
   // Update end timestamp + notifications whenever we switch segments while running.
   useEffect(() => {
-    if (!isRunning || phase === 'done') return;
+    if (!isRunning || phase === "done") return;
     segmentEndsAtMsRef.current = Date.now() + seconds * 1000;
     void scheduleTimerNotifs({
       phase,
       movIdx,
       seconds,
-      movementName: phase === 'rest'
-        ? (currentRepeat < repeatTotal(movements[movIdx])
-          ? movements[movIdx]?.name
-          : movements[movIdx + 1]?.name)
-        : movements[movIdx]?.name,
+      movementName:
+        phase === "rest"
+          ? currentRepeat < repeatTotal(movements[movIdx])
+            ? movements[movIdx]?.name
+            : movements[movIdx + 1]?.name
+          : movements[movIdx]?.name,
     });
-  }, [currentRepeat, isRunning, movIdx, movements, phase, scheduleTimerNotifs, seconds]);
+  }, [
+    currentRepeat,
+    isRunning,
+    movIdx,
+    movements,
+    phase,
+    scheduleTimerNotifs,
+    seconds,
+  ]);
 
-  // Sync on app resume / foreground.
+  // Sync on app resume / foreground; snapshot when backgrounded.
   useEffect(() => {
     const onChange = (state: AppStateStatus) => {
-      if (state === 'active') {
+      if (state === "active") {
         void syncTimerToNow();
+      } else {
+        saveCurrentTimerSnapshot();
       }
     };
-    const sub = AppState.addEventListener('change', onChange);
+    const sub = AppState.addEventListener("change", onChange);
     return () => sub.remove();
-  }, [syncTimerToNow]);
+  }, [syncTimerToNow, saveCurrentTimerSnapshot]);
+
+  useFocusEffect(
+    useCallback(() => {
+      endingRef.current = false;
+      setSessionInitialized(false);
+      sessionAppliedRef.current = null;
+
+      return () => {
+        saveCurrentTimerSnapshot();
+      };
+    }, [saveCurrentTimerSnapshot]),
+  );
 
   useEffect(() => {
     void routineFeedback.preloadTransport();
@@ -546,7 +939,7 @@ export default function TimerScreen() {
   const handlePauseResume = useCallback(() => {
     setIsRunning((wasRunning) => {
       const next = !wasRunning;
-      if (phase === 'done' || !currentMov) return next;
+      if (phase === "done" || !currentMov) return next;
 
       if (next) {
         // resume
@@ -555,17 +948,22 @@ export default function TimerScreen() {
           phase: phaseRef.current,
           movIdx: movIdxRef.current,
           seconds: secondsRef.current,
-          movementName: phaseRef.current === 'rest'
-            ? (currentRepeatRef.current < repeatTotal(movements[movIdxRef.current])
-              ? movements[movIdxRef.current]?.name
-              : movements[movIdxRef.current + 1]?.name)
-            : movements[movIdxRef.current]?.name,
+          movementName:
+            phaseRef.current === "rest"
+              ? currentRepeatRef.current <
+                repeatTotal(movements[movIdxRef.current])
+                ? movements[movIdxRef.current]?.name
+                : movements[movIdxRef.current + 1]?.name
+              : movements[movIdxRef.current]?.name,
         });
       } else {
         // pause
         const endsAt = segmentEndsAtMsRef.current;
         if (endsAt) {
-          const remaining = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+          const remaining = Math.max(
+            0,
+            Math.ceil((endsAt - Date.now()) / 1000),
+          );
           segmentEndsAtMsRef.current = null;
           setSeconds(remaining);
         }
@@ -586,18 +984,26 @@ export default function TimerScreen() {
       }
       return next;
     });
-  }, [phase, currentMov, feedbackEnabled, setIsRunning, cancelTimerNotifs, movements, scheduleTimerNotifs]);
+  }, [
+    phase,
+    currentMov,
+    feedbackEnabled,
+    setIsRunning,
+    cancelTimerNotifs,
+    movements,
+    scheduleTimerNotifs,
+  ]);
 
   function handleBack() {
-    if (phase === 'rest') {
+    if (phase === "rest") {
       // Jump back to work phase of current movement
-      setPhase('work');
+      setPhase("work");
       setSeconds(movementWorkSeconds(currentMov));
     } else if (movIdx > 0) {
       const prevIdx = movIdx - 1;
       setMovIdx(prevIdx);
       setCurrentRepeat(repeatTotal(movements[prevIdx]));
-      setPhase('work');
+      setPhase("work");
       setSeconds(movementWorkSeconds(movements[prevIdx]));
     }
     setIsRunning(false);
@@ -610,17 +1016,25 @@ export default function TimerScreen() {
     advance();
   }
 
+  function handleHeaderBack() {
+    saveCurrentTimerSnapshot();
+    router.back();
+  }
+
   function handleEnd() {
+    endingRef.current = true;
     if (intervalRef.current) clearInterval(intervalRef.current);
     segmentEndsAtMsRef.current = null;
     void cancelTimerNotifs();
     setIsRunning(false);
-    setActiveId(null);
+    setTimerSession(null);
+    void clearTimerSession();
+    sessionAppliedRef.current = null;
     router.back();
   }
 
   // ── Done screen ──
-  if (phase === 'done') {
+  if (phase === "done") {
     return (
       <View style={ts.root}>
         <StatusBar barStyle="light-content" backgroundColor={C.bg} />
@@ -643,8 +1057,13 @@ export default function TimerScreen() {
     return (
       <View style={ts.root}>
         <SafeAreaView style={ts.center}>
-          <Text style={{ color: C.textMuted, fontSize: 16 }}>No movements added.</Text>
-          <TouchableOpacity style={[ts.doneBtn, { marginTop: 24 }]} onPress={handleEnd}>
+          <Text style={{ color: C.textMuted, fontSize: 16 }}>
+            No movements added.
+          </Text>
+          <TouchableOpacity
+            style={[ts.doneBtn, { marginTop: 24 }]}
+            onPress={handleEnd}
+          >
             <Text style={ts.doneBtnText}>Go Back</Text>
           </TouchableOpacity>
         </SafeAreaView>
@@ -657,24 +1076,52 @@ export default function TimerScreen() {
       <StatusBar barStyle="light-content" backgroundColor={C.bg} />
       <SafeAreaView style={{ flex: 1 }}>
         <View style={ts.container}>
-
           {/* Top: routine name + movement progress */}
           <View style={ts.topBar}>
-            <Text style={ts.routineLabel} numberOfLines={1}>{routine?.title}</Text>
-            <Text style={ts.progressLabel}>{movIdx + 1} / {movements.length}</Text>
+            <TouchableOpacity
+              onPress={handleHeaderBack}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}
+              style={ts.backBtn}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="chevron-back" size={22} color={C.textMuted} />
+            </TouchableOpacity>
+            <Text style={ts.routineLabel} numberOfLines={1}>
+              {routine?.title}
+            </Text>
+            <Text style={ts.progressLabel}>
+              {movIdx + 1} / {movements.length}
+            </Text>
           </View>
 
           {/* Phase badge */}
-          <View style={[ts.phaseBadge, { backgroundColor: phase === 'rest' ? `${C.orange}20` : `${C.blue}20` }]}>
-            <Text style={[ts.phaseText, { color: phase === 'rest' ? C.orange : C.blue }]}>
-              {phase === 'rest' ? '⏳ REST' : '▶ WORK'}
+          <View
+            style={[
+              ts.phaseBadge,
+              {
+                backgroundColor:
+                  phase === "rest" ? `${C.orange}20` : `${C.blue}20`,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                ts.phaseText,
+                { color: phase === "rest" ? C.orange : C.blue },
+              ]}
+            >
+              {phase === "rest" ? "⏳ REST" : "▶ WORK"}
             </Text>
           </View>
 
           {/* Current movement name */}
-          <Text style={ts.movementName} numberOfLines={2}>{currentMov.name}</Text>
+          <Text style={ts.movementName} numberOfLines={2}>
+            {currentMov.name}
+          </Text>
           {repeatTotal(currentMov) > 1 && (
-            <Text style={ts.repeatLabel}>Repeat {currentRepeat} / {repeatTotal(currentMov)}</Text>
+            <Text style={ts.repeatLabel}>
+              Repeat {currentRepeat} / {repeatTotal(currentMov)}
+            </Text>
           )}
 
           {/* Ring + timer */}
@@ -683,7 +1130,7 @@ export default function TimerScreen() {
             <View style={ts.ringOverlay}>
               <Text style={ts.timerText}>{formatTime(seconds)}</Text>
               <Text style={ts.timerSub}>
-                {phase === 'rest' ? 'REST' : 'REMAINING'}
+                {phase === "rest" ? "REST" : "REMAINING"}
               </Text>
             </View>
           </View>
@@ -696,24 +1143,39 @@ export default function TimerScreen() {
           {/* Controls: back · pause/play · skip */}
           <View style={ts.controls}>
             <TouchableOpacity
-              style={[ts.ctrlSecondary, movIdx === 0 && phase === 'work' && ts.ctrlDisabled]}
+              style={[
+                ts.ctrlSecondary,
+                movIdx === 0 && phase === "work" && ts.ctrlDisabled,
+              ]}
               onPress={handleBack}
               activeOpacity={0.7}
-              disabled={movIdx === 0 && phase === 'work'}
+              disabled={movIdx === 0 && phase === "work"}
             >
-              <Ionicons name="play-skip-back" size={22} color={movIdx === 0 && phase === 'work' ? C.textDim : C.text} />
+              <Ionicons
+                name="play-skip-back"
+                size={22}
+                color={movIdx === 0 && phase === "work" ? C.textDim : C.text}
+              />
             </TouchableOpacity>
 
-            <TouchableOpacity style={ts.ctrlPrimary} onPress={handlePauseResume} activeOpacity={0.85}>
+            <TouchableOpacity
+              style={ts.ctrlPrimary}
+              onPress={handlePauseResume}
+              activeOpacity={0.85}
+            >
               <Ionicons
-                name={isRunning ? 'pause' : 'play'}
+                name={isRunning ? "pause" : "play"}
                 size={32}
                 color={C.white}
                 style={{ marginLeft: isRunning ? 0 : 4 }}
               />
             </TouchableOpacity>
 
-            <TouchableOpacity style={ts.ctrlSecondary} onPress={handleSkip} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={ts.ctrlSecondary}
+              onPress={handleSkip}
+              activeOpacity={0.7}
+            >
               <Ionicons name="play-skip-forward" size={22} color={C.text} />
             </TouchableOpacity>
           </View>
@@ -723,7 +1185,9 @@ export default function TimerScreen() {
             <View style={ts.upNextCard}>
               <View style={{ flex: 1 }}>
                 <Text style={ts.upNextLabel}>UP NEXT</Text>
-                <Text style={ts.upNextTitle} numberOfLines={1}>{nextMov.name}</Text>
+                <Text style={ts.upNextTitle} numberOfLines={1}>
+                  {nextMov.name}
+                </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={C.textMuted} />
             </View>
@@ -733,7 +1197,6 @@ export default function TimerScreen() {
           <TouchableOpacity onPress={handleEnd} style={ts.endBtn}>
             <Text style={ts.endBtnText}>END ROUTINE</Text>
           </TouchableOpacity>
-
         </View>
       </SafeAreaView>
     </View>
@@ -743,50 +1206,196 @@ export default function TimerScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const ts = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
-  container: { flex: 1, alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.screenHorizontal, paddingTop: Spacing.sm, paddingBottom: Platform.OS === 'android' ? Spacing.md : Spacing.sm },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.screenHorizontal },
+  container: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: Spacing.screenHorizontal,
+    paddingTop: Spacing.sm,
+    paddingBottom: Platform.OS === "android" ? Spacing.md : Spacing.sm,
+  },
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: Spacing.screenHorizontal,
+  },
 
   // Top bar
-  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' },
-  routineLabel: { ...Typography.bodySmall, fontWeight: '600', color: C.textMuted, flex: 1 },
-  progressLabel: { ...Typography.bodySmall, fontWeight: '700', color: C.textDim },
+  topBar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "100%",
+  },
+  backBtn: {
+    paddingRight: Spacing.xs,
+  },
+  routineLabel: {
+    ...Typography.bodySmall,
+    fontWeight: "600",
+    color: C.textMuted,
+    flex: 1,
+  },
+  progressLabel: {
+    ...Typography.bodySmall,
+    fontWeight: "700",
+    color: C.textDim,
+  },
 
   // Phase
-  phaseBadge: { paddingHorizontal: Spacing.md - 2, paddingVertical: 5, borderRadius: BorderRadius.round, marginTop: Spacing.sm },
-  phaseText: { ...Typography.caption, fontSize: 11, fontWeight: '800', letterSpacing: 1.5 },
+  phaseBadge: {
+    paddingHorizontal: Spacing.md - 2,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.round,
+    marginTop: Spacing.sm,
+  },
+  phaseText: {
+    ...Typography.caption,
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1.5,
+  },
 
   // Movement name
-  movementName: { ...Typography.title, fontSize: 22, fontWeight: '800', color: C.text, textAlign: 'center', marginTop: Spacing.xs + 2, lineHeight: 28 },
-  repeatLabel: { ...Typography.caption, fontSize: 12, color: C.textMuted, fontWeight: '600', marginTop: Spacing.xs },
+  movementName: {
+    ...Typography.title,
+    fontSize: 22,
+    fontWeight: "800",
+    color: C.text,
+    textAlign: "center",
+    marginTop: Spacing.xs + 2,
+    lineHeight: 28,
+  },
+  repeatLabel: {
+    ...Typography.caption,
+    fontSize: 12,
+    color: C.textMuted,
+    fontWeight: "600",
+    marginTop: Spacing.xs,
+  },
 
   // Ring
-  ringSection: { alignItems: 'center', justifyContent: 'center' },
-  ringOverlay: { position: 'absolute', alignItems: 'center' },
-  timerText: { ...Typography.hero, fontSize: 52, fontWeight: '800', color: C.text, letterSpacing: -2 },
-  timerSub: { ...Typography.caption, fontSize: 10, fontWeight: '700', color: C.textDim, letterSpacing: 2, marginTop: Spacing.xs - 2 },
+  ringSection: { alignItems: "center", justifyContent: "center" },
+  ringOverlay: { position: "absolute", alignItems: "center" },
+  timerText: {
+    ...Typography.hero,
+    fontSize: 52,
+    fontWeight: "800",
+    color: C.text,
+    letterSpacing: -2,
+  },
+  timerSub: {
+    ...Typography.caption,
+    fontSize: 10,
+    fontWeight: "700",
+    color: C.textDim,
+    letterSpacing: 2,
+    marginTop: Spacing.xs - 2,
+  },
 
   // Total
-  totalLabel: { ...Typography.caption, fontSize: 13, color: C.textMuted, fontWeight: '500' },
+  totalLabel: {
+    ...Typography.caption,
+    fontSize: 13,
+    color: C.textMuted,
+    fontWeight: "500",
+  },
 
   // Controls
-  controls: { flexDirection: 'row', alignItems: 'center', gap: Spacing.screenHorizontal },
-  ctrlPrimary: { width: 72, height: 72, borderRadius: 36, backgroundColor: C.blue, justifyContent: 'center', alignItems: 'center', shadowColor: C.blue, shadowOpacity: 0.45, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
-  ctrlSecondary: { width: 54, height: 54, borderRadius: 27, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, justifyContent: 'center', alignItems: 'center' },
+  controls: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.screenHorizontal,
+  },
+  ctrlPrimary: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: C.blue,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: C.blue,
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  ctrlSecondary: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.border,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   ctrlDisabled: { opacity: 0.3 },
 
   // Up next
-  upNextCard: { width: '100%', flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface, borderRadius: BorderRadius.lg, paddingVertical: Spacing.md - 2, paddingHorizontal: Spacing.md + 2, borderWidth: 1, borderColor: C.border },
-  upNextLabel: { ...Typography.caption, fontSize: 9, fontWeight: '700', color: C.textDim, letterSpacing: 1.4, marginBottom: Spacing.xs - 1 },
-  upNextTitle: { ...Typography.bodyMedium, fontSize: 15, fontWeight: '600', color: C.text },
+  upNextCard: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: C.surface,
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.md - 2,
+    paddingHorizontal: Spacing.md + 2,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  upNextLabel: {
+    ...Typography.caption,
+    fontSize: 9,
+    fontWeight: "700",
+    color: C.textDim,
+    letterSpacing: 1.4,
+    marginBottom: Spacing.xs - 1,
+  },
+  upNextTitle: {
+    ...Typography.bodyMedium,
+    fontSize: 15,
+    fontWeight: "600",
+    color: C.text,
+  },
 
   // End
   endBtn: { paddingVertical: Spacing.sm - 2 },
-  endBtnText: { ...Typography.caption, fontWeight: '700', color: C.red, letterSpacing: 1.2 },
+  endBtnText: {
+    ...Typography.caption,
+    fontWeight: "700",
+    color: C.red,
+    letterSpacing: 1.2,
+  },
 
   // Done screen
-  doneIconWrap: { width: 96, height: 96, borderRadius: 48, backgroundColor: `${C.green}20`, justifyContent: 'center', alignItems: 'center', marginBottom: Spacing.screenHorizontal },
-  doneTitle: { ...Typography.title, fontSize: 28, fontWeight: '800', color: C.text, marginBottom: Spacing.sm },
-  doneSub: { ...Typography.bodyMedium, color: C.textMuted, marginBottom: Spacing.screenHorizontal * 2 },
-  doneBtn: { backgroundColor: C.blue, borderRadius: BorderRadius.lg, paddingVertical: Spacing.md + 2, paddingHorizontal: 48 },
-  doneBtnText: { ...Typography.bodyMedium, fontWeight: '700', color: C.white },
+  doneIconWrap: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: `${C.green}20`,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: Spacing.screenHorizontal,
+  },
+  doneTitle: {
+    ...Typography.title,
+    fontSize: 28,
+    fontWeight: "800",
+    color: C.text,
+    marginBottom: Spacing.sm,
+  },
+  doneSub: {
+    ...Typography.bodyMedium,
+    color: C.textMuted,
+    marginBottom: Spacing.screenHorizontal * 2,
+  },
+  doneBtn: {
+    backgroundColor: C.blue,
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.md + 2,
+    paddingHorizontal: 48,
+  },
+  doneBtnText: { ...Typography.bodyMedium, fontWeight: "700", color: C.white },
 });

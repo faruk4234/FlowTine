@@ -17,16 +17,66 @@ export type CategoryIcon = {
 };
 
 export const CATEGORY_ICONS: CategoryIcon[] = [
-  { name: "body", label: "Yoga", color: palette.orange, bgColor: palette.orangeDim },
-  { name: "barbell", label: "Strength", color: palette.primary, bgColor: palette.primaryDim },
-  { name: "flame", label: "HIIT", color: palette.danger, bgColor: palette.dangerAccentDim },
-  { name: "bicycle", label: "Cardio", color: palette.greenBright, bgColor: palette.greenBrightDim },
-  { name: "fitness", label: "Fitness", color: palette.purple, bgColor: palette.purpleDim },
-  { name: "timer", label: "Focus", color: palette.sky, bgColor: palette.skyDim },
-  { name: "moon", label: "Sleep", color: palette.indigo, bgColor: palette.indigoDim },
-  { name: "heart", label: "Health", color: palette.rose, bgColor: palette.roseDim },
-  { name: "walk", label: "Walk", color: palette.lime, bgColor: palette.limeDim },
-  { name: "water", label: "Hydration", color: palette.cyan, bgColor: palette.cyanDim },
+  {
+    name: "body",
+    label: "Yoga",
+    color: palette.orange,
+    bgColor: palette.orangeDim,
+  },
+  {
+    name: "barbell",
+    label: "Strength",
+    color: palette.primary,
+    bgColor: palette.primaryDim,
+  },
+  {
+    name: "flame",
+    label: "HIIT",
+    color: palette.danger,
+    bgColor: palette.dangerAccentDim,
+  },
+  {
+    name: "bicycle",
+    label: "Cardio",
+    color: palette.greenBright,
+    bgColor: palette.greenBrightDim,
+  },
+  {
+    name: "fitness",
+    label: "Fitness",
+    color: palette.purple,
+    bgColor: palette.purpleDim,
+  },
+  {
+    name: "timer",
+    label: "Focus",
+    color: palette.sky,
+    bgColor: palette.skyDim,
+  },
+  {
+    name: "moon",
+    label: "Sleep",
+    color: palette.indigo,
+    bgColor: palette.indigoDim,
+  },
+  {
+    name: "heart",
+    label: "Health",
+    color: palette.rose,
+    bgColor: palette.roseDim,
+  },
+  {
+    name: "walk",
+    label: "Walk",
+    color: palette.lime,
+    bgColor: palette.limeDim,
+  },
+  {
+    name: "water",
+    label: "Hydration",
+    color: palette.cyan,
+    bgColor: palette.cyanDim,
+  },
 ];
 
 /** A single movement / task inside a routine. */
@@ -70,32 +120,67 @@ export const DEFAULT_ROUTINES: Routine[] = [
      ],
    },*/
   {
-    id: 'default-2',
-    title: 'Deep Work Pomodoro',
-    subtitle: '4 cycles • Focus blocks',
+    id: "default-2",
+    title: "Deep Work Pomodoro",
+    subtitle: "4 cycles • Focus blocks",
     durationMin: 50,
     movementCount: 4,
     categoryIconIndex: 5,
     isActive: false,
     createdAt: 1_000_000_002,
     movements: [
-      { id: 'm2-1', name: 'Focus Block 1', description: 'No distractions', durationMin: 25, durationSec: 0, restSec: 300 },
-      { id: 'm2-2', name: 'Focus Block 2', description: '', durationMin: 25, durationSec: 0, restSec: 300 },
+      {
+        id: "m2-1",
+        name: "Focus Block 1",
+        description: "No distractions",
+        durationMin: 25,
+        durationSec: 0,
+        restSec: 300,
+      },
+      {
+        id: "m2-2",
+        name: "Focus Block 2",
+        description: "",
+        durationMin: 25,
+        durationSec: 0,
+        restSec: 300,
+      },
     ],
   },
   {
-    id: 'default-3',
-    title: 'Quick HIIT',
-    subtitle: 'Full body • Intensity focus',
+    id: "default-3",
+    title: "Quick HIIT",
+    subtitle: "Full body • Intensity focus",
     durationMin: 12,
     movementCount: 3,
     categoryIconIndex: 2,
     isActive: false,
     createdAt: 1_000_000_003,
     movements: [
-      { id: 'm3-1', name: 'Burpees', description: 'Full body explosive', durationMin: 0, durationSec: 40, restSec: 20 },
-      { id: 'm3-2', name: 'Jump Squats', description: '', durationMin: 0, durationSec: 40, restSec: 20 },
-      { id: 'm3-3', name: 'Mountain Climbers', description: '', durationMin: 0, durationSec: 40, restSec: 20 },
+      {
+        id: "m3-1",
+        name: "Burpees",
+        description: "Full body explosive",
+        durationMin: 0,
+        durationSec: 40,
+        restSec: 20,
+      },
+      {
+        id: "m3-2",
+        name: "Jump Squats",
+        description: "",
+        durationMin: 0,
+        durationSec: 40,
+        restSec: 20,
+      },
+      {
+        id: "m3-3",
+        name: "Mountain Climbers",
+        description: "",
+        durationMin: 0,
+        durationSec: 40,
+        restSec: 20,
+      },
     ],
   },
 ];
@@ -159,12 +244,27 @@ export async function seedDefaultRoutines(): Promise<void> {
 /** ID of the routine detail screen currently open. Transient. */
 export const selectedRoutineIdAtom = atom<string | null>(null);
 
-/** ID of the currently running routine (null = none). Transient. */
-export const activeRoutineIdAtom = atom<string | null>(null);
+export {
+  buildTimerSnapshot,
+  clearTimerSession,
+  isValidTimerSession,
+  loadTimerSession,
+  reconcileTimerSession,
+  saveTimerSession,
+  sessionStartedAt,
+  TIMER_STATE_KEY,
+  type TimerSnapshotInput,
+} from "./timer-persistence";
 
-/** Timer state: seconds remaining while a routine is running. Transient. */
-export const timerSecondsAtom = atom<number>(0);
-export const timerRunningAtom = atom<boolean>(false);
+export {
+  createFreshTimerSession,
+  formatMovementStep,
+  getActiveRoutineId,
+  movementWorkSeconds,
+  timerSessionAtom,
+  type TimerPhase,
+  type TimerSession,
+} from "./timer-session";
 
 // ─── User-flow persistent atoms ───────────────────────────────────────────────
 export const onboardingCompletedAtom = atomWithStorage<boolean>(

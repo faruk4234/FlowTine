@@ -1,17 +1,14 @@
 import {
-  activeRoutineIdAtom,
   CATEGORY_ICONS,
   isPremiumAtom,
   routinesAtom,
-  timerRunningAtom,
-  timerSecondsAtom,
   type Movement,
   type Routine,
 } from "@/src/state/atoms";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import React, { useState } from "react";
 import {
   Alert,
@@ -46,9 +43,6 @@ export default function RoutineScreen() {
   const [selectedId] = useState(params.id);
 
   const [routines, setRoutines] = useAtom(routinesAtom);
-  const setActiveRoutineId = useSetAtom(activeRoutineIdAtom);
-  const setTimerSeconds = useSetAtom(timerSecondsAtom);
-  const setTimerRunning = useSetAtom(timerRunningAtom);
   const isPremium = useAtomValue(isPremiumAtom);
 
   const safeRoutines: Routine[] = Array.isArray(routines) ? routines : [];
@@ -387,7 +381,7 @@ const r = StyleSheet.create({
     borderColor: C.border,
     borderStyle: "dashed",
     borderRadius: BorderRadius.lg,
-    paddingVertical: Spacing.md + 2,
+    paddingVertical: Spacing.md + 6,
     marginTop: Spacing.xs,
   },
   addMovText: {

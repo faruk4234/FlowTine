@@ -4,20 +4,22 @@ import RoutineFormModal, {
 } from "@/src/components/RoutineFormModal";
 import {
   DEFAULT_ROUTINES,
-  activeRoutineIdAtom,
+  clearTimerSession,
+  createFreshTimerSession,
   deletedDefaultIdsAtom,
+  getActiveRoutineId,
   isPremiumAtom,
+  reconcileTimerSession,
   routinesAtom,
-  timerRunningAtom,
-  timerSecondsAtom,
+  timerSessionAtom,
   type Routine,
 } from "@/src/state/atoms";
 import { AppPalette as C } from "@/src/state/colors";
 import { BorderRadius, Spacing, Typography } from "@/src/state/theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import React, { useState } from "react";
+import { useAtom, useAtomValue } from "jotai";
+import React, { useEffect, useState } from "react";
 import {
   Platform,
   ScrollView,
@@ -33,9 +35,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function HomeScreen() {
   const router = useRouter();
   const [routines, setRoutines] = useAtom(routinesAtom);
-  const [activeRoutineId, setActiveRoutineId] = useAtom(activeRoutineIdAtom);
-  const setTimerSeconds = useSetAtom(timerSecondsAtom);
-  const setTimerRunning = useSetAtom(timerRunningAtom);
+  const [timerSession, setTimerSession] = useAtom(timerSessionAtom);
+  const activeRoutineId = getActiveRoutineId(timerSession);
   const isPremium = useAtomValue(isPremiumAtom);
   const [deletedDefaultIds, setDeletedDefaultIds] = useAtom(
     deletedDefaultIdsAtom,
@@ -48,10 +49,26 @@ export default function HomeScreen() {
   const safeRoutines: Routine[] = Array.isArray(routines) ? routines : [];
 
   const sorted = [...safeRoutines].sort((a, b) => {
-    if (a.isActive && !b.isActive) return -1;
-    if (!a.isActive && b.isActive) return 1;
+    const aActive = activeRoutineId === a.id;
+    const bActive = activeRoutineId === b.id;
+    if (aActive && !bActive) return -1;
+    if (!aActive && bActive) return 1;
     return a.createdAt - b.createdAt;
   });
+
+  useEffect(() => {
+    if (!timerSession || timerSession.phase === "done") return;
+    if (!timerSession.isRunning || !timerSession.segmentEndsAtMs) return;
+
+    const actualRemaining = Math.max(
+      0,
+      Math.ceil((timerSession.segmentEndsAtMs - Date.now()) / 1000),
+    );
+
+    if (actualRemaining !== timerSession.seconds) {
+      setTimerSession(reconcileTimerSession(timerSession));
+    }
+  }, [setTimerSession, timerSession]);
 
   function openCreate() {
     if (!isPremium && safeRoutines.length >= 3) {
@@ -91,7 +108,10 @@ export default function HomeScreen() {
     const updated = arr.filter((r) => r.id !== id);
     setRoutines(updated);
 
-    if (activeRoutineId === id) setActiveRoutineId(null);
+    if (activeRoutineId === id) {
+      setTimerSession(null);
+      void clearTimerSession();
+    }
 
     // Track if user deleted a default routine so it won't be re-seeded
     const isDefault = DEFAULT_ROUTINES.some((d) => d.id === id);
@@ -107,11 +127,14 @@ export default function HomeScreen() {
   }
 
   function handlePlay(routine: Routine) {
-    const seconds = routine.durationMin * 60;
-    setTimerSeconds(seconds);
-    setTimerRunning(true);
-    setActiveRoutineId(routine.id);
-    // Same-stack sibling: absolute "/tabs/timer" can fail to resolve from nested layouts
+    const movements = Array.isArray(routine.movements) ? routine.movements : [];
+    const canResume =
+      timerSession?.routineId === routine.id && timerSession.phase !== "done";
+
+    if (!canResume) {
+      setTimerSession(createFreshTimerSession(routine.id, movements));
+    }
+
     router.push({ pathname: "./timer", params: { id: routine.id } });
   }
 
@@ -181,16 +204,19 @@ export default function HomeScreen() {
 
           {/* Cards */}
           <View style={s.cardList}>
-            {sorted.map((routine) => (
-              <RoutineCard
-                key={routine.id}
-                routine={routine}
-                isRunning={activeRoutineId === routine.id}
-                onPress={() => handleOpen(routine)}
-                onPlay={() => handlePlay(routine)}
-                onEdit={() => openEdit(routine)}
-              />
-            ))}
+            {sorted.map((routine) => {
+              const isActive = activeRoutineId === routine.id;
+              return (
+                <RoutineCard
+                  key={routine.id}
+                  routine={routine}
+                  isActive={isActive}
+                  onPress={() => handleOpen(routine)}
+                  onPlay={() => handlePlay(routine)}
+                  onEdit={() => openEdit(routine)}
+                />
+              );
+            })}
 
             {/* Always show Create Routine under list */}
             <TouchableOpacity
@@ -259,7 +285,7 @@ const s = StyleSheet.create({
   },
 
   // Card List
-  cardList: { gap: Spacing.md },
+  cardList: { gap: Spacing.md + 4 },
 
   // Create
   createCard: {
