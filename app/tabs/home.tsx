@@ -12,7 +12,7 @@ import {
   timerSecondsAtom,
   type Routine,
 } from "@/src/state/atoms";
-import { AppPalette as C } from "@/src/state/colors";
+import { AppPalette as C, palette as P } from "@/src/state/colors";
 import { BorderRadius, Spacing, Typography } from "@/src/state/theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -27,10 +27,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [routines, setRoutines] = useAtom(routinesAtom);
   const [activeRoutineId, setActiveRoutineId] = useAtom(activeRoutineIdAtom);
@@ -116,96 +120,93 @@ export default function HomeScreen() {
   }
 
   return (
-    <View style={s.root}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: C.bg }}
+      edges={["top", "left", "right"]}
+    >
       <StatusBar barStyle="light-content" backgroundColor={C.bg} />
-      <SafeAreaView style={{ flex: 1 }}>
-        <ScrollView
-          contentContainerStyle={s.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Header */}
-          <View style={s.header}>
-            <View style={{ flex: 1 }}>
-              <Text style={s.headerTitle}>Your{"\n"}Routines</Text>
-              <Text style={s.headerSub}>
-                KINETIC FLOW • {isPremium ? " • PRO" : ""}
-              </Text>
-            </View>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                marginTop: Spacing.xs,
-              }}
-            >
-              {!isPremium ? (
-                <TouchableOpacity
-                  style={[
-                    s.settingsBtn,
-                    { marginTop: 0, marginRight: Spacing.sm },
-                  ]}
-                  onPress={() => router.push("../paywall")}
-                >
-                  <MaterialCommunityIcons
-                    name="crown-outline"
-                    size={24}
-                    color={C.textMuted}
-                  />
-                </TouchableOpacity>
-              ) : (
-                <View
-                  style={[
-                    s.settingsBtn,
-                    {
-                      marginTop: 0,
-                      marginRight: Spacing.sm,
-                      backgroundColor: C.blueDim,
-                    },
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name="crown"
-                    size={24}
-                    color={C.blue}
-                  />
-                </View>
-              )}
-              <TouchableOpacity
-                style={[s.settingsBtn, { marginTop: 0 }]}
-                onPress={() => router.push("../settings")}
-              >
-                <Ionicons name="settings-sharp" size={22} color={C.text} />
-              </TouchableOpacity>
-            </View>
+      <ScrollView
+        contentContainerStyle={[s.scrollContent]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={s.header}>
+          <View style={{ flex: 1 }}>
+            <Text style={s.headerTitle}>Your{"\n"}Routines</Text>
+            <Text style={s.headerSub}>
+              KINETIC FLOW • {isPremium ? " • PRO" : ""}
+            </Text>
           </View>
-
-          {/* Cards */}
-          <View style={s.cardList}>
-            {sorted.map((routine) => (
-              <RoutineCard
-                key={routine.id}
-                routine={routine}
-                isRunning={activeRoutineId === routine.id}
-                onPress={() => handleOpen(routine)}
-                onPlay={() => handlePlay(routine)}
-                onEdit={() => openEdit(routine)}
-              />
-            ))}
-
-            {/* Always show Create Routine under list */}
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={s.createCard}
-              onPress={openCreate}
-            >
-              <View style={s.createIconWrap}>
-                <Ionicons name="add" size={32} color={C.blue} />
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginTop: Spacing.xs,
+            }}
+          >
+            {!isPremium ? (
+              <TouchableOpacity
+                style={[
+                  s.settingsBtn,
+                  { marginTop: 0, marginRight: Spacing.sm },
+                ]}
+                onPress={() => router.push("../paywall")}
+              >
+                <MaterialCommunityIcons
+                  name="crown-outline"
+                  size={24}
+                  color={C.textMuted}
+                />
+              </TouchableOpacity>
+            ) : (
+              <View
+                style={[
+                  s.settingsBtn,
+                  {
+                    marginTop: 0,
+                    marginRight: Spacing.sm,
+                    backgroundColor: C.blueDim,
+                  },
+                ]}
+              >
+                <MaterialCommunityIcons name="crown" size={24} color={C.blue} />
               </View>
-              <Text style={s.createCardText}>Create Routine</Text>
+            )}
+            <TouchableOpacity
+              style={[s.settingsBtn, { marginTop: 0 }]}
+              onPress={() => router.push("../settings")}
+            >
+              <Ionicons name="settings-sharp" size={22} color={C.text} />
             </TouchableOpacity>
           </View>
-        </ScrollView>
-      </SafeAreaView>
+        </View>
+
+        {/* Cards */}
+        <View style={s.cardList}>
+          {sorted.map((routine) => (
+            <RoutineCard
+              key={routine.id}
+              routine={routine}
+              isRunning={activeRoutineId === routine.id}
+              onPress={() => handleOpen(routine)}
+              onPlay={() => handlePlay(routine)}
+              onEdit={() => openEdit(routine)}
+            />
+          ))}
+
+          {/* Always show Create Routine under list */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            style={s.createCard}
+            onPress={openCreate}
+          >
+            <View style={s.createIconWrap}>
+              <Ionicons name="add-outline" size={24} color={C.textMuted} />
+            </View>
+            <Text style={s.createCardText}>Create Routine</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
 
       <RoutineFormModal
         visible={formVisible}
@@ -214,17 +215,15 @@ export default function HomeScreen() {
         onSave={handleSave}
         onDelete={handleDelete}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.bg },
   scrollContent: {
     paddingHorizontal: Spacing.screenHorizontal,
     paddingTop: Platform.OS === "android" ? 48 : Spacing.md,
-    paddingBottom: 84,
   },
 
   // Header
@@ -265,9 +264,8 @@ const s = StyleSheet.create({
   createCard: {
     borderWidth: 1.5,
     borderColor: C.border,
-    borderStyle: "dashed",
     borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
+    padding: 20,
     justifyContent: "center",
     alignItems: "center",
     flexDirection: "column",
@@ -276,14 +274,14 @@ const s = StyleSheet.create({
     width: 45,
     height: 45,
     borderRadius: BorderRadius.md,
-    backgroundColor: C.blueDim,
+    backgroundColor: P.gray800,
     justifyContent: "center",
     alignItems: "center",
   },
   createCardText: {
     fontSize: 20,
     fontWeight: "700",
-    color: C.blue,
+    color: C.textMuted,
     marginTop: Spacing.sm,
   },
 });
