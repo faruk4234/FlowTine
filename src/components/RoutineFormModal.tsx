@@ -164,7 +164,7 @@ export default function RoutineFormModal({
                     style={[
                       s.iconCell,
                       { backgroundColor: sel ? cat.bgColor : C.surface },
-                      sel && { borderColor: cat.color, borderWidth: 2 },
+                      sel && { borderColor: cat.color },
                     ]}
                     onPress={() => setSelectedIcon(idx)}
                   >
@@ -253,6 +253,8 @@ const s = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: Spacing.xs,
+    borderWidth: 2,
+    borderColor: C.border,
   },
   iconLabel: { ...Typography.caption, fontSize: 9, fontWeight: "600" },
   deleteBtn: {
