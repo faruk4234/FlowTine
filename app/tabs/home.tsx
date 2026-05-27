@@ -1,3 +1,4 @@
+import HomeBannerAd from "@/src/components/ads/HomeBannerAd";
 import RoutineCard from "@/src/components/RoutineCard";
 import RoutineFormModal, {
   type FormMode,
@@ -203,6 +204,8 @@ export default function HomeScreen() {
               </View>
               <Text style={s.createCardText}>Create Routine</Text>
             </TouchableOpacity>
+
+            {!isPremium ? <HomeBannerAd /> : null}
           </View>
         </ScrollView>
       </SafeAreaView>
