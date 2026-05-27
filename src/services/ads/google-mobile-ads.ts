@@ -1,26 +1,44 @@
-type GoogleAdsConfig = {
-  /**
-   * Use Google test id in dev:
-   * - iOS: ca-app-pub-3940256099942544~1458002511
-   * - Android: ca-app-pub-3940256099942544~3347511713
-   */
-  appId?: string;
-};
+type MobileAdsModule = typeof import("react-native-google-mobile-ads");
 
 let initialized = false;
+let modulePromise: Promise<MobileAdsModule | null> | null = null;
+
+async function loadAdsModule(): Promise<MobileAdsModule | null> {
+  if (!modulePromise) {
+    modulePromise = import("react-native-google-mobile-ads")
+      .then((mod) => mod)
+      .catch(() => null);
+  }
+  return modulePromise;
+}
 
 /**
- * Google Mobile Ads is a **native module**.
- * In Expo Go it will not work; you need a development build.
+ * Google Mobile Ads is a native module — requires an EAS development build.
+ * Returns false when the module is unavailable (e.g. Expo Go).
  */
-export async function initializeGoogleMobileAds(_cfg: GoogleAdsConfig = {}) {
-  if (initialized) return;
+export async function initializeGoogleMobileAds(): Promise<boolean> {
+  if (initialized) return true;
+
+  const mod = await loadAdsModule();
+  if (!mod) return false;
+
   try {
-    const mobileAds = (await import('react-native-google-mobile-ads')).default;
-    await mobileAds().initialize();
+    await mod.default().initialize();
     initialized = true;
+    return true;
   } catch {
-    // Ignore in Expo Go / unlinked native module.
+    return false;
   }
 }
 
+export function isGoogleMobileAdsInitialized(): boolean {
+  return initialized;
+}
+
+export async function getAdsModule(): Promise<MobileAdsModule | null> {
+  if (!initialized) {
+    const ok = await initializeGoogleMobileAds();
+    if (!ok) return null;
+  }
+  return loadAdsModule();
+}

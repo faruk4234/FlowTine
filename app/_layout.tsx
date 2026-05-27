@@ -6,6 +6,7 @@ import { AppState, Platform } from 'react-native';
 import Purchases from 'react-native-purchases';
 import 'react-native-reanimated';
 
+import { AdsProvider } from '@/src/providers/ads-provider';
 import { AppThemeProvider } from '@/src/providers/app-theme-provider';
 import { isPremiumAtom } from '@/src/state/atoms';
 import { appStore } from '@/src/state/store';
@@ -147,6 +148,7 @@ const RootLayout = () => {
   return (
       <JotaiProvider store={appStore}>
         <AppThemeProvider>
+          <AdsProvider>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="tabs" />
             <Stack.Screen name="onboarding" options={{ presentation: 'fullScreenModal' }} />
@@ -154,6 +156,7 @@ const RootLayout = () => {
             <Stack.Screen name="paywall" options={{ presentation: 'fullScreenModal' }} />
             <Stack.Screen name="legal-webview" options={{ presentation: 'card' }} />
           </Stack>
+          </AdsProvider>
         </AppThemeProvider>
       </JotaiProvider>
   );
