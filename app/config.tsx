@@ -23,7 +23,8 @@ import {
 } from "react-native";
 import { Video } from "react-native-compressor";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { AdEventType, BannerAd, BannerAdSize, InterstitialAd, TestIds } from "react-native-google-mobile-ads";
+import { AD_UNIT_IDS } from "@/src/services/ads/ad-unit-ids";
+import { AdEventType, BannerAd, BannerAdSize, InterstitialAd } from "react-native-google-mobile-ads";
 
 type OperationMode = "compress" | "resize";
 type CompressLevel = "small" | "medium" | "large" | "manual";
@@ -64,7 +65,7 @@ export default function ConfigScreen() {
 
   const [interstitialLoaded, setInterstitialLoaded] = useState(false);
   const interstitial = React.useRef(
-    InterstitialAd.createForAdRequest(TestIds.INTERSTITIAL, {
+    InterstitialAd.createForAdRequest(AD_UNIT_IDS.interstitial, {
       requestNonPersonalizedAdsOnly: true,
     })
   ).current;
@@ -366,7 +367,7 @@ export default function ConfigScreen() {
 
         {!isPremium && (
           <View style={s.adContainer}>
-            <BannerAd unitId={TestIds.BANNER} size={BannerAdSize.BANNER} requestOptions={{ requestNonPersonalizedAdsOnly: true }} />
+            <BannerAd unitId={AD_UNIT_IDS.banner} size={BannerAdSize.BANNER} requestOptions={{ requestNonPersonalizedAdsOnly: true }} />
           </View>
         )}
       </SafeAreaView>

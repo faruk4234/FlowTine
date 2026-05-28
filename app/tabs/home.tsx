@@ -17,7 +17,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { BannerAd, BannerAdSize, TestIds } from "react-native-google-mobile-ads";
+import { AD_UNIT_IDS } from "@/src/services/ads/ad-unit-ids";
+import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
@@ -104,7 +105,7 @@ export default function HomeScreen() {
         {/* ADS FOR FREE USERS */}
         {!isPremium && (
           <View style={{ alignItems: "center", backgroundColor: C.bg, paddingBottom: Platform.OS === 'ios' ? 0 : 10 }}>
-            <BannerAd unitId={TestIds.BANNER} size={BannerAdSize.BANNER} requestOptions={{ requestNonPersonalizedAdsOnly: true }} />
+            <BannerAd unitId={AD_UNIT_IDS.banner} size={BannerAdSize.BANNER} requestOptions={{ requestNonPersonalizedAdsOnly: true }} />
           </View>
         )}
       </SafeAreaView>
