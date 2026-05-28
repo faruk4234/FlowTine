@@ -33,12 +33,12 @@ function msUntil(dateLike: unknown): number | null {
 // ─── RevenueCat Keys ──────────────────────────────────────────────────────────
 // PROD KEYS: Only work in Development Builds (custom native app)
 const PROD_KEYS = {
-  apple: "appl_gJfpbUnvdEUPcDgIwJGaNOzQxxh",
-  google: "goog_RokUOiUOpgCBAuJymemQyPnWTTH",
+  apple: "appl_ehzpAaNFTBxjrLveQwqPkXGgZfp",
+  google: "goog_nuSXDfBaDUQFERsmpbSANtWdnHe",
 };
 
 // TEST STORE KEY: Required for testing inside EXPO GO
-const EXPO_GO_TEST_KEY = "test_QDKSTicRiuleHapXWJDzaMaHStn";
+const EXPO_GO_TEST_KEY = "test_nsMmWPuiJkSDwqRaBpHmSHTkynG";
 
 const RootLayout = () => {
   useEffect(() => {
