@@ -1,3 +1,4 @@
+import { AD_UNIT_IDS } from "@/src/services/ads/ad-unit-ids";
 import { isPremiumAtom, selectedMediaAtom } from "@/src/state/atoms";
 import { AppPalette as C } from "@/src/state/colors";
 import { BorderRadius, Spacing, Typography } from "@/src/state/theme";
@@ -17,7 +18,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { AD_UNIT_IDS } from "@/src/services/ads/ad-unit-ids";
 import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -70,14 +70,15 @@ export default function HomeScreen() {
               {!isPremium ? (
                 <TouchableOpacity
                   style={[s.settingsBtn, { marginTop: 0, marginRight: Spacing.sm }]}
-                  onPress={() => router.push("/paywall")} // Debug: Quick toggle to premium
+                 // onPress={() => router.push("/paywall")} // Debug: Quick toggle to premium
+                 onPress={() => setPremium(true)}
                 >
                   <MaterialCommunityIcons name="crown-outline" size={24} color={C.textMuted} />
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
                   style={[s.settingsBtn, { marginTop: 0, marginRight: Spacing.sm, backgroundColor: C.blueDim }]}
-                  disabled={isPremium}
+                //  disabled={isPremium}
                   onPress={() => setPremium(false)} // Debug: Quick toggle to free
                 >
                   <MaterialCommunityIcons name="crown" size={24} color={C.blue} />
