@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "Minify",
-    "slug": "Minify",
-    "version": "1.0.4",
+    "slug": "minify",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./src/assets/images/app-icon.png",
     "scheme": "minify",
@@ -51,7 +51,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "c1f4c955-2382-463f-b2e6-139273c76040"
+        "projectId": "e061ed3e-b793-4e1d-8777-076eea8fc905"
       }
     },
     "runtimeVersion": {
@@ -59,7 +59,8 @@
     },
     "updates": {
       "url": "https://u.expo.dev/c1f4c955-2382-463f-b2e6-139273c76040"
-    }
+    },
+    "owner": "faruk4234"
   },
   "react-native-google-mobile-ads": {
     "android_app_id": "ca-app-pub-6404362537453764~2674391681",
