@@ -50,6 +50,13 @@ export default function ConfigScreen() {
   const selectedMedia = useAtomValue(selectedMediaAtom);
   const setSelectedMedia = useSetAtom(selectedMediaAtom);
 
+  const goHome = React.useCallback(() => {
+    setSelectedMedia([]);
+    // Ensure the user can't go "back" into this flow after finishing.
+    router.dismissAll();
+    router.replace("/tabs/home");
+  }, [router, setSelectedMedia]);
+
   const [stage, setStage] = useState<AppStage>("config");
   const [mode, setMode] = useState<OperationMode>("compress");
   const [compressLevel, setCompressLevel] = useState<CompressLevel>("medium");
@@ -64,6 +71,7 @@ export default function ConfigScreen() {
   const [finishedItems, setFinishedItems] = useState<FinishedItem[]>([]);
 
   const [interstitialLoaded, setInterstitialLoaded] = useState(false);
+  const [adGateBusy, setAdGateBusy] = useState(false);
   const interstitial = React.useRef(
     InterstitialAd.createForAdRequest(AD_UNIT_IDS.interstitial, {
       requestNonPersonalizedAdsOnly: true,
@@ -76,17 +84,110 @@ export default function ConfigScreen() {
       setInterstitialLoaded(true);
     });
     const unsubscribeClosed = interstitial.addAdEventListener(AdEventType.CLOSED, () => {
-      interstitial.load();
+      setInterstitialLoaded(false);
+      try {
+        interstitial.load();
+      } catch (err) {
+        console.warn("Failed to load interstitial ad on close:", err);
+      }
     });
-    interstitial.load();
+    const unsubscribeError = interstitial.addAdEventListener(AdEventType.ERROR, (err) => {
+      console.warn("Interstitial ad error event:", err);
+    });
+
+    try {
+      interstitial.load();
+    } catch (err) {
+      console.warn("Failed to load interstitial ad on mount:", err);
+    }
+
     return () => {
       unsubscribeLoaded();
       unsubscribeClosed();
+      unsubscribeError();
     };
   }, [isPremium, interstitial]);
 
+  const showVideoAdIfNeeded = React.useCallback(async (): Promise<boolean> => {
+    if (isPremium) return true;
+
+    const waitForLoaded = async (): Promise<void> => {
+      if (interstitial.loaded) return;
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          cleanup();
+          reject(new Error("Ad did not load in time"));
+        }, 5000);
+
+        let unsubLoaded: (() => void) | null = null;
+        let unsubError: (() => void) | null = null;
+
+        const cleanup = () => {
+          if (unsubLoaded) unsubLoaded();
+          if (unsubError) unsubError();
+          clearTimeout(timeout);
+        };
+
+        unsubLoaded = interstitial.addAdEventListener(AdEventType.LOADED, () => {
+          cleanup();
+          resolve();
+        });
+
+        unsubError = interstitial.addAdEventListener(AdEventType.ERROR, (error) => {
+          cleanup();
+          reject(error || new Error("Ad load failed"));
+        });
+      });
+    };
+
+    const showAndWaitForOpen = async (): Promise<void> => {
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          cleanup();
+          reject(new Error("Ad open timed out"));
+        }, 10000);
+
+        let unsubOpened: (() => void) | null = null;
+        let unsubError: (() => void) | null = null;
+
+        const cleanup = () => {
+          if (unsubOpened) unsubOpened();
+          if (unsubError) unsubError();
+          clearTimeout(timeout);
+        };
+
+        unsubOpened = interstitial.addAdEventListener(AdEventType.OPENED, () => {
+          cleanup();
+          resolve();
+        });
+
+        unsubError = interstitial.addAdEventListener(AdEventType.ERROR, (error) => {
+          cleanup();
+          reject(error || new Error("Ad show/error failed"));
+        });
+
+        try {
+          interstitial.show();
+        } catch (err) {
+          cleanup();
+          reject(err || new Error("Ad show failed"));
+        }
+      });
+    };
+
+    try {
+      await waitForLoaded();
+      await showAndWaitForOpen();
+      return true;
+    } catch (e) {
+      console.warn("Interstitial ad not available, proceeding to compression:", e);
+      return true;
+    }
+  }, [interstitial, isPremium]);
+
   useEffect(() => {
     if (selectedMedia.length === 0) {
+      router.dismissAll();
       router.replace("/tabs/home");
       return;
     }
@@ -118,20 +219,18 @@ export default function ConfigScreen() {
   };
 
   const handleStart = async () => {
-    if (!isPremium && interstitialLoaded) {
-      try {
-        interstitial.show();
-      } catch (e) {
-        console.log("Failed to show interstitial", e);
-      }
-    }
-
-    setStage("processing");
-    setLoadingMsg("Starting...");
-
-    const results: FinishedItem[] = [];
-
+    if (adGateBusy) return;
+    setAdGateBusy(true);
+    // Free users must watch a video ad before processing starts.
     try {
+      const ok = await showVideoAdIfNeeded();
+      if (!ok) return;
+
+      setStage("processing");
+      setLoadingMsg("Starting...");
+
+      const results: FinishedItem[] = [];
+
       for (let i = 0; i < selectedMedia.length; i++) {
         const asset = selectedMedia[i];
         let newUri = "";
@@ -204,6 +303,8 @@ export default function ConfigScreen() {
       console.error("Processing Error:", e);
       Alert.alert("Error", e?.message || "Processing failed.");
       setStage("config");
+    } finally {
+      setAdGateBusy(false);
     }
   };
 
@@ -225,9 +326,7 @@ export default function ConfigScreen() {
       if (replace) msg = `You saved ${formatBytes(diff)} space!\n\nOriginal: ${formatBytes(totalOrig)}\nNew: ${formatBytes(totalNew)}`;
       else msg = `Added ${formatBytes(totalNew)} to gallery.\n\nOriginal: ${formatBytes(totalOrig)}\nNew: ${formatBytes(totalNew)}`;
       
-      Alert.alert("Done!", msg);
-      setSelectedMedia([]);
-      router.replace("/tabs/home");
+      Alert.alert("Done!", msg, [{ text: "OK", onPress: goHome }]);
     } catch (e) {
       Alert.alert("Error", "Failed to save files.");
       setStage("finished");
@@ -348,7 +447,7 @@ export default function ConfigScreen() {
                 <TouchableOpacity style={[s.actionBtn, { backgroundColor: C.red, marginTop: 12 }]} onPress={() => handleFinalize(true)}>
                   <Text style={s.actionText}>Replace Original Files</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={{ marginTop: 20, alignItems: 'center' }} onPress={() => { setSelectedMedia([]); router.replace("/tabs/home"); }}>
+                <TouchableOpacity style={{ marginTop: 20, alignItems: 'center' }} onPress={goHome}>
                   <Text style={{ color: C.textMuted, fontWeight: "600" }}>Cancel & Discard</Text>
                 </TouchableOpacity>
               </View>

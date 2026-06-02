@@ -93,6 +93,7 @@ export const AppPalette = {
   redDim: palette.dangerDim,
   redBorder: palette.dangerBorder,
   orange: palette.warning,
+  yellow: palette.yellow,
   white: palette.white,
 } as const;
 
