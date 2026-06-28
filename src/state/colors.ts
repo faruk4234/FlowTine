@@ -7,20 +7,20 @@ const palette = {
   black: '#000000',
   transparent: 'transparent',
 
-  // App shell (Obsidian Kinetic — default dark chrome)
-  appBg: '#0F1115',
-  appSurface: '#1A1D23',
-  appSurfaceHigh: '#22262F',
-  appBorder: '#2A2E38',
-  appText: '#F1F5F9',
-  appTextMuted: '#9CA3AF',
-  appTextDim: '#64748B',
-  appOverlay: 'rgba(15,17,21,0.35)',
+  // App shell (Obsidian Kinetic — default dark forest green chrome)
+  appBg: '#050D0A',
+  appSurface: '#0E1713',
+  appSurfaceHigh: '#18221D',
+  appBorder: '#1A2520',
+  appText: '#F2FDF7',
+  appTextMuted: '#6D8577',
+  appTextDim: '#4E5D53',
+  appOverlay: 'rgba(5,13,10,0.35)',
 
   // Brand / semantic
-  primary: '#3B82F6',
-  primaryDim: 'rgba(59,130,246,0.15)',
-  primaryMuted: '#1E40AF',
+  primary: '#00FFA3',
+  primaryDim: 'rgba(0,255,163,0.15)',
+  primaryMuted: '#00CC82',
   success: '#10B981',
   successBright: '#22C55E',
   warning: '#F97316',

@@ -1,4 +1,4 @@
-import { onboardingCompletedAtom } from "@/src/state/atoms";
+import { hasCompletedOnboardingAtom } from "@/src/state/atoms";
 import { AppPalette as C } from "@/src/state/colors";
 import { useAppTheme } from "@/src/state/theme";
 import { Ionicons } from "@expo/vector-icons";
@@ -6,7 +6,6 @@ import { useRouter } from "expo-router";
 import { useSetAtom } from "jotai";
 import React from "react";
 import {
-  Dimensions,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -15,35 +14,33 @@ import {
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const { width } = Dimensions.get("window");
-
 const FEATURES = [
   {
-    icon: "add-circle-outline" as const,
-    title: "Create Routine",
-    description: "Build your own custom routines matching your lifestyle.",
+    icon: "musical-notes-outline" as const,
+    title: "AI Song Generator",
+    description: "Produce high-fidelity vocal or instrumental songs instantly using simple prompts.",
   },
   {
-    icon: "time-outline" as const,
-    title: "Movements & Time",
-    description: "Add routine movexPments or steps with precise time controls.",
+    icon: "document-text-outline" as const,
+    title: "Local Lyrics Manager",
+    description: "Write, save, and format lyrics locally on your device to feed the creation studio.",
   },
   {
-    icon: "checkmark-circle-outline" as const,
-    title: "Make It Easy",
-    description:
-      "Follow your routine seamlessly and effortlessly every single day.",
+    icon: "play-circle-outline" as const,
+    title: "Audio Visualizer Player",
+    description: "Stream your generated tracks with active waveform height scaling animations.",
   },
 ];
 
 export default function OnboardingScreen() {
   const theme = useAppTheme();
   const router = useRouter();
-  const setOnboardingCompleted = useSetAtom(onboardingCompletedAtom);
+  const setOnboardingCompleted = useSetAtom(hasCompletedOnboardingAtom);
 
   const handleGetStarted = () => {
     setOnboardingCompleted(true);
-    router.replace("../tabs");
+    // Route to Subscription Paywall immediately after onboarding
+    router.replace("/paywall");
   };
 
   return (
@@ -68,7 +65,7 @@ export default function OnboardingScreen() {
               { color: C.textMuted, ...theme.typography.bodyLarge },
             ]}
           >
-            Master your daily flow
+            Your AI Music Generation Studio
           </Text>
         </Animated.View>
 

@@ -22,14 +22,6 @@ function isPremiumCustomer(info: CustomerInfoLike | null | undefined): boolean {
   return Array.isArray(activeSubs) && activeSubs.length > 0;
 }
 
-function msUntil(dateLike: unknown): number | null {
-  if (!dateLike) return null;
-  const d = dateLike instanceof Date ? dateLike : new Date(String(dateLike));
-  const t = d.getTime();
-  if (Number.isNaN(t)) return null;
-  return t - Date.now();
-}
-
 // ─── RevenueCat Keys ──────────────────────────────────────────────────────────
 // PROD KEYS: Only work in Development Builds (custom native app)
 const PROD_KEYS = {
@@ -81,32 +73,6 @@ const RootLayout = () => {
 
             // Debug logging on app open / foreground
             // Logs: active subscriptions, offering/packages, and ms left on active entitlements.
-            try {
-              const activeEntitlements = info?.entitlements?.active ?? {};
-              const entitlementKeys = Object.keys(activeEntitlements);
-              const entitlementTimeLeftMs = entitlementKeys.map((k) => {
-                const ent: any = (activeEntitlements as any)[k];
-                return {
-                  entitlement: k,
-                  expiresMs: msUntil(ent?.expirationDate),
-                  productId: ent?.productIdentifier ?? ent?.productId ?? null,
-                };
-              });
-
-              const offerings = await Purchases.getOfferings();
-              const current = offerings?.current;
-              const packages =
-                current?.availablePackages?.map((p: any) => ({
-                  packageType: p?.packageType ?? null,
-                  packageId: p?.identifier ?? p?.packageType ?? null,
-                  productId: p?.product?.identifier ?? null,
-                  productTitle: p?.product?.title ?? null,
-                })) ?? [];
-
-
-            } catch (e) {
-              console.warn('[RevenueCat] debug log failed:', e);
-            }
           } catch (e) {
             // If we're offline (or any transient error), keep the last known premium state.
             // We'll update again next time the app becomes active / network is back.
@@ -150,7 +116,6 @@ const RootLayout = () => {
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="tabs" />
             <Stack.Screen name="onboarding" options={{ presentation: 'fullScreenModal' }} />
-            <Stack.Screen name="settings" options={{ presentation: 'pageSheet' }} />
             <Stack.Screen name="paywall" options={{ presentation: 'fullScreenModal' }} />
             <Stack.Screen name="legal-webview" options={{ presentation: 'card' }} />
           </Stack>
