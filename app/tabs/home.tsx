@@ -27,6 +27,7 @@ import {
   userAtom,
 } from "@/src/state/atoms";
 import { BorderRadius, Spacing, Typography, useAppTheme } from "@/src/state/theme";
+import { RowSelector } from "@/src/components";
 
 const { height } = Dimensions.get("window");
 
@@ -48,36 +49,7 @@ const VOICES = [
 
 const MOODS = ["Energetic", "Chill", "Melancholy", "Happy", "Dark", "Dreamy", "Mysterious"];
 
-// ─── Reusable Selector Row Component ─────────────────────────────────────────
-interface RowSelectorProps {
-  icon: string;
-  label: string;
-  value: string;
-  primaryValue?: boolean;
-  onPress: () => void;
-}
 
-function RowSelector({ icon, label, value, primaryValue = true, onPress }: RowSelectorProps) {
-  const theme = useAppTheme();
-  return (
-    <TouchableOpacity
-      style={[s.rowCard, { backgroundColor: theme.colors.surface }]}
-      onPress={onPress}
-      activeOpacity={0.8}
-    >
-      <View style={s.rowLeft}>
-        <Ionicons name={icon as any} size={20} color={theme.colors.primary} />
-        <Text style={[s.rowLabel, { color: theme.colors.text }]}>{label}</Text>
-      </View>
-      <View style={s.rowRight}>
-        <Text style={[primaryValue ? s.rowValue : s.rowValueMuted, { color: primaryValue ? theme.colors.primary : theme.colors.mutedText }]}>
-          {value}
-        </Text>
-        <Ionicons name="chevron-forward" size={16} color={theme.colors.mutedText} />
-      </View>
-    </TouchableOpacity>
-  );
-}
 
 export default function CreateScreen() {
   const theme = useAppTheme();
