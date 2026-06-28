@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ActionButton, Header, InspireButton, RowSelector, SegmentedControl } from "@/src/components";
 import { apiService } from "@/src/services/api";
 import {
   promptOrLyricsTypeAtom,
@@ -27,7 +28,6 @@ import {
   userAtom,
 } from "@/src/state/atoms";
 import { BorderRadius, Spacing, useAppTheme } from "@/src/state/theme";
-import { RowSelector, ActionButton, Header, SegmentedControl } from "@/src/components";
 
 const { height } = Dimensions.get("window");
 
@@ -182,11 +182,16 @@ export default function CreateScreen() {
               />
               {textInput.length > 0 && (
                 <TouchableOpacity
-                  style={[s.clearBtn, { backgroundColor: theme.colors.surfaceElevated }]}
+                  style={[s.clearBtnAbsolute, { backgroundColor: theme.colors.surfaceElevated }]}
                   onPress={() => setTextInput("")}
                 >
                   <Ionicons name="close" size={14} color={theme.colors.text} />
                 </TouchableOpacity>
+              )}
+              {promptType === 'prompt' && (
+                <View style={s.inspireBtnAbsolute}>
+                  <InspireButton setPromptText={setTextInput} />
+                </View>
               )}
             </View>
 
@@ -360,8 +365,8 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
   },
   textCardHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
+    position: 'relative',
+    padding: 12,
   },
   textInput: {
     flex: 1,
@@ -370,13 +375,20 @@ const s = StyleSheet.create({
     textAlignVertical: "top",
     lineHeight: 22,
   },
-  clearBtn: {
+  clearBtnAbsolute: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
     width: 24,
     height: 24,
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: 8,
+  },
+  inspireBtnAbsolute: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
   },
   innerLoader: {
     flexDirection: "row",

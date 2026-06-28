@@ -3,3 +3,4 @@ export { RowSelector } from './RowSelector';
 export { ActionButton } from './ActionButton';
 export { Header } from './Header';
 export { SegmentedControl } from './SegmentedControl';
+export { InspireButton } from './InspireButton';

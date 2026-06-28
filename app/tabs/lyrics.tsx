@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useAtom } from "jotai";
 import React, { useEffect, useState } from "react";
@@ -15,7 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { ActionButton, Header, SegmentedControl } from "@/src/components";
+import { ActionButton, Header, InspireButton, SegmentedControl } from "@/src/components";
 import {
   editingLyricAtom,
   savedLyricsAtom,
@@ -94,13 +93,7 @@ export default function LyricsScreen() {
     }
   }, [editingLyric]);
 
-  const handleInspire = () => {
-    const entrance = ENTRANCE_PARTS[Math.floor(Math.random() * ENTRANCE_PARTS.length)];
-    const middle = MIDDLE_PARTS[Math.floor(Math.random() * MIDDLE_PARTS.length)];
-    const last = LAST_PARTS[Math.floor(Math.random() * LAST_PARTS.length)];
-    const combinedPrompt = `${entrance} ${middle} ${last}`;
-    setPromptText(combinedPrompt);
-  };
+  // Removed inline handleInspire; using InspireButton component instead
 
   const handleCancelEdit = () => {
     setEditingLyric(null);
@@ -257,24 +250,18 @@ export default function LyricsScreen() {
             {activeSubTab === "prompt" ? (
               /* ─── USE PROMPT SUBTAB ─── */
               <View style={[s.textCard, { backgroundColor: theme.colors.surface }]}>
-                <TextInput
-                  style={[s.textInput, { color: theme.colors.text }]}
-                  placeholder="Enter prompt..."
-                  placeholderTextColor={theme.colors.mutedText}
-                  multiline
-                  value={promptText}
-                  onChangeText={setPromptText}
-                />
-
-                {/* Inspire Button at Bottom Left of card */}
-                <View style={s.cardFooter}>
-                  <TouchableOpacity
-                    style={[s.pillBtn, { backgroundColor: theme.colors.surfaceElevated }]}
-                    onPress={handleInspire}
-                  >
-                    <Ionicons name="sparkles" size={14} color={theme.colors.primary} />
-                    <Text style={[s.pillBtnText, { color: theme.colors.text }]}>Inspire</Text>
-                  </TouchableOpacity>
+                <View style={s.textCardHeader}>
+                  <TextInput
+                    style={[s.textInput, { color: theme.colors.text }]}
+                    placeholder="Enter prompt..."
+                    placeholderTextColor={theme.colors.mutedText}
+                    multiline
+                    value={promptText}
+                    onChangeText={setPromptText}
+                  />
+                  <View style={s.inspireBtnAbsolute}>
+                    <InspireButton setPromptText={setPromptText} />
+                  </View>
                 </View>
               </View>
             ) : (
@@ -348,6 +335,15 @@ const s = StyleSheet.create({
     minHeight: 180,
     textAlignVertical: "top",
     lineHeight: 22,
+  },
+  textCardHeader: {
+    position: 'relative',
+    padding: 12,
+  },
+  inspireBtnAbsolute: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
   },
   cardFooter: {
     flexDirection: "row",
