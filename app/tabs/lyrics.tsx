@@ -20,8 +20,8 @@ import {
   editingLyricAtom,
   type SavedLyrics,
 } from "@/src/state/atoms";
-import { useAppTheme, Spacing, BorderRadius, Typography } from "@/src/state/theme";
-import { ActionButton } from "@/src/components";
+import { useAppTheme, Spacing, BorderRadius } from "@/src/state/theme";
+import { ActionButton, Header, SegmentedControl } from "@/src/components";
 
 const INSPIRE_PROMPTS = [
   "Write an emotional pop ballad about letting go and moving forward.",
@@ -193,43 +193,30 @@ export default function LyricsScreen() {
     <View style={[s.root, { backgroundColor: theme.colors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor={theme.colors.background} />
       <SafeAreaView style={s.safe} edges={["top"]}>
-        <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
-          {/* Header Title with Edit Indicator */}
-          <View style={s.headerRow}>
-            <Text style={[s.headerTitle, { color: theme.colors.text }]}>
-              {editingLyric ? "Edit Lyrics" : "Create Lyrics"}
-            </Text>
-            {editingLyric && (
+        <Header
+          title={editingLyric ? "Edit Lyrics" : "Create Lyrics"}
+          rightElement={
+            editingLyric ? (
               <TouchableOpacity
                 style={[s.cancelEditBtn, { backgroundColor: theme.colors.surfaceElevated }]}
                 onPress={handleCancelEdit}
               >
                 <Text style={{ color: theme.colors.accent, fontWeight: "700", fontSize: 12 }}>Cancel</Text>
               </TouchableOpacity>
-            )}
-          </View>
-
-          {/* Subsegmented Tab Switcher */}
-          <View style={[s.segmentedContainer, { backgroundColor: theme.colors.surface }]}>
-            <TouchableOpacity
-              style={[s.segmentButton, activeSubTab === "prompt" && [s.segmentActiveButton, { backgroundColor: theme.colors.surfaceElevated }]]}
-              onPress={() => setActiveSubTab("prompt")}
-              activeOpacity={0.9}
-            >
-              <Text style={[s.segmentText, { color: theme.colors.text }, activeSubTab === "prompt" && { color: theme.colors.primary, fontWeight: '700' }]}>
-                Use Prompt
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[s.segmentButton, activeSubTab === "manual" && [s.segmentActiveButton, { backgroundColor: theme.colors.surfaceElevated }]]}
-              onPress={() => setActiveSubTab("manual")}
-              activeOpacity={0.9}
-            >
-              <Text style={[s.segmentText, { color: theme.colors.text }, activeSubTab === "manual" && { color: theme.colors.primary, fontWeight: '700' }]}>
-                Your Lyrics
-              </Text>
-            </TouchableOpacity>
-          </View>
+            ) : undefined
+          }
+        />
+        <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+          <SegmentedControl
+            options={[
+              { id: "prompt", label: "Use Prompt" },
+              { id: "manual", label: "Your Lyrics" },
+            ]}
+            selectedId={activeSubTab}
+            onSelect={(id) => setActiveSubTab(id as any)}
+            height={48}
+            style={{ marginBottom: Spacing.sm }}
+          />
 
           {/* Input Cards Container */}
           <View style={s.tabContainer}>
@@ -304,18 +291,6 @@ const s = StyleSheet.create({
     paddingBottom: 120, // Buffer space for floating player
     gap: Spacing.md,
   },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Spacing.sm,
-    marginTop: Spacing.sm,
-  },
-  headerTitle: {
-    ...Typography.hero,
-    fontSize: 32,
-    fontWeight: "800",
-  },
   cancelEditBtn: {
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -323,29 +298,7 @@ const s = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  segmentedContainer: {
-    flexDirection: "row",
-    height: 48,
-    borderRadius: BorderRadius.md,
-    padding: 4,
-    marginBottom: Spacing.sm,
-  },
-  segmentButton: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: BorderRadius.md - 2,
-  },
-  segmentActiveButton: {
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  segmentText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
+
   tabContainer: {
     gap: Spacing.md,
   },

@@ -23,8 +23,9 @@ import {
   themeModeAtom,
 } from "@/src/state/atoms";
 import { AppPalette as C, type ThemeMode } from "@/src/state/colors";
-import { useAppTheme, Spacing, BorderRadius, Typography } from "@/src/state/theme";
+import { useAppTheme, Spacing, BorderRadius } from "@/src/state/theme";
 import { LEGAL_URLS } from "@/src/legal/urls";
+import { Header } from "@/src/components";
 
 export default function ProfileScreen() {
   const theme = useAppTheme();
@@ -90,9 +91,7 @@ export default function ProfileScreen() {
     <View style={[s.root, { backgroundColor: theme.colors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor={theme.colors.background} />
       <SafeAreaView style={s.safe} edges={["top"]}>
-        <View style={s.header}>
-          <Text style={[s.headerTitle, { color: theme.colors.text }]}>Profile</Text>
-        </View>
+        <Header title="Profile" />
 
         <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
           {/* Subscription Tier Info Card */}
@@ -208,16 +207,7 @@ export default function ProfileScreen() {
 const s = StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1 },
-  header: {
-    paddingHorizontal: Spacing.screenHorizontal,
-    paddingTop: Spacing.md,
-    marginBottom: Spacing.md,
-  },
-  headerTitle: {
-    ...Typography.hero,
-    fontSize: 28,
-    fontWeight: "800",
-  },
+
   scrollContent: {
     paddingHorizontal: Spacing.screenHorizontal,
     gap: Spacing.md,

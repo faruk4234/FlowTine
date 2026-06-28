@@ -43,7 +43,7 @@ export type AppTheme = {
  * Reusable hook to get the fully resolved theme object in any React/React Native component.
  * Automatically switches colors based on mode, keeping Spacing and Typography consistent.
  */
-export const useAppTheme = (): AppTxheme => {
+export const useAppTheme = (): AppTheme => {
     const themeMode = useAtomValue(themeModeAtom);
     const systemColorScheme = useColorScheme();
 

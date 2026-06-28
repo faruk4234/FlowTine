@@ -1,32 +1,32 @@
+import { ActionButton, Header, SegmentedControl } from "@/src/components";
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useAtom, useSetAtom } from "jotai";
 import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
-  View,
-  ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
-  StatusBar,
-  Alert,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useAtom, useSetAtom } from "jotai";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { ActionButton } from "@/src/components";
 
-import {
-  savedLyricsAtom,
-  activeTrackAtom,
-  isPlayingAtom,
-  textInputAtom,
-  promptOrLyricsTypeAtom,
-  editingLyricAtom,
-  type Track,
-  type SavedLyrics,
-} from "@/src/state/atoms";
-import { useAppTheme, Spacing, BorderRadius, Typography } from "@/src/state/theme";
 import { apiService } from "@/src/services/api";
+import {
+  activeTrackAtom,
+  editingLyricAtom,
+  isPlayingAtom,
+  promptOrLyricsTypeAtom,
+  savedLyricsAtom,
+  textInputAtom,
+  type SavedLyrics,
+  type Track,
+} from "@/src/state/atoms";
+import { BorderRadius, Spacing, useAppTheme } from "@/src/state/theme";
 
 type TabType = "songs" | "lyrics";
 
@@ -41,7 +41,7 @@ export default function LibraryScreen() {
       setActiveTab(tab);
     }
   }, [tab]);
-  
+
   const [savedLyrics, setSavedLyrics] = useAtom(savedLyricsAtom);
   const setCreateTextInput = useSetAtom(textInputAtom);
   const setCreatePromptType = useSetAtom(promptOrLyricsTypeAtom);
@@ -114,65 +114,21 @@ export default function LibraryScreen() {
     <View style={[s.root, { backgroundColor: theme.colors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor={theme.colors.background} />
       <SafeAreaView style={s.safe} edges={["top"]}>
-        {/* Segmented Top Tab */}
-        <View style={s.header}>
-          <Text style={[s.headerTitle, { color: theme.colors.text }]}>Library</Text>
-          <TouchableOpacity
-            style={[s.refreshBtn, { backgroundColor: theme.colors.surfaceElevated }]}
-            onPress={fetchSongs}
-            disabled={loadingSongs && activeTab === "songs"}
-          >
-            <Ionicons name="refresh" size={16} color={theme.colors.primary} />
-          </TouchableOpacity>
-        </View>
+        <Header
+          title="Library"
 
-        <View style={[s.tabContainer, { backgroundColor: theme.colors.surface }]}>
-          <TouchableOpacity
-            style={[
-              s.tabButton,
-              activeTab === "songs" && { backgroundColor: theme.colors.surfaceElevated },
-            ]}
-            onPress={() => setActiveTab("songs")}
-            activeOpacity={0.8}
-          >
-            <Ionicons
-              name="musical-notes"
-              size={16}
-              color={activeTab === "songs" ? theme.colors.primary : theme.colors.mutedText}
-            />
-            <Text
-              style={[
-                s.tabButtonText,
-                { color: activeTab === "songs" ? theme.colors.text : theme.colors.mutedText },
-              ]}
-            >
-              Songs
-            </Text>
-          </TouchableOpacity>
+        />
 
-          <TouchableOpacity
-            style={[
-              s.tabButton,
-              activeTab === "lyrics" && { backgroundColor: theme.colors.surfaceElevated },
-            ]}
-            onPress={() => setActiveTab("lyrics")}
-            activeOpacity={0.8}
-          >
-            <Ionicons
-              name="document-text"
-              size={16}
-              color={activeTab === "lyrics" ? theme.colors.primary : theme.colors.mutedText}
-            />
-            <Text
-              style={[
-                s.tabButtonText,
-                { color: activeTab === "lyrics" ? theme.colors.text : theme.colors.mutedText },
-              ]}
-            >
-              Lyrics
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <SegmentedControl
+          options={[
+            { id: "songs", label: "Songs", icon: "musical-notes" },
+            { id: "lyrics", label: "Lyrics", icon: "document-text" },
+          ]}
+          selectedId={activeTab}
+          onSelect={(id) => setActiveTab(id as any)}
+          height={50}
+          style={{ padding: 10 }}
+        />
 
         {activeTab === "songs" ? (
           loadingSongs ? (
@@ -245,7 +201,7 @@ export default function LibraryScreen() {
                   <Text style={[s.lyricTitle, { color: theme.colors.text }]} numberOfLines={1}>
                     {lyric.title}
                   </Text>
-                  
+
                   <View style={s.actionsRow}>
                     <TouchableOpacity
                       onPress={() => handleEditLyric(lyric)}
@@ -263,11 +219,11 @@ export default function LibraryScreen() {
                     </TouchableOpacity>
                   </View>
                 </View>
-                
+
                 <Text style={[s.lyricSnippet, { color: theme.colors.mutedText }]} numberOfLines={4}>
                   {lyric.content}
                 </Text>
-                
+
                 <Text style={[s.lyricDate, { color: theme.colors.mutedText }]}>
                   Saved: {lyric.createdAt}
                 </Text>
@@ -275,7 +231,7 @@ export default function LibraryScreen() {
                   title="Generate Song"
                   icon="sparkles"
                   onPress={() => handleGenerateSong(lyric)}
-                  style={{ height: 46, borderRadius: BorderRadius.sm, marginTop: 12 }}
+                  style={{ height: 44, marginTop: 12 }}
                 />
               </View>
             ))}
@@ -289,45 +245,12 @@ export default function LibraryScreen() {
 const s = StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: Spacing.screenHorizontal,
-    paddingTop: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  headerTitle: {
-    ...Typography.hero,
-    fontSize: 28,
-    fontWeight: "800",
-  },
   refreshBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
-  },
-  tabContainer: {
-    flexDirection: "row",
-    height: 50,
-    borderRadius: BorderRadius.md,
-    marginHorizontal: Spacing.screenHorizontal,
-    padding: 4,
-    marginBottom: Spacing.md,
-  },
-  tabButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: BorderRadius.sm,
-    gap: 8,
-  },
-  tabButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
   },
   center: {
     flex: 1,
@@ -351,8 +274,9 @@ const s = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: Spacing.screenHorizontal,
-    paddingBottom: 110, // Buffer space for persistent bottom audio player
-    gap: Spacing.sm + 4,
+    paddingTop: Spacing.md,
+    paddingBottom: 140, // Expanded buffer space for persistent bottom audio player
+    gap: Spacing.md,
   },
   songCard: {
     flexDirection: "row",

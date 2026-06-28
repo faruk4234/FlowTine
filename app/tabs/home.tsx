@@ -26,8 +26,8 @@ import {
   textInputAtom,
   userAtom,
 } from "@/src/state/atoms";
-import { BorderRadius, Spacing, Typography, useAppTheme } from "@/src/state/theme";
-import { RowSelector, ActionButton } from "@/src/components";
+import { BorderRadius, Spacing, useAppTheme } from "@/src/state/theme";
+import { RowSelector, ActionButton, Header, SegmentedControl } from "@/src/components";
 
 const { height } = Dimensions.get("window");
 
@@ -138,9 +138,8 @@ export default function CreateScreen() {
     <View style={[s.root, { backgroundColor: theme.colors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor={theme.colors.background} />
       <SafeAreaView style={s.safe} edges={["top"]}>
+        <Header title="Create Music" />
         <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
-          {/* Header Title */}
-          <Text style={[s.headerTitle, { color: theme.colors.text }]}>Create Music</Text>
 
           {/* 1. Genre Row Selector */}
           <RowSelector
@@ -160,27 +159,16 @@ export default function CreateScreen() {
 
           {/* 3. Text Prompt Area Card */}
           <View style={[s.textCard, { backgroundColor: theme.colors.surface }]}>
-            {/* Segmented Toggle Control */}
-            <View style={[s.segmentedContainer, { backgroundColor: theme.colors.surfaceElevated }]}>
-              <TouchableOpacity
-                style={[s.segmentButton, promptType === 'prompt' && [s.segmentActiveButton, { backgroundColor: theme.colors.surface }]]}
-                onPress={() => setPromptType('prompt')}
-                activeOpacity={0.9}
-              >
-                <Text style={[s.segmentText, { color: theme.colors.text }, promptType === 'prompt' && { color: theme.colors.primary, fontWeight: '700' }]}>
-                  Prompt
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[s.segmentButton, promptType === 'lyrics' && [s.segmentActiveButton, { backgroundColor: theme.colors.surface }]]}
-                onPress={() => setPromptType('lyrics')}
-                activeOpacity={0.9}
-              >
-                <Text style={[s.segmentText, { color: theme.colors.text }, promptType === 'lyrics' && { color: theme.colors.primary, fontWeight: '700' }]}>
-                  Lyrics
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <SegmentedControl
+              options={[
+                { id: "prompt", label: "Prompt" },
+                { id: "lyrics", label: "Lyrics" },
+              ]}
+              selectedId={promptType}
+              onSelect={(id) => setPromptType(id as any)}
+              height={38}
+              style={{ marginBottom: 12 }}
+            />
 
             <View style={s.textCardHeader}>
               <TextInput
@@ -333,13 +321,7 @@ const s = StyleSheet.create({
     paddingBottom: 120, // Pad for floating player
     gap: Spacing.md,
   },
-  headerTitle: {
-    ...Typography.hero,
-    fontSize: 32,
-    fontWeight: "800",
-    marginBottom: Spacing.md,
-    marginTop: Spacing.sm,
-  },
+
   rowCard: {
     flexDirection: "row",
     height: 56,
@@ -370,29 +352,7 @@ const s = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
   },
-  segmentedContainer: {
-    flexDirection: "row",
-    height: 38,
-    borderRadius: BorderRadius.sm,
-    padding: 3,
-    marginBottom: 12,
-  },
-  segmentButton: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: BorderRadius.sm - 2,
-  },
-  segmentActiveButton: {
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  segmentText: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
+
   textCard: {
     borderRadius: BorderRadius.md,
     padding: 16,
