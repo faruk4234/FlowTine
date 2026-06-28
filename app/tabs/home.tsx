@@ -161,8 +161,8 @@ export default function CreateScreen() {
           <View style={[s.textCard, { backgroundColor: theme.colors.surface }]}>
             <SegmentedControl
               options={[
-                { id: "prompt", label: "Prompt" },
-                { id: "lyrics", label: "Lyrics" },
+                { id: "prompt", label: "Prompt", icon: "pencil" },
+                { id: "lyrics", label: "Lyrics", icon: "document-text" },
               ]}
               selectedId={promptType}
               onSelect={(id) => setPromptType(id as any)}

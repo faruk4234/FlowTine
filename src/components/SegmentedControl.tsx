@@ -102,7 +102,7 @@ export function SegmentedControl({
                 <Ionicons
                   name={option.icon as any}
                   size={16}
-                  color={isActive ? theme.colors.primary : theme.colors.mutedText}
+                  color={isActive ? theme.colors.primary : theme.colors.text}
                   style={s.icon}
                 />
               )}

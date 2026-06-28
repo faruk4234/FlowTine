@@ -122,7 +122,7 @@ export default function LibraryScreen() {
           <SegmentedControl
             options={[
               { id: "songs", label: "Songs", icon: "musical-notes" },
-              { id: "lyrics", label: "Lyrics", icon: "document-text" },
+              { id: "lyrics", label: "Lyrics", icon: "document-text-outline" },
             ]}
             selectedId={activeTab}
             onSelect={(id) => setActiveTab(id as any)}

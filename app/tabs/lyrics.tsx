@@ -209,8 +209,8 @@ export default function LyricsScreen() {
         <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
           <SegmentedControl
             options={[
-              { id: "prompt", label: "Use Prompt" },
-              { id: "manual", label: "Your Lyrics" },
+                { id: "prompt", label: "Use Prompt", icon: "pencil" },
+                { id: "manual", label: "Your Lyrics", icon: "document-text" },
             ]}
             selectedId={activeSubTab}
             onSelect={(id) => setActiveSubTab(id as any)}
