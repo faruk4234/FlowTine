@@ -8,17 +8,22 @@ import {
   ActivityIndicator,
   StatusBar,
   Alert,
-  TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { ActionButton } from "@/src/components";
 
 import {
   savedLyricsAtom,
   activeTrackAtom,
   isPlayingAtom,
+  textInputAtom,
+  promptOrLyricsTypeAtom,
+  editingLyricAtom,
   type Track,
+  type SavedLyrics,
 } from "@/src/state/atoms";
 import { useAppTheme, Spacing, BorderRadius, Typography } from "@/src/state/theme";
 import { apiService } from "@/src/services/api";
@@ -27,22 +32,48 @@ type TabType = "songs" | "lyrics";
 
 export default function LibraryScreen() {
   const theme = useAppTheme();
+  const router = useRouter();
+  const { tab } = useLocalSearchParams<{ tab?: string }>();
   const [activeTab, setActiveTab] = useState<TabType>("songs");
+
+  useEffect(() => {
+    if (tab === "lyrics" || tab === "songs") {
+      setActiveTab(tab);
+    }
+  }, [tab]);
   
   const [savedLyrics, setSavedLyrics] = useAtom(savedLyricsAtom);
+  const setCreateTextInput = useSetAtom(textInputAtom);
+  const setCreatePromptType = useSetAtom(promptOrLyricsTypeAtom);
+  const setEditingLyric = useSetAtom(editingLyricAtom);
 
-  const handleEditTitle = (id: string, newTitle: string) => {
-    const updated = savedLyrics.map((l) =>
-      l.id === id ? { ...l, title: newTitle } : l
-    );
-    setSavedLyrics(updated);
+  const handleGenerateSong = (lyric: SavedLyrics) => {
+    setCreateTextInput(lyric.content);
+    setCreatePromptType("lyrics");
+    router.push("/tabs/home");
   };
 
-  const handleEditContent = (id: string, newContent: string) => {
-    const updated = savedLyrics.map((l) =>
-      l.id === id ? { ...l, content: newContent } : l
+  const handleEditLyric = (lyric: SavedLyrics) => {
+    setEditingLyric(lyric);
+    router.push("/tabs/lyrics");
+  };
+
+  const handleDeleteLyrics = (id: string) => {
+    Alert.alert(
+      "Delete Lyrics",
+      "Are you sure you want to permanently delete this lyric?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            const filtered = savedLyrics.filter((l) => l.id !== id);
+            setSavedLyrics(filtered);
+          },
+        },
+      ]
     );
-    setSavedLyrics(updated);
   };
   const [activeTrack, setActiveTrack] = useAtom(activeTrackAtom);
   const [isPlaying, setIsPlaying] = useAtom(isPlayingAtom);
@@ -211,25 +242,41 @@ export default function LibraryScreen() {
               <View key={lyric.id} style={[s.lyricCard, { backgroundColor: theme.colors.surface }]}>
                 <View style={s.lyricHeader}>
                   <Ionicons name="document-text" size={18} color={theme.colors.primary} />
-                  <TextInput
-                    style={[s.lyricTitleInline, { color: theme.colors.text }]}
-                    value={lyric.title}
-                    onChangeText={(val) => handleEditTitle(lyric.id, val)}
-                    placeholder="Untitled"
-                    placeholderTextColor={theme.colors.mutedText}
-                  />
+                  <Text style={[s.lyricTitle, { color: theme.colors.text }]} numberOfLines={1}>
+                    {lyric.title}
+                  </Text>
+                  
+                  <View style={s.actionsRow}>
+                    <TouchableOpacity
+                      onPress={() => handleEditLyric(lyric)}
+                      style={[s.iconButton, { backgroundColor: theme.colors.surfaceElevated }]}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Ionicons name="pencil" size={14} color={theme.colors.text} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteLyrics(lyric.id)}
+                      style={[s.iconButton, { backgroundColor: theme.colors.surfaceElevated }]}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Ionicons name="trash-outline" size={14} color={theme.colors.accent} />
+                    </TouchableOpacity>
+                  </View>
                 </View>
-                <TextInput
-                  style={[s.lyricContentInline, { color: theme.colors.mutedText }]}
-                  multiline
-                  value={lyric.content}
-                  onChangeText={(val) => handleEditContent(lyric.id, val)}
-                  placeholder="Type lyrics here..."
-                  placeholderTextColor={theme.colors.mutedText}
-                />
+                
+                <Text style={[s.lyricSnippet, { color: theme.colors.mutedText }]} numberOfLines={4}>
+                  {lyric.content}
+                </Text>
+                
                 <Text style={[s.lyricDate, { color: theme.colors.mutedText }]}>
                   Saved: {lyric.createdAt}
                 </Text>
+                <ActionButton
+                  title="Generate Song"
+                  icon="sparkles"
+                  onPress={() => handleGenerateSong(lyric)}
+                  style={{ height: 46, borderRadius: BorderRadius.sm, marginTop: 12 }}
+                />
               </View>
             ))}
           </ScrollView>
@@ -353,21 +400,27 @@ const s = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  lyricTitleInline: {
+  lyricTitle: {
     fontSize: 15,
     fontWeight: "700",
     flex: 1,
-    padding: 0,
-    margin: 0,
   },
-  lyricContentInline: {
+  lyricSnippet: {
     fontSize: 13,
     lineHeight: 18,
-    padding: 0,
-    margin: 0,
-    marginTop: 6,
-    marginBottom: 6,
-    textAlignVertical: "top",
+    marginVertical: 4,
+  },
+  actionsRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginLeft: "auto",
+  },
+  iconButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
   },
   lyricDate: {
     fontSize: 10,

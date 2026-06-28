@@ -54,6 +54,7 @@ export const savedLyricsAtom = atomWithStorage<SavedLyrics[]>(
 );
 
 // ─── Shared Audio Player Atoms ───────────────────────────────────────────────
+export const editingLyricAtom = atom<SavedLyrics | null>(null);
 export interface Track {
   id: string;
   title: string;

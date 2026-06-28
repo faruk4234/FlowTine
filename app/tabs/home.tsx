@@ -27,7 +27,7 @@ import {
   userAtom,
 } from "@/src/state/atoms";
 import { BorderRadius, Spacing, Typography, useAppTheme } from "@/src/state/theme";
-import { RowSelector } from "@/src/components";
+import { RowSelector, ActionButton } from "@/src/components";
 
 const { height } = Dimensions.get("window");
 
@@ -220,15 +220,12 @@ export default function CreateScreen() {
             onPress={() => setActivePicker("mood")}
           />
 
-          {/* 5. Big Pill Neon Green Button */}
-          <TouchableOpacity
-            style={[s.generateBtn, { backgroundColor: theme.colors.primary }]}
+          <ActionButton
+            title="Generate Song"
             onPress={handleGenerate}
-            disabled={generating}
-            activeOpacity={0.9}
-          >
-            <Text style={s.generateBtnText}>Generate Song</Text>
-          </TouchableOpacity>
+            loading={generating}
+            style={{ marginTop: Spacing.lg }}
+          />
         </ScrollView>
 
         {/* ──────── Pickers Bottom Sheets ──────── */}
