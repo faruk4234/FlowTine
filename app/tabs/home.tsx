@@ -1,32 +1,32 @@
-import React, { useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  ActivityIndicator,
-  Alert,
-  StatusBar,
-  Modal,
-  Dimensions,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useAtom, useAtomValue } from "jotai";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-
+import { useAtom } from "jotai";
+import React, { useState } from "react";
 import {
-  userAtom,
-  selectedGenreAtom,
-  selectedVoiceAtom,
-  selectedMoodAtom,
-  promptOrLyricsTypeAtom,
-  textInputAtom,
-} from "@/src/state/atoms";
-import { useAppTheme, Spacing, BorderRadius, Typography } from "@/src/state/theme";
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Modal,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import { apiService } from "@/src/services/api";
+import {
+  promptOrLyricsTypeAtom,
+  selectedGenreAtom,
+  selectedMoodAtom,
+  selectedVoiceAtom,
+  textInputAtom,
+  userAtom,
+} from "@/src/state/atoms";
+import { BorderRadius, Spacing, Typography, useAppTheme } from "@/src/state/theme";
 
 const { height } = Dimensions.get("window");
 
@@ -48,6 +48,37 @@ const VOICES = [
 
 const MOODS = ["Energetic", "Chill", "Melancholy", "Happy", "Dark", "Dreamy", "Mysterious"];
 
+// ─── Reusable Selector Row Component ─────────────────────────────────────────
+interface RowSelectorProps {
+  icon: string;
+  label: string;
+  value: string;
+  primaryValue?: boolean;
+  onPress: () => void;
+}
+
+function RowSelector({ icon, label, value, primaryValue = true, onPress }: RowSelectorProps) {
+  const theme = useAppTheme();
+  return (
+    <TouchableOpacity
+      style={[s.rowCard, { backgroundColor: theme.colors.surface }]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <View style={s.rowLeft}>
+        <Ionicons name={icon as any} size={20} color={theme.colors.primary} />
+        <Text style={[s.rowLabel, { color: theme.colors.text }]}>{label}</Text>
+      </View>
+      <View style={s.rowRight}>
+        <Text style={[primaryValue ? s.rowValue : s.rowValueMuted, { color: primaryValue ? theme.colors.primary : theme.colors.mutedText }]}>
+          {value}
+        </Text>
+        <Ionicons name="chevron-forward" size={16} color={theme.colors.mutedText} />
+      </View>
+    </TouchableOpacity>
+  );
+}
+
 export default function CreateScreen() {
   const theme = useAppTheme();
   const router = useRouter();
@@ -56,7 +87,7 @@ export default function CreateScreen() {
   const [selectedGenre, setSelectedGenre] = useAtom(selectedGenreAtom);
   const [selectedVoice, setSelectedVoice] = useAtom(selectedVoiceAtom);
   const [selectedMood, setSelectedMood] = useAtom(selectedMoodAtom);
-  const promptType = useAtomValue(promptOrLyricsTypeAtom);
+  const [promptType, setPromptType] = useAtom(promptOrLyricsTypeAtom);
   const [textInput, setTextInput] = useAtom(textInputAtom);
 
   const [generating, setGenerating] = useState(false);
@@ -140,46 +171,52 @@ export default function CreateScreen() {
           <Text style={[s.headerTitle, { color: theme.colors.text }]}>Create Music</Text>
 
           {/* 1. Genre Row Selector */}
-          <TouchableOpacity
-            style={[s.rowCard, { backgroundColor: theme.colors.surface }]}
+          <RowSelector
+            icon="musical-notes"
+            label="Genre"
+            value={getGenreLabel()}
             onPress={() => setActivePicker("genre")}
-            activeOpacity={0.8}
-          >
-            <View style={s.rowLeft}>
-              <Ionicons name="musical-notes" size={20} color={theme.colors.primary} />
-              <Text style={[s.rowLabel, { color: theme.colors.text }]}>Genre</Text>
-            </View>
-            <View style={s.rowRight}>
-              <Text style={[s.rowValue, { color: theme.colors.primary }]}>{getGenreLabel()}</Text>
-              <Ionicons name="chevron-forward" size={16} color={theme.colors.mutedText} />
-            </View>
-          </TouchableOpacity>
+          />
 
           {/* 2. Voice Row Selector */}
-          <TouchableOpacity
-            style={[s.rowCard, { backgroundColor: theme.colors.surface }]}
+          <RowSelector
+            icon="mic"
+            label="Voice"
+            value={getVoiceLabel()}
             onPress={() => setActivePicker("voice")}
-            activeOpacity={0.8}
-          >
-            <View style={s.rowLeft}>
-              <Ionicons name="mic" size={20} color={theme.colors.primary} />
-              <Text style={[s.rowLabel, { color: theme.colors.text }]}>Voice</Text>
-            </View>
-            <View style={s.rowRight}>
-              <Text style={[s.rowValue, { color: theme.colors.primary }]}>{getVoiceLabel()}</Text>
-              <Ionicons name="chevron-forward" size={16} color={theme.colors.mutedText} />
-            </View>
-          </TouchableOpacity>
+          />
 
           {/* 3. Text Prompt Area Card */}
           <View style={[s.textCard, { backgroundColor: theme.colors.surface }]}>
+            {/* Segmented Toggle Control */}
+            <View style={[s.segmentedContainer, { backgroundColor: theme.colors.surfaceElevated }]}>
+              <TouchableOpacity
+                style={[s.segmentButton, promptType === 'prompt' && [s.segmentActiveButton, { backgroundColor: theme.colors.surface }]]}
+                onPress={() => setPromptType('prompt')}
+                activeOpacity={0.9}
+              >
+                <Text style={[s.segmentText, { color: theme.colors.text }, promptType === 'prompt' && { color: theme.colors.primary, fontWeight: '700' }]}>
+                  Prompt
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.segmentButton, promptType === 'lyrics' && [s.segmentActiveButton, { backgroundColor: theme.colors.surface }]]}
+                onPress={() => setPromptType('lyrics')}
+                activeOpacity={0.9}
+              >
+                <Text style={[s.segmentText, { color: theme.colors.text }, promptType === 'lyrics' && { color: theme.colors.primary, fontWeight: '700' }]}>
+                  Lyrics
+                </Text>
+              </TouchableOpacity>
+            </View>
+
             <View style={s.textCardHeader}>
               <TextInput
                 style={[s.textInput, { color: theme.colors.text }]}
-                placeholder="Enter prompt description..."
+                placeholder={promptType === 'prompt' ? "Describe the style, instruments, or topic..." : "Paste or type your custom lyrics..."}
                 placeholderTextColor={theme.colors.mutedText}
                 multiline
-                numberOfLines={6}
+                maxLength={1000}
                 value={textInput}
                 onChangeText={setTextInput}
               />
@@ -203,20 +240,13 @@ export default function CreateScreen() {
           </View>
 
           {/* 4. Customize Row Selector */}
-          <TouchableOpacity
-            style={[s.rowCard, { backgroundColor: theme.colors.surface }]}
+          <RowSelector
+            icon="options-outline"
+            label="Customize"
+            value={selectedMood || "Select"}
+            primaryValue={false}
             onPress={() => setActivePicker("mood")}
-            activeOpacity={0.8}
-          >
-            <View style={s.rowLeft}>
-              <Ionicons name="options-outline" size={20} color={theme.colors.text} />
-              <Text style={[s.rowLabel, { color: theme.colors.text }]}>Customize</Text>
-            </View>
-            <View style={s.rowRight}>
-              <Text style={[s.rowValueMuted, { color: theme.colors.mutedText }]}>{selectedMood || "Select"}</Text>
-              <Ionicons name="chevron-forward" size={16} color={theme.colors.mutedText} />
-            </View>
-          </TouchableOpacity>
+          />
 
           {/* 5. Big Pill Neon Green Button */}
           <TouchableOpacity
@@ -371,6 +401,29 @@ const s = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
   },
+  segmentedContainer: {
+    flexDirection: "row",
+    height: 38,
+    borderRadius: BorderRadius.sm,
+    padding: 3,
+    marginBottom: 12,
+  },
+  segmentButton: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: BorderRadius.sm - 2,
+  },
+  segmentActiveButton: {
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  segmentText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
   textCard: {
     borderRadius: BorderRadius.md,
     padding: 16,
@@ -384,7 +437,7 @@ const s = StyleSheet.create({
   textInput: {
     flex: 1,
     fontSize: 16,
-    minHeight: 100,
+    minHeight: 160,
     textAlignVertical: "top",
     lineHeight: 22,
   },
