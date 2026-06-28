@@ -1,34 +1,65 @@
-import React, { useState, useEffect } from "react";
-import {
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Alert,
-  StatusBar,
-  Keyboard,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useAtom } from "jotai";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-
+import { useAtom } from "jotai";
+import React, { useEffect, useState } from "react";
 import {
-  savedLyricsAtom,
+  Alert,
+  Keyboard,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import { ActionButton, Header, SegmentedControl } from "@/src/components";
+import {
   editingLyricAtom,
+  savedLyricsAtom,
   type SavedLyrics,
 } from "@/src/state/atoms";
-import { useAppTheme, Spacing, BorderRadius } from "@/src/state/theme";
-import { ActionButton, Header, SegmentedControl } from "@/src/components";
+import { BorderRadius, Spacing, useAppTheme } from "@/src/state/theme";
 
-const INSPIRE_PROMPTS = [
-  "Write an emotional pop ballad about letting go and moving forward.",
-  "Create a high-energy rap verse about city lights and midnight driving.",
-  "Write a moody indie rock song about long summer sunsets and memories.",
-  "A dreamy electronic song about traveling through space and losing track of time.",
-  "Write a warm acoustic song about drinking hot coffee on a rainy Sunday morning.",
+const ENTRANCE_PARTS = [
+  "A sunrise over restless city streets.",
+  "The first chord strikes at midnight.",
+  "Opening notes echo in a quiet hallway.",
+  "The drumbeat awakens the sleeping crowd.",
+  "A gentle guitar strum greets the dawn.",
+  "Electric synths pulse in the early fog.",
+  "Vocal harmonies rise as the sun climbs.",
+  "A thunderous bass drops as lights flicker.",
+  "Soft piano chords linger in the air.",
+  "A whispered chant begins the journey."
+];
+
+const MIDDLE_PARTS = [
+  "Waves of sound cascade through the air.",
+  "The chorus rises like a tide.",
+  "Melodies intertwine, forming new colors.",
+  "Rhythms accelerate, hearts start racing.",
+  "Lyrics spin stories of love and loss.",
+  "Synthesizers swirl in a neon haze.",
+  "Guitars scream against the night sky.",
+  "Bass drops shake the floor beneath.",
+  "Vocals soar, reaching distant horizons.",
+  "Percussion drives the pulse forward."
+];
+
+const LAST_PARTS = [
+  "Fade out into quiet whispers.",
+  "The final note lingers beyond the night.",
+  "Echoes fade, leaving a gentle hush.",
+  "A soft resolve brings calm to the storm.",
+  "Silence settles, the song rests.",
+  "The outro drifts like falling leaves.",
+  "Closing chords close the story.",
+  "Lights dim as the melody ends.",
+  "A lingering chord fades into darkness.",
+  "The final breath of music exhales peace."
 ];
 
 const MOCK_LYRICS_GENERATIONS = [
@@ -64,8 +95,11 @@ export default function LyricsScreen() {
   }, [editingLyric]);
 
   const handleInspire = () => {
-    const randomPrompt = INSPIRE_PROMPTS[Math.floor(Math.random() * INSPIRE_PROMPTS.length)];
-    setPromptText(randomPrompt);
+    const entrance = ENTRANCE_PARTS[Math.floor(Math.random() * ENTRANCE_PARTS.length)];
+    const middle = MIDDLE_PARTS[Math.floor(Math.random() * MIDDLE_PARTS.length)];
+    const last = LAST_PARTS[Math.floor(Math.random() * LAST_PARTS.length)];
+    const combinedPrompt = `${entrance} ${middle} ${last}`;
+    setPromptText(combinedPrompt);
   };
 
   const handleCancelEdit = () => {
@@ -88,7 +122,7 @@ export default function LyricsScreen() {
       // Editing Mode
       const isManual = activeSubTab === "manual";
       const rawContent = isManual ? manualText.trim() : promptText.trim();
-      
+
       if (!rawContent) {
         Alert.alert("Content Required", "Please write something first.");
         return;
@@ -209,8 +243,8 @@ export default function LyricsScreen() {
         <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
           <SegmentedControl
             options={[
-                { id: "prompt", label: "Use Prompt", icon: "pencil" },
-                { id: "manual", label: "Your Lyrics", icon: "document-text" },
+              { id: "prompt", label: "Use Prompt", icon: "pencil" },
+              { id: "manual", label: "Your Lyrics", icon: "document-text" },
             ]}
             selectedId={activeSubTab}
             onSelect={(id) => setActiveSubTab(id as any)}
@@ -231,7 +265,7 @@ export default function LyricsScreen() {
                   value={promptText}
                   onChangeText={setPromptText}
                 />
-                
+
                 {/* Inspire Button at Bottom Left of card */}
                 <View style={s.cardFooter}>
                   <TouchableOpacity
