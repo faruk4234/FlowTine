@@ -1,6 +1,6 @@
+import { Spacing, Typography, useAppTheme } from '@/src/state/theme';
 import React from 'react';
 import { StyleSheet, Text, View, ViewStyle } from 'react-native';
-import { useAppTheme, Spacing, Typography } from '@/src/state/theme';
 
 export interface HeaderProps {
   title: string;
@@ -31,7 +31,7 @@ const s = StyleSheet.create({
   },
   headerTitle: {
     ...Typography.hero,
-    fontSize: 32,
+    fontSize: 25,
     fontWeight: '800',
     flex: 1,
   },

@@ -118,17 +118,18 @@ export default function LibraryScreen() {
           title="Library"
 
         />
-
-        <SegmentedControl
-          options={[
-            { id: "songs", label: "Songs", icon: "musical-notes" },
-            { id: "lyrics", label: "Lyrics", icon: "document-text" },
-          ]}
-          selectedId={activeTab}
-          onSelect={(id) => setActiveTab(id as any)}
-          height={50}
-          style={{ padding: 10 }}
-        />
+        <View style={{ paddingHorizontal: 25, marginTop: 15 }} >
+          <SegmentedControl
+            options={[
+              { id: "songs", label: "Songs", icon: "musical-notes" },
+              { id: "lyrics", label: "Lyrics", icon: "document-text" },
+            ]}
+            selectedId={activeTab}
+            onSelect={(id) => setActiveTab(id as any)}
+            height={50}
+            style={{}}
+          />
+        </View>
 
         {activeTab === "songs" ? (
           loadingSongs ? (
