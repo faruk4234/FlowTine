@@ -1,32 +1,32 @@
 // Profile Screen - Collapsible Credits v2
-import React, { useCallback, useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
-  TouchableOpacity,
-  Linking,
-  Alert,
-  StatusBar,
-  Platform,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useAtom, useAtomValue } from "jotai";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import Purchases from "react-native-purchases";
-
+import { useAtom, useAtomValue } from "jotai";
+import React, { useCallback, useState } from "react";
 import {
-  userAtom,
+  Alert,
+  Linking,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import Purchases from "react-native-purchases";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import { ActionButton, Header } from "@/src/components";
+import { LEGAL_URLS } from "@/src/legal/urls";
+import {
   isPremiumAtom,
   themeModeAtom,
+  userAtom,
 } from "@/src/state/atoms";
 import { AppPalette as C, type ThemeMode } from "@/src/state/colors";
-import { useAppTheme, Spacing, BorderRadius } from "@/src/state/theme";
-import { LEGAL_URLS } from "@/src/legal/urls";
-import { Header } from "@/src/components";
+import { BorderRadius, Spacing, useAppTheme } from "@/src/state/theme";
 
 const CREDIT_OPTIONS = [
   { songs: 1, price: "$2.00" },
@@ -136,13 +136,12 @@ export default function ProfileScreen() {
               </View>
             </View>
             {!isPremium && (
-              <TouchableOpacity
-                style={[s.primaryBtn, { backgroundColor: theme.colors.primary }]}
+              <ActionButton
+                title="Upgrade to Pro"
                 onPress={handleGoPremium}
-                activeOpacity={0.85}
-              >
-                <Text style={s.btnText}>Upgrade to Pro</Text>
-              </TouchableOpacity>
+                icon="star"
+                style={{ maxHeight: 40 }}
+              />
             )}
           </View>
 
@@ -204,13 +203,13 @@ export default function ProfileScreen() {
                   );
                 })}
 
-                <TouchableOpacity
-                  style={[s.buyBtn, { backgroundColor: theme.colors.primary }]}
+
+                <ActionButton
+                  title="Buy"
+                  style={{ maxHeight: 40 }}
                   onPress={handleBuyCredits}
-                  activeOpacity={0.85}
-                >
-                  <Text style={s.buyBtnText}>Buy</Text>
-                </TouchableOpacity>
+                  icon="cart"
+                />
               </View>
             )}
           </View>
