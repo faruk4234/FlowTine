@@ -20,6 +20,7 @@ import {
   activeTrackAtom,
   editingLyricAtom,
   isPlayingAtom,
+  libraryTabAtom,
   promptOrLyricsTypeAtom,
   savedLyricsAtom,
   textInputAtom,
@@ -28,17 +29,25 @@ import {
 } from "@/src/state/atoms";
 import { BorderRadius, Spacing, useAppTheme } from "@/src/state/theme";
 
-type TabType = "songs" | "lyrics";
+type TabType = "songs" | "prompts" | "lyrics";
 
 export default function LibraryScreen() {
   const theme = useAppTheme();
   const router = useRouter();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
-  const [activeTab, setActiveTab] = useState<TabType>("songs");
+  const [libraryTab, setLibraryTab] = useAtom(libraryTabAtom);
+  const [activeTab, setActiveTab] = useState<TabType>(libraryTab);
 
+  // Sync from atom (set by lyrics.tsx before navigation)
   useEffect(() => {
-    if (tab === "lyrics" || tab === "songs") {
-      setActiveTab(tab);
+    setActiveTab(libraryTab);
+  }, [libraryTab]);
+
+  // Also sync from URL params as fallback
+  useEffect(() => {
+    if (tab === "lyrics" || tab === "songs" || tab === "prompts") {
+      setActiveTab(tab as TabType);
+      setLibraryTab(tab as TabType);
     }
   }, [tab]);
 
@@ -122,6 +131,7 @@ export default function LibraryScreen() {
           <SegmentedControl
             options={[
               { id: "songs", label: "Songs", icon: "musical-notes" },
+              { id: "prompts", label: "Prompts", icon: "sparkles" },
               { id: "lyrics", label: "Lyrics", icon: "document-text-outline" },
             ]}
             selectedId={activeTab}
@@ -185,20 +195,51 @@ export default function LibraryScreen() {
               })}
             </ScrollView>
           )
-        ) : savedLyrics.length === 0 ? (
-          <View style={s.center}>
-            <Ionicons name="document-text-outline" size={64} color={theme.colors.mutedText} />
-            <Text style={[s.emptyText, { color: theme.colors.text }]}>No saved lyrics</Text>
-            <Text style={[s.emptySubtext, { color: theme.colors.mutedText }]}>
-              Create some custom lyrics on the Lyrics tab first.
-            </Text>
-          </View>
-        ) : (
-          <ScrollView contentContainerStyle={s.listContent} showsVerticalScrollIndicator={false}>
-            {savedLyrics.map((lyric) => (
+        ) : activeTab === "prompts" || activeTab === "lyrics" ? (
+          (() => {
+            const filtered = savedLyrics.filter((l) =>
+              activeTab === "prompts" ? l.type === "prompt" : l.type === "lyrics" || !l.type
+            );
+            if (filtered.length === 0) {
+              return (
+                <View style={s.center}>
+                  <Ionicons
+                    name={activeTab === "prompts" ? "sparkles-outline" : "document-text-outline"}
+                    size={64}
+                    color={theme.colors.mutedText}
+                  />
+                  <Text style={[s.emptyText, { color: theme.colors.text }]}>
+                    {activeTab === "prompts" ? "No saved prompts" : "No saved lyrics"}
+                  </Text>
+                  <Text style={[s.emptySubtext, { color: theme.colors.mutedText }]}>
+                    {activeTab === "prompts"
+                      ? "Use the Prompt tab in Lyrics to generate and save."
+                      : "Write your own lyrics on the Lyrics tab."}
+                  </Text>
+                </View>
+              );
+            }
+            return (
+              <ScrollView contentContainerStyle={s.listContent} showsVerticalScrollIndicator={false}>
+                {filtered.map((lyric) => (
               <View key={lyric.id} style={[s.lyricCard, { backgroundColor: theme.colors.surface }]}>
                 <View style={s.lyricHeader}>
-                  <Ionicons name="document-text" size={18} color={theme.colors.primary} />
+                  <Ionicons
+                    name={lyric.type === "prompt" ? "sparkles" : "document-text"}
+                    size={18}
+                    color={theme.colors.primary}
+                  />
+                  <View style={[
+                    s.typeBadge,
+                    { backgroundColor: lyric.type === "prompt" ? "rgba(59,130,246,0.15)" : "rgba(249,115,22,0.15)" }
+                  ]}>
+                    <Text style={[
+                      s.typeBadgeText,
+                      { color: lyric.type === "prompt" ? theme.colors.primary : "#F97316" }
+                    ]}>
+                      {lyric.type === "prompt" ? "Prompt" : "Lyrics"}
+                    </Text>
+                  </View>
                   <Text style={[s.lyricTitle, { color: theme.colors.text }]} numberOfLines={1}>
                     {lyric.title}
                   </Text>
@@ -235,9 +276,11 @@ export default function LibraryScreen() {
                   style={{ height: 44, marginTop: 12 }}
                 />
               </View>
-            ))}
-          </ScrollView>
-        )}
+              ))}
+            </ScrollView>
+            );
+          })()
+        ) : null}
       </SafeAreaView>
     </View>
   );
@@ -350,5 +393,16 @@ const s = StyleSheet.create({
   lyricDate: {
     fontSize: 10,
     fontWeight: "600",
+  },
+  typeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  typeBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
 });

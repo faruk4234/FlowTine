@@ -21,6 +21,7 @@ export interface SavedLyrics {
   title: string;
   content: string;
   createdAt: string;
+  type?: "prompt" | "lyrics"; // "prompt" = AI generated, "lyrics" = manually written
 }
 
 // ─── Persistent & Global Atoms ────────────────────────────────────────────────
@@ -44,6 +45,7 @@ export const selectedVoiceAtom = atom<'male' | 'female' | 'instrumental' | ''>('
 export const selectedMoodAtom = atom<string>('');
 export const promptOrLyricsTypeAtom = atom<'prompt' | 'lyrics'>('prompt');
 export const textInputAtom = atom<string>('');
+export const libraryTabAtom = atom<'songs' | 'prompts' | 'lyrics'>('songs');
 
 // ─── Saved Lyrics (Local Storage) ─────────────────────────────────────────────
 const savedLyricsStorage = createJSONStorage<SavedLyrics[]>(() => AsyncStorage);

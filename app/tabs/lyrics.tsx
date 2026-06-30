@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ActionButton, Header, InspireButton, SegmentedControl } from "@/src/components";
 import {
   editingLyricAtom,
+  libraryTabAtom,
   savedLyricsAtom,
   type SavedLyrics,
 } from "@/src/state/atoms";
@@ -74,6 +75,7 @@ export default function LyricsScreen() {
 
   const [savedLyrics, setSavedLyrics] = useAtom(savedLyricsAtom);
   const [editingLyric, setEditingLyric] = useAtom(editingLyricAtom);
+  const setLibraryTab = useSetAtom(libraryTabAtom);
 
   // Tab State: "prompt" = Use Prompt (AI), "manual" = Your Lyrics (Manual entry)
   const [activeSubTab, setActiveSubTab] = useState<"prompt" | "manual">("prompt");
@@ -88,8 +90,13 @@ export default function LyricsScreen() {
   useEffect(() => {
     if (editingLyric) {
       setLyricsTitle(editingLyric.title);
-      setManualText(editingLyric.content);
-      setActiveSubTab("manual");
+      if (editingLyric.type === "prompt") {
+        setPromptText(editingLyric.content);
+        setActiveSubTab("prompt");
+      } else {
+        setManualText(editingLyric.content);
+        setActiveSubTab("manual");
+      }
     }
   }, [editingLyric]);
 
@@ -152,7 +159,9 @@ export default function LyricsScreen() {
       setLyricsTitle("");
 
       Alert.alert("Lyrics Saved", `"${title}" has been updated.`);
-      router.push("/tabs/library?tab=lyrics");
+      const targetTab = editingLyric.type === "prompt" ? "prompts" : "lyrics";
+      setLibraryTab(targetTab as any);
+      router.push(`/tabs/library?tab=${targetTab}`);
       return;
     }
 
@@ -177,6 +186,7 @@ export default function LyricsScreen() {
           title,
           content: generatedContent,
           createdAt: new Date().toLocaleDateString(),
+          type: "prompt",
         };
 
         setSavedLyrics([newLyric, ...savedLyrics]);
@@ -184,7 +194,8 @@ export default function LyricsScreen() {
         setLyricsTitle("");
 
         Alert.alert("Lyrics Created!", `"${title}" has been saved to your library.`);
-        router.push("/tabs/library?tab=lyrics");
+        setLibraryTab("prompts");
+        router.push("/tabs/library?tab=prompts");
       } catch (e) {
         console.error(e);
         Alert.alert("Generation Failed", "Could not create lyrics. Please try again.");
@@ -205,6 +216,7 @@ export default function LyricsScreen() {
         title,
         content: manualText.trim(),
         createdAt: new Date().toLocaleDateString(),
+        type: "lyrics",
       };
 
       setSavedLyrics([newLyric, ...savedLyrics]);
@@ -212,6 +224,7 @@ export default function LyricsScreen() {
       setLyricsTitle("");
 
       Alert.alert("Lyrics Saved!", `"${title}" has been added to your library.`);
+      setLibraryTab("lyrics");
       router.push("/tabs/library?tab=lyrics");
     }
   };
