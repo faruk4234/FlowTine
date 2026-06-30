@@ -14,7 +14,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
+import { useAlert } from "@/src/providers/alert-provider";
 import { apiService } from "@/src/services/api";
 import {
   activeTrackAtom,
@@ -35,6 +35,7 @@ export default function LibraryScreen() {
   const theme = useAppTheme();
   const router = useRouter();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
+  const { showAlert } = useAlert();
   const [libraryTab, setLibraryTab] = useAtom(libraryTabAtom);
   const [activeTab, setActiveTab] = useState<TabType>(libraryTab);
 
@@ -68,7 +69,7 @@ export default function LibraryScreen() {
   };
 
   const handleDeleteLyrics = (id: string) => {
-    Alert.alert(
+    showAlert(
       "Delete Lyrics",
       "Are you sure you want to permanently delete this lyric?",
       [
@@ -98,7 +99,7 @@ export default function LibraryScreen() {
       setSongs(data);
     } catch (e) {
       console.error("Failed to fetch generated songs:", e);
-      Alert.alert("Fetch Failed", "Could not load generated songs. Please pull to refresh.");
+      showAlert("Fetch Failed", "Could not load generated songs. Please pull to refresh.");
     } finally {
       setLoadingSongs(false);
     }

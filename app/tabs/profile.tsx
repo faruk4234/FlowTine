@@ -17,8 +17,8 @@ import {
 } from "react-native";
 import Purchases from "react-native-purchases";
 import { SafeAreaView } from "react-native-safe-area-context";
-
 import { ActionButton, Header } from "@/src/components";
+import { useAlert } from "@/src/providers/alert-provider";
 import { LEGAL_URLS } from "@/src/legal/urls";
 import {
   isPremiumAtom,
@@ -40,6 +40,7 @@ export default function ProfileScreen() {
 
   const theme = useAppTheme();
   const router = useRouter();
+  const { showAlert } = useAlert();
 
   const [user, setUser] = useAtom(userAtom);
   const isPremium = useAtomValue(isPremiumAtom);
@@ -51,7 +52,7 @@ export default function ProfileScreen() {
 
   const handleBuyCredits = () => {
     const selected = CREDIT_OPTIONS[selectedCreditIndex];
-    Alert.alert(
+    showAlert(
       "Purchase Credits",
       `Buy ${selected.songs} song${selected.songs > 1 ? "s" : ""} for ${selected.price}?`,
       [
@@ -59,7 +60,7 @@ export default function ProfileScreen() {
         {
           text: "Buy",
           onPress: () =>
-            Alert.alert("Success", `Purchased ${selected.songs} song credit${selected.songs > 1 ? "s" : ""}!`),
+            showAlert("Success", `Purchased ${selected.songs} song credit${selected.songs > 1 ? "s" : ""}!`),
         },
       ]
     );
@@ -73,17 +74,17 @@ export default function ProfileScreen() {
         const active = customerInfo.entitlements.active && Object.keys(customerInfo.entitlements.active).length > 0;
         if (active) {
           if (user) setUser({ ...user, isPremium: true });
-          Alert.alert("Restored", "Your premium membership has been restored!");
+          showAlert("Restored", "Your premium membership has been restored!");
           return;
         }
       }
 
       // Fallback/Sim restore
       if (user) setUser({ ...user, isPremium: true });
-      Alert.alert("Membership Active", "Membership restored (Developer Sim mode).");
+      showAlert("Membership Active", "Membership restored (Developer Sim mode).");
     } catch (e) {
       console.error("Restore error:", e);
-      Alert.alert("Restore Failed", "Could not restore purchase status.");
+      showAlert("Restore Failed", "Could not restore purchase status.");
     }
   }, [user, setUser]);
 
@@ -91,7 +92,7 @@ export default function ProfileScreen() {
     const body = `\n\n\n---\nPlatform: ${Platform.OS} ${Platform.Version}\nApp Version: 1.0.4`;
     const url = `mailto:support@cekolabs.com?subject=FlowTine Support Request&body=${encodeURIComponent(body)}`;
     Linking.openURL(url).catch(() =>
-      Alert.alert("Support Email", "Please write to support@cekolabs.com for assistance.")
+      showAlert("Support Email", "Please write to support@cekolabs.com for assistance.")
     );
   };
 

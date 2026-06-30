@@ -22,6 +22,7 @@ import {
   type SavedLyrics,
 } from "@/src/state/atoms";
 import { BorderRadius, Spacing, useAppTheme } from "@/src/state/theme";
+import { useAlert } from "@/src/providers/alert-provider";
 
 const ENTRANCE_PARTS = [
   "A sunrise over restless city streets.",
@@ -72,6 +73,7 @@ const MOCK_LYRICS_GENERATIONS = [
 export default function LyricsScreen() {
   const theme = useAppTheme();
   const router = useRouter();
+  const { showAlert } = useAlert();
 
   const [savedLyrics, setSavedLyrics] = useAtom(savedLyricsAtom);
   const [editingLyric, setEditingLyric] = useAtom(editingLyricAtom);
@@ -107,14 +109,14 @@ export default function LyricsScreen() {
     setLyricsTitle("");
     setManualText("");
     setPromptText("");
-    Alert.alert("Edit Cancelled", "Discarded unsaved changes.");
+    showAlert("Edit Cancelled", "Discarded unsaved changes.");
     router.push("/tabs/library?tab=lyrics");
   };
 
   const handleCreateLyrics = async () => {
     const title = lyricsTitle.trim();
     if (!title) {
-      Alert.alert("Title Required", "Please enter a title for your lyrics.");
+      showAlert("Title Required", "Please enter a title for your lyrics.");
       return;
     }
 
@@ -124,7 +126,7 @@ export default function LyricsScreen() {
       const rawContent = isManual ? manualText.trim() : promptText.trim();
 
       if (!rawContent) {
-        Alert.alert("Content Required", "Please write something first.");
+        showAlert("Content Required", "Please write something first.");
         return;
       }
 
@@ -138,7 +140,7 @@ export default function LyricsScreen() {
           content = MOCK_LYRICS_GENERATIONS[Math.floor(Math.random() * MOCK_LYRICS_GENERATIONS.length)];
         } catch (e) {
           console.error(e);
-          Alert.alert("Generation Failed", "Could not rewrite lyrics.");
+          showAlert("Generation Failed", "Could not rewrite lyrics.");
           setGenerating(false);
           return;
         } finally {
@@ -158,7 +160,7 @@ export default function LyricsScreen() {
       setManualText("");
       setLyricsTitle("");
 
-      Alert.alert("Lyrics Saved", `"${title}" has been updated.`);
+      showAlert("Lyrics Saved", `"${title}" has been updated.`);
       const targetTab = editingLyric.type === "prompt" ? "prompts" : "lyrics";
       setLibraryTab(targetTab as any);
       router.push(`/tabs/library?tab=${targetTab}`);
@@ -168,7 +170,7 @@ export default function LyricsScreen() {
     // Creating Mode
     if (activeSubTab === "prompt") {
       if (!promptText.trim()) {
-        Alert.alert("Prompt Required", "Please describe what your lyrics should be about.");
+        showAlert("Prompt Required", "Please describe what your lyrics should be about.");
         return;
       }
 
@@ -193,19 +195,19 @@ export default function LyricsScreen() {
         setPromptText("");
         setLyricsTitle("");
 
-        Alert.alert("Lyrics Created!", `"${title}" has been saved to your library.`);
+        showAlert("Lyrics Created!", `"${title}" has been saved to your library.`);
         setLibraryTab("prompts");
         router.push("/tabs/library?tab=prompts");
       } catch (e) {
         console.error(e);
-        Alert.alert("Generation Failed", "Could not create lyrics. Please try again.");
+        showAlert("Generation Failed", "Could not create lyrics. Please try again.");
       } finally {
         setGenerating(false);
       }
     } else {
       // Manual Lyrics input mode
       if (!manualText.trim()) {
-        Alert.alert("Lyrics Required", "Please type or paste your lyrics first.");
+        showAlert("Lyrics Required", "Please type or paste your lyrics first.");
         return;
       }
 
@@ -223,7 +225,7 @@ export default function LyricsScreen() {
       setManualText("");
       setLyricsTitle("");
 
-      Alert.alert("Lyrics Saved!", `"${title}" has been added to your library.`);
+      showAlert("Lyrics Saved!", `"${title}" has been added to your library.`);
       setLibraryTab("lyrics");
       router.push("/tabs/library?tab=lyrics");
     }

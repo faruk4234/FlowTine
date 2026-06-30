@@ -22,6 +22,7 @@ import {
 import Purchases from "react-native-purchases";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { apiService } from "@/src/services/api";
+import { useAlert } from "@/src/providers/alert-provider";
 
 type PlanId = "weekly" | "monthly" | "yearly" | "credit10" | "credit50" | "credit100";
 
@@ -46,6 +47,7 @@ export default function PaywallScreen() {
     isCreditMode ? "credit50" : "yearly"
   );
   const [loading, setLoading] = useState(false);
+  const { showAlert } = useAlert();
 
   const openLegalUrl = useCallback(async (url: string) => {
     try {
@@ -100,7 +102,7 @@ export default function PaywallScreen() {
         const updatedUser = await apiService.addMockCredits(deviceId, amount);
         setUser(updatedUser);
         
-        Alert.alert("Success", `Successfully added ${amount} credits to your account!`, [
+        showAlert("Success", `Successfully added ${amount} credits to your account!`, [
           { text: "Awesome", onPress: () => {
             if (router.canGoBack()) router.back();
             else router.replace("/tabs/home");
@@ -142,13 +144,13 @@ export default function PaywallScreen() {
           setUser({ ...user, isPremium: true });
         }
         
-        Alert.alert("Welcome to Premium", "Your membership is now active!", [
+        showAlert("Welcome to Premium", "Your membership is now active!", [
           { text: "Get Started", onPress: () => router.replace("/tabs/home") }
         ]);
       }
     } catch (e) {
       console.error("Purchase execution error:", e);
-      Alert.alert("Purchase Failed", "Please check your network and try again.");
+      showAlert("Purchase Failed", "Please check your network and try again.");
     } finally {
       setLoading(false);
     }
@@ -164,7 +166,7 @@ export default function PaywallScreen() {
         setPremium(active);
         if (active) {
           if (user) setUser({ ...user, isPremium: true });
-          Alert.alert("Restored", "Your premium membership was successfully restored!", [
+          showAlert("Restored", "Your premium membership was successfully restored!", [
             { text: "Continue", onPress: () => router.replace("/tabs/home") }
           ]);
           return;
@@ -174,12 +176,12 @@ export default function PaywallScreen() {
       // Developer bypass for simulator restoring
       setPremium(true);
       if (user) setUser({ ...user, isPremium: true });
-      Alert.alert("Bypass Active", "Membership restored (Developer Sim mode).", [
+      showAlert("Bypass Active", "Membership restored (Developer Sim mode).", [
         { text: "Continue", onPress: () => router.replace("/tabs/home") }
       ]);
     } catch (e) {
       console.error("Restore error:", e);
-      Alert.alert("Restore Failed", "No purchases found to restore.");
+      showAlert("Restore Failed", "No purchases found to restore.");
     } finally {
       setLoading(false);
     }
@@ -202,7 +204,7 @@ export default function PaywallScreen() {
         router.replace("/tabs/home");
       }
     } else {
-      Alert.alert(
+      showAlert(
         "Premium Required",
         "FlowTine is a premium service. Please subscribe to unlock the application.",
         [

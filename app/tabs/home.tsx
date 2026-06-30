@@ -19,6 +19,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ActionButton, Header, InspireButton, RowSelector, SegmentedControl } from "@/src/components";
 import { apiService } from "@/src/services/api";
+import { useAlert } from "@/src/providers/alert-provider";
 import {
   promptOrLyricsTypeAtom,
   selectedGenreAtom,
@@ -61,6 +62,7 @@ export default function CreateScreen() {
   const [selectedMood, setSelectedMood] = useAtom(selectedMoodAtom);
   const [promptType, setPromptType] = useAtom(promptOrLyricsTypeAtom);
   const [textInput, setTextInput] = useAtom(textInputAtom);
+  const { showAlert } = useAlert();
 
   const [generating, setGenerating] = useState(false);
   const [activePicker, setActivePicker] = useState<"genre" | "voice" | "mood" | null>(null);
@@ -74,15 +76,15 @@ export default function CreateScreen() {
 
   const handleGenerate = async () => {
     if (!selectedGenre) {
-      Alert.alert("Select Genre", "Please pick a musical genre first.");
+      showAlert("Select Genre", "Please pick a musical genre first.");
       return;
     }
     if (!selectedVoice) {
-      Alert.alert("Select Voice", "Please select a vocal or instrumental style.");
+      showAlert("Select Voice", "Please select a vocal or instrumental style.");
       return;
     }
     if (!textInput.trim()) {
-      Alert.alert("Input Required", "Please write a prompt describing your song.");
+      showAlert("Input Required", "Please write a prompt describing your song.");
       return;
     }
 
@@ -104,7 +106,7 @@ export default function CreateScreen() {
       setUser(response.user);
       setTextInput("");
 
-      Alert.alert(
+      showAlert(
         "Song Created!",
         `"${response.song.title}" is ready in your library.`,
         [
@@ -118,7 +120,7 @@ export default function CreateScreen() {
       );
     } catch (e) {
       console.error("Music generation failed:", e);
-      Alert.alert("Generation Failed", "Could not build track. Please try again.");
+      showAlert("Generation Failed", "Could not build track. Please try again.");
     } finally {
       setGenerating(false);
     }
