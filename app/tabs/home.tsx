@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -21,6 +21,7 @@ import { ActionButton, Header, InspireButton, RowSelector, SegmentedControl } fr
 import { apiService } from "@/src/services/api";
 import { useAlert } from "@/src/providers/alert-provider";
 import {
+  libraryTabAtom,
   promptOrLyricsTypeAtom,
   selectedGenreAtom,
   selectedMoodAtom,
@@ -62,6 +63,7 @@ export default function CreateScreen() {
   const [selectedMood, setSelectedMood] = useAtom(selectedMoodAtom);
   const [promptType, setPromptType] = useAtom(promptOrLyricsTypeAtom);
   const [textInput, setTextInput] = useAtom(textInputAtom);
+  const setLibraryTab = useSetAtom(libraryTabAtom);
   const { showAlert } = useAlert();
 
   const [generating, setGenerating] = useState(false);
@@ -103,21 +105,12 @@ export default function CreateScreen() {
         type: promptType,
       });
 
-      setUser(response.user);
+      if (response.user) setUser(response.user);
       setTextInput("");
 
-      showAlert(
-        "Song Created!",
-        `"${response.song.title}" is ready in your library.`,
-        [
-          {
-            text: "Listen Now",
-            onPress: () => {
-              router.push("/tabs/library");
-            },
-          },
-        ]
-      );
+      setLibraryTab("songs");
+      router.push("/tabs/library?tab=songs");
+      showAlert("Track Generating ⏳", `"${response?.song?.title || 'Your track'}" is being created! It will appear in your library when ready.`);
     } catch (e) {
       console.error("Music generation failed:", e);
       showAlert("Generation Failed", "Could not build track. Please try again.");

@@ -6,10 +6,12 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Dimensions,
+  Image,
 } from "react-native";
 import { useAtom } from "jotai";
 import { Ionicons } from "@expo/vector-icons";
 import { Audio } from "expo-av";
+import { usePathname, useRouter } from "expo-router";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -17,9 +19,16 @@ import Animated, {
   withSequence,
   withTiming,
   cancelAnimation,
+  Easing,
 } from "react-native-reanimated";
 
-import { activeTrackAtom, isPlayingAtom } from "@/src/state/atoms";
+import {
+  activeTrackAtom,
+  isPlayingAtom,
+  playbackPositionAtom,
+  playbackDurationAtom,
+} from "@/src/state/atoms";
+import { audioController } from "@/src/services/audioController";
 import { AppPalette as C } from "@/src/state/colors";
 import { useAppTheme } from "@/src/state/theme";
 import { downloadService } from "@/src/services/download";
@@ -68,11 +77,13 @@ export default function AudioPlayer() {
   const theme = useAppTheme();
   const [activeTrack, setActiveTrack] = useAtom(activeTrackAtom);
   const [isPlaying, setIsPlaying] = useAtom(isPlayingAtom);
+  const [position, setPosition] = useAtom(playbackPositionAtom);
+  const [duration, setDuration] = useAtom(playbackDurationAtom);
+  const pathname = usePathname();
+  const router = useRouter();
 
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [loading, setLoading] = useState(false);
-  const [position, setPosition] = useState(0);
-  const [duration, setDuration] = useState(0);
 
   const soundRef = useRef<Audio.Sound | null>(null);
 
@@ -91,7 +102,11 @@ export default function AudioPlayer() {
   const onPlaybackStatusUpdate = (status: any) => {
     if (status.isLoaded) {
       setPosition(status.positionMillis || 0);
-      setDuration(status.durationMillis || 0);
+      if (status.durationMillis && status.durationMillis > 0) {
+        setDuration(status.durationMillis);
+      } else if (activeTrack?.duration && duration === 0) {
+        setDuration(activeTrack.duration * 1000);
+      }
       
       // Update isPlaying if player finishes or triggers pause externally
       if (status.didJustFinish) {
@@ -136,6 +151,7 @@ export default function AudioPlayer() {
           (status) => onPlaybackStatusUpdateRef.current(status)
         );
         soundRef.current = newSound;
+        audioController.setSound(newSound);
         setSound(newSound);
       } catch (e) {
         console.error("Failed to load audio stream:", e);
@@ -149,10 +165,11 @@ export default function AudioPlayer() {
     // Cleanup hook
     return () => {
       if (soundRef.current) {
+        audioController.setSound(null);
         soundRef.current.unloadAsync().catch(() => {});
       }
     };
-  }, [activeTrack, isPlaying]);
+  }, [activeTrack?.id, activeTrack?._id, activeTrack?.url, activeTrack?.fileUrl, activeTrack?.localUri]);
 
   // Handle Play/Pause updates
   useEffect(() => {
@@ -170,6 +187,25 @@ export default function AudioPlayer() {
     }
     syncPlayback();
   }, [isPlaying, sound]);
+
+  // Mini vinyl rotation animation
+  const miniRotation = useSharedValue(0);
+
+  useEffect(() => {
+    if (isPlaying) {
+      miniRotation.value = withRepeat(
+        withTiming(miniRotation.value + 360, { duration: 10000, easing: Easing.linear }),
+        -1,
+        false
+      );
+    } else {
+      cancelAnimation(miniRotation);
+    }
+  }, [isPlaying]);
+
+  const animatedMiniDiskStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${miniRotation.value % 360}deg` }],
+  }));
 
   if (!activeTrack) return null;
 
@@ -201,11 +237,16 @@ export default function AudioPlayer() {
     setIsPlaying(false);
     setActiveTrack(null);
     if (soundRef.current) {
+      audioController.setSound(null);
       await soundRef.current.unloadAsync().catch(() => {});
       soundRef.current = null;
       setSound(null);
     }
   };
+
+  if (!activeTrack || pathname === "/music" || pathname === "/player") {
+    return null;
+  }
 
   return (
     <View style={[s.container, { backgroundColor: theme.colors.surfaceElevated, borderTopColor: theme.colors.border }]}>
@@ -221,28 +262,47 @@ export default function AudioPlayer() {
       </TouchableOpacity>
 
       <View style={s.playerRow}>
-        {/* Play controls */}
+        {/* Unified Spinning Vinyl Disk Play/Pause Button (Only ONE circle!) */}
         <TouchableOpacity
-          style={[s.playBtn, { backgroundColor: theme.colors.surface }]}
+          style={s.unifiedDiskBtn}
           onPress={() => setIsPlaying(!isPlaying)}
           disabled={loading}
+          activeOpacity={0.8}
         >
-          {loading ? (
-            <ActivityIndicator size="small" color={theme.colors.primary} />
-          ) : (
-            <Ionicons name={isPlaying ? "pause" : "play"} size={22} color={theme.colors.text} />
-          )}
+          <Animated.View style={[s.miniVinylDisk, animatedMiniDiskStyle]}>
+            <Image
+              source={{ uri: activeTrack.image || "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=600&auto=format&fit=crop&q=80" }}
+              style={s.miniCoverImage}
+            />
+            <View style={s.miniSpindleHole}>
+              <View style={s.miniSpindleCenter} />
+            </View>
+          </Animated.View>
+
+          {/* Upright Play/Pause Icon Overlay in Center of Disk */}
+          <View style={s.diskIconOverlay}>
+            {loading ? (
+              <ActivityIndicator size="small" color="#00FFA3" />
+            ) : (
+              <Ionicons
+                name={isPlaying ? "pause" : "play"}
+                size={18}
+                color="#FFFFFF"
+                style={isPlaying ? {} : { marginLeft: 2 }}
+              />
+            )}
+          </View>
         </TouchableOpacity>
 
-        {/* Track Title & Metadata */}
-        <View style={s.trackInfo}>
+        {/* Track Title & Metadata (Clickable to open Spotify Full-Screen Player) */}
+        <TouchableOpacity style={s.trackInfo} onPress={() => router.push("/music")} activeOpacity={0.8}>
           <Text style={[s.trackTitle, { color: theme.colors.text }]} numberOfLines={1}>
             {activeTrack.title}
           </Text>
           <Text style={[s.trackDuration, { color: theme.colors.mutedText }]}>
             {formatTime(position)} / {formatTime(duration)}
           </Text>
-        </View>
+        </TouchableOpacity>
 
         {/* Waveform Sound Visualizer (Active loops only when playing) */}
         <View style={s.visualizerGroup}>
@@ -292,13 +352,54 @@ const s = StyleSheet.create({
     alignItems: "center",
     marginTop: 4,
   },
-  playBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+  unifiedDiskBtn: {
+    width: 44,
+    height: 44,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
+    position: "relative",
+  },
+  miniVinylDisk: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#0C110F",
+    borderWidth: 1.5,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  miniCoverImage: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+  },
+  miniSpindleHole: {
+    position: "absolute",
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#050D0A",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  miniSpindleCenter: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: "#00FFA3",
+  },
+  diskIconOverlay: {
+    position: "absolute",
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(5, 13, 10, 0.65)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   trackInfo: {
     flex: 1,

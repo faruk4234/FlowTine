@@ -85,6 +85,8 @@ export interface Track {
 
 export const activeTrackAtom = atom<Track | null>(null);
 export const isPlayingAtom = atom<boolean>(false);
+export const playbackPositionAtom = atom<number>(0);
+export const playbackDurationAtom = atom<number>(0);
 
 export const downloadedTrackIdsAtom = atom<string[]>([]);
 export const downloadingTrackIdsAtom = atom<string[]>([]);

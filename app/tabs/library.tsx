@@ -1,6 +1,6 @@
 import { ActionButton, Header, SegmentedControl } from "@/src/components";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useAtom, useSetAtom } from "jotai";
 import React, { useEffect, useState } from "react";
 import {
@@ -132,6 +132,14 @@ export default function LibraryScreen() {
     }
   }, [activeTab]);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      if (activeTab === "songs") {
+        fetchSongs();
+      }
+    }, [activeTab])
+  );
+
   useEffect(() => {
     const unsubscribe = centrifugoService.onMusicReady((data) => {
       console.log("🔄 [LibraryScreen] Music ready socket publication received, refetching...", data);
@@ -148,10 +156,12 @@ export default function LibraryScreen() {
       return;
     }
     if (activeTrack && (activeTrack.id === songId || activeTrack._id === songId)) {
-      setIsPlaying(!isPlaying);
+      if (!isPlaying) setIsPlaying(true);
+      router.push("/music");
     } else {
       setActiveTrack({ ...song, id: songId, url: song.fileUrl || song.url });
       setIsPlaying(true);
+      router.push("/music");
     }
   };
 

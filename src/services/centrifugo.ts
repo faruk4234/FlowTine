@@ -23,9 +23,11 @@ class CentrifugoService {
         return;
       }
 
-      const wsUrl = res.url || process.env.EXPO_PUBLIC_CENTRIFUGO_URL || 'ws://localhost:8000/connection/websocket';
+      console.log('⚡ [Centrifugo] Socket token response received:', JSON.stringify(res, null, 2));
+
+      const wsUrl = res.wsUrl || res.url || process.env.EXPO_PUBLIC_CENTRIFUGO_URL || 'wss://websocket.cekolabs.com/connection/websocket';
       const token = res.token || res.access_token;
-      const channel = res.channel || (res.user ? `user:${res.user._id || res.user.id}` : null) || 'music_updates';
+      const channel = res.channel || (res.user ? `user:${res.user._id || res.user.id}` : null) || 'music';
 
       if (this.centrifuge) {
         this.centrifuge.disconnect();
@@ -36,20 +38,33 @@ class CentrifugoService {
       });
 
       this.centrifuge.on('connected', (ctx) => {
-        console.log('⚡ [Centrifugo] Connected to real-time server:', ctx);
+        console.log('⚡ [Centrifugo] Connected to real-time WebSocket server:', ctx);
       });
 
       this.centrifuge.on('disconnected', (ctx) => {
         console.log('⚠️ [Centrifugo] Disconnected:', ctx);
       });
 
-      if (channel) {
-        this.subscription = this.centrifuge.newSubscription(channel);
-        this.subscription.on('publication', (ctx: any) => {
-          console.log('🎵 [Centrifugo] Real-time publication received on channel:', channel, ctx.data);
-          this.notifyListeners(ctx.data);
-        });
-        this.subscription.subscribe();
+      // Listen for server-side subscription publications
+      this.centrifuge.on('publication', (ctx: any) => {
+        console.log('🎵 [Centrifugo] Server-side music publication received on channel:', ctx.channel, ctx.data);
+        this.notifyListeners(ctx.data);
+      });
+
+      // Subscribe to client-side channels if specified
+      const channelsToSub = res.channels || [channel, 'music'];
+      for (const ch of new Set<string>(channelsToSub as string[])) {
+        if (!ch || typeof ch !== 'string') continue;
+        try {
+          const sub = this.centrifuge.newSubscription(ch);
+          sub.on('publication', (ctx: any) => {
+            console.log('🎵 [Centrifugo] Client-side music publication received on channel:', ch, ctx.data);
+            this.notifyListeners(ctx.data);
+          });
+          sub.subscribe();
+        } catch (subErr) {
+          console.warn('⚠️ [Centrifugo] Failed to subscribe to channel:', ch, subErr);
+        }
       }
 
       this.centrifuge.connect();
