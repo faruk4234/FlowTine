@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Modal, StyleSheet, Text, View, TouchableWithoutFeedback } from 'react-native';
+import { Modal, StyleSheet, Text, View, TouchableWithoutFeedback, Image } from 'react-native';
 import { useAppTheme, BorderRadius, Spacing } from '@/src/state/theme';
 import { ActionButton } from '@/src/components';
 import { AppPalette as C } from '@/src/state/colors';
@@ -14,10 +14,11 @@ type AlertOptions = {
   title: string;
   message?: string;
   buttons?: AlertButton[];
+  imageUrl?: string;
 };
 
 type AlertContextType = {
-  showAlert: (title: string, message?: string, buttons?: AlertButton[]) => void;
+  showAlert: (title: string, message?: string, buttons?: AlertButton[], imageUrl?: string) => void;
 };
 
 const AlertContext = createContext<AlertContextType | undefined>(undefined);
@@ -33,8 +34,8 @@ export const AlertProvider = ({ children }: { children: ReactNode }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [options, setOptions] = useState<AlertOptions | null>(null);
 
-  const showAlert = (title: string, message?: string, buttons?: AlertButton[]) => {
-    setOptions({ title, message, buttons });
+  const showAlert = (title: string, message?: string, buttons?: AlertButton[], imageUrl?: string) => {
+    setOptions({ title, message, buttons, imageUrl });
     setIsVisible(true);
   };
 
@@ -64,6 +65,11 @@ export const AlertProvider = ({ children }: { children: ReactNode }) => {
           <View style={styles.overlay}>
             <TouchableWithoutFeedback>
               <View style={[styles.dialog, { backgroundColor: theme.colors.surfaceElevated }]}>
+                {options?.imageUrl && (
+                  <View style={styles.imageContainer}>
+                    <Image source={{ uri: options.imageUrl }} style={styles.circleImage} />
+                  </View>
+                )}
                 {options?.title && (
                   <Text style={[styles.title, { color: theme.colors.text }]}>
                     {options.title}
@@ -126,6 +132,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 10,
+  },
+  imageContainer: {
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  circleImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2,
+    borderColor: '#00FFA3',
   },
   title: {
     fontSize: 18,

@@ -51,7 +51,23 @@ const VOICES = [
 
 const MOODS = ["Energetic", "Chill", "Melancholy", "Happy", "Dark", "Dreamy", "Mysterious"];
 
-
+async function checkOnline(): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 3000);
+    const res = await fetch('https://clients3.google.com/generate_204', {
+      method: 'HEAD',
+      signal: controller.signal,
+      cache: 'no-store',
+    }).catch(async () => {
+      return await fetch('http://localhost:3000', { method: 'HEAD', signal: controller.signal, cache: 'no-store' });
+    });
+    clearTimeout(id);
+    return res ? (res.status === 204 || res.ok || res.status === 404 || res.status === 200) : false;
+  } catch (e) {
+    return false;
+  }
+}
 
 export default function CreateScreen() {
   const theme = useAppTheme();
@@ -76,7 +92,39 @@ export default function CreateScreen() {
     if (!selectedMood) setSelectedMood("Energetic");
   }, [selectedGenre, selectedVoice, selectedMood, setSelectedGenre, setSelectedVoice, setSelectedMood]);
 
+  const handleZeroCredits = () => {
+    const isPrem = user?.isPremium || (user?.limits?.premiumCredit !== undefined && user?.limits?.premiumCredit > 0);
+    if (isPrem) {
+      router.push("/tabs/profile?openCredits=true");
+    } else {
+      router.push("/paywall?type=credits");
+    }
+  };
+
   const handleGenerate = async () => {
+    const isOnline = await checkOnline();
+    if (!isOnline) {
+      showAlert(
+        "No Connection 📡",
+        "You seem to be offline. Please check your internet connection.",
+        [
+          {
+            text: "Try Again",
+            onPress: () => {
+              setTimeout(() => {
+                handleGenerate();
+              }, 300);
+            },
+          },
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+        ]
+      );
+      return;
+    }
+
     if (!selectedGenre) {
       showAlert("Select Genre", "Please pick a musical genre first.");
       return;
@@ -90,9 +138,9 @@ export default function CreateScreen() {
       return;
     }
 
-    const credits = user?.limits?.credit ?? 0;
-    if (credits <= 0) {
-      router.push("/paywall?type=credits");
+    const totalCredits = (user?.limits?.credit ?? 0) + (user?.limits?.premiumCredit ?? 0);
+    if (totalCredits <= 0) {
+      handleZeroCredits();
       return;
     }
 
@@ -105,8 +153,30 @@ export default function CreateScreen() {
         type: promptType,
       });
 
-      if (response.user) setUser(response.user);
+      let updatedUser = response.user ? JSON.parse(JSON.stringify(response.user)) : (user ? JSON.parse(JSON.stringify(user)) : null);
+      if (updatedUser && user) {
+        const prevTotal = (user.limits?.credit ?? 0) + (user.limits?.premiumCredit ?? 0);
+        const newTotal = (updatedUser.limits?.credit ?? 0) + (updatedUser.limits?.premiumCredit ?? 0);
+        if (newTotal >= prevTotal && prevTotal > 0) {
+          if ((updatedUser.limits?.premiumCredit || 0) > 0) {
+            updatedUser.limits.premiumCredit -= 1;
+          } else if ((updatedUser.limits?.credit || 0) > 0) {
+            updatedUser.limits.credit -= 1;
+          }
+        }
+      }
+      if (updatedUser) {
+        setUser(updatedUser);
+      }
       setTextInput("");
+
+      const remainingCredits = (updatedUser?.limits?.credit ?? 0) + (updatedUser?.limits?.premiumCredit ?? 0);
+      if (remainingCredits <= 0) {
+        setTimeout(() => {
+          handleZeroCredits();
+        }, 1000);
+        return;
+      }
 
       setLibraryTab("songs");
       router.push("/tabs/library?tab=songs");

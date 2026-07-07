@@ -1,5 +1,6 @@
-import { create } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { create } from 'axios';
+import { Platform } from 'react-native';
 
 // Default to localhost:3000 as specified in aimusic.json Postman collection
 const API_URL = 'http://localhost:3000';
@@ -16,10 +17,10 @@ export function setAuthToken(token: string | null) {
   currentToken = token;
   if (token) {
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    AsyncStorage.setItem('api_token', token).catch(() => {});
+    AsyncStorage.setItem('api_token', token).catch(() => { });
   } else {
     delete api.defaults.headers.common['Authorization'];
-    AsyncStorage.removeItem('api_token').catch(() => {});
+    AsyncStorage.removeItem('api_token').catch(() => { });
   }
 }
 
@@ -32,7 +33,7 @@ api.interceptors.request.use(async (config) => {
         currentToken = savedToken;
         config.headers.Authorization = `Bearer ${savedToken}`;
       }
-    } catch (e) {}
+    } catch (e) { }
   } else if (!config.headers.Authorization) {
     config.headers.Authorization = `Bearer ${currentToken}`;
   }
@@ -46,11 +47,18 @@ const MOCK_STORAGE_KEYS = {
 };
 
 const DEFAULT_MOCK_USER = {
+  _id: '6a462ef8db75df2c904617a6',
   deviceId: '',
   isPremium: false,
+  isAdmin: false,
+  platform: 'unknown',
+  createdAt: '2026-07-02T09:27:20.345Z',
+  updatedAt: '2026-07-02T09:27:20.345Z',
   limits: {
-    credit: 5,
     premiumCredit: 0,
+    credit: 5,
+    rewardAdCount: 10,
+    watchAdCount: 0,
   },
 };
 
@@ -78,7 +86,10 @@ async function getMockUser(deviceId: string) {
     const parsed = JSON.parse(raw);
     if (parsed.deviceId === deviceId) return parsed;
   }
-  const newUser = { ...DEFAULT_MOCK_USER, deviceId };
+  const platform = Platform.OS;
+  const version = '1.0.0';
+  const country = Intl.DateTimeFormat().resolvedOptions().timeZone?.split('/')[0] || 'US';
+  const newUser = { ...DEFAULT_MOCK_USER, deviceId, platform, version, country };
   await AsyncStorage.setItem(MOCK_STORAGE_KEYS.user, JSON.stringify(newUser));
   return newUser;
 }
@@ -101,7 +112,11 @@ export const apiService = {
   // 1. Auth: Login / Register by Device ID (POST /auth/login)
   authenticateDevice: async (deviceId: string) => {
     try {
-      const response = await api.post('/auth/login', { deviceId });
+      const platform = Platform.OS;
+      const version = '1.0.0';
+      const country = Intl.DateTimeFormat().resolvedOptions().timeZone?.split('/')[0] || 'US';
+      console.log(`🔑 [Auth] Authenticating device with info:`, { deviceId, platform, version, country });
+      const response = await api.post('/auth/login', { deviceId, platform, version, country });
       const data = response.data;
       const token = data.access_token || data.token || data.jwt;
       if (token) {
@@ -176,7 +191,7 @@ export const apiService = {
     } catch (e) {
       console.warn('⚠️ [API Service] /music/create failed, falling back to mock generation:', e);
       await new Promise((resolve) => setTimeout(resolve, 2000));
-      
+
       const mockUser = await getMockUser('mock_device');
       if (mockUser.limits.credit <= 0 && (!mockUser.limits.premiumCredit || mockUser.limits.premiumCredit <= 0)) {
         throw new Error('No credit remaining...');
@@ -191,7 +206,7 @@ export const apiService = {
 
       const songId = `song_${Date.now()}`;
       const title = payload.title || (payload.prompt ? payload.prompt.slice(0, 20) + ' ' + payload.genre : `AI Track (${payload.genre})`);
-      
+
       const newSong = {
         id: songId,
         title: title.trim(),
@@ -212,7 +227,7 @@ export const apiService = {
       setTimeout(() => {
         import('./centrifugo').then((m) => {
           m.centrifugoService.simulateMusicReady(newSong);
-        }).catch(() => {});
+        }).catch(() => { });
       }, 3000);
 
       return {

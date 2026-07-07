@@ -17,10 +17,12 @@ export default function TabsLayout() {
 
     const unsubscribe = centrifugoService.onMusicReady((data) => {
       console.log('🎉 [TabsLayout] Real-time Music Ready publication received:', data);
-      const trackTitle = data?.track?.title || data?.title || 'Your AI Track';
+      const track = data?.track || data;
+      const trackTitle = track?.title || data?.title || 'Your AI Track';
+      const trackImage = track?.image || data?.image || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=600&auto=format&fit=crop&q=80';
       showAlert(
         'Music Ready! 🎵',
-        `"${trackTitle}" has finished generating and is now ready to play!`,
+        `"${trackTitle}" is now ready to play!`,
         [
           {
             text: 'Listen Now',
@@ -32,7 +34,8 @@ export default function TabsLayout() {
             text: 'Close',
             style: 'cancel',
           },
-        ]
+        ],
+        trackImage
       );
     });
 

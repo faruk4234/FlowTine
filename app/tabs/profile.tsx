@@ -4,16 +4,15 @@ import { LEGAL_URLS } from "@/src/legal/urls";
 import { useAlert } from "@/src/providers/alert-provider";
 import {
   isPremiumAtom,
-  themeModeAtom,
-  userAtom,
+  userAtom
 } from "@/src/state/atoms";
-import { AppPalette as C, type ThemeMode } from "@/src/state/colors";
+import { AppPalette as C } from "@/src/state/colors";
 import { BorderRadius, Spacing, useAppTheme } from "@/src/state/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useAtom, useAtomValue } from "jotai";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Linking,
   Platform,
@@ -43,7 +42,15 @@ export default function ProfileScreen() {
 
   const [user, setUser] = useAtom(userAtom);
   const isPremium = useAtomValue(isPremiumAtom);
-  const [themeMode, setThemeMode] = useAtom(themeModeAtom);
+
+  const params = useLocalSearchParams<{ openCredits?: string; tab?: string }>();
+  useEffect(() => {
+    if (params?.openCredits === "true" || params?.tab === "credits") {
+      setShowCreditDropdown(true);
+    }
+  }, [params?.openCredits, params?.tab]);
+
+  const totalCredits = (user?.limits?.credit ?? 0) + (user?.limits?.premiumCredit ?? 0);
 
   const handleGoPremium = () => {
     router.push("/paywall");
@@ -103,11 +110,7 @@ export default function ProfileScreen() {
     }
   }, []);
 
-  const cycleTheme = () => {
-    const modes: ThemeMode[] = ["system", "light", "dark"];
-    const nextIndex = (modes.indexOf(themeMode) + 1) % modes.length;
-    setThemeMode(modes[nextIndex]);
-  };
+
 
   return (
     <View style={[s.root, { backgroundColor: theme.colors.background }]}>
@@ -160,7 +163,7 @@ export default function ProfileScreen() {
                     <Ionicons name="flash" size={16} color="#FFF" />
                   </View>
                   <Text style={[s.creditCount, { color: theme.colors.text }]}>
-                    {user?.limits?.credit ?? 0}
+                    {totalCredits}
                   </Text>
                 </View>
               </View>
@@ -212,21 +215,6 @@ export default function ProfileScreen() {
                 />
               </View>
             )}
-          </View>
-
-          {/* Theme Settings Section */}
-          <Text style={[s.sectionTitle, { color: theme.colors.mutedText }]}>PREFERENCES</Text>
-          <View style={[s.optionsGroup, { backgroundColor: theme.colors.surface }]}>
-            <TouchableOpacity style={s.row} onPress={cycleTheme} activeOpacity={0.7}>
-              <Ionicons name="color-palette-outline" size={20} color={theme.colors.text} style={s.rowIcon} />
-              <View style={{ flex: 1 }}>
-                <Text style={[s.rowTitle, { color: theme.colors.text }]}>App Theme</Text>
-                <Text style={[s.rowValue, { color: theme.colors.primary }]}>
-                  {themeMode.charAt(0).toUpperCase() + themeMode.slice(1)}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={theme.colors.mutedText} />
-            </TouchableOpacity>
           </View>
 
           {/* Support & Legal Actions Section */}

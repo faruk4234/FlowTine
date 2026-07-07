@@ -9,11 +9,22 @@ const themeStorage = createJSONStorage<ThemeMode>(() => AsyncStorage);
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface UserState {
+  _id?: string;
   deviceId: string;
   isPremium: boolean;
+  isAdmin?: boolean;
+  platform?: string;
+  country?: string;
+  version?: string;
+  createdAt?: string;
+  updatedAt?: string;
   limits: {
     credit: number;
+    premiumCredit?: number;
+    rewardAdCount?: number;
+    watchAdCount?: number;
   };
+  [key: string]: any;
 }
 
 export interface SavedLyrics {
