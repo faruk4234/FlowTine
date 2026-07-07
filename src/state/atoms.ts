@@ -57,21 +57,40 @@ export const savedLyricsAtom = atomWithStorage<SavedLyrics[]>(
 
 // ─── Shared Audio Player Atoms ───────────────────────────────────────────────
 export const editingLyricAtom = atom<SavedLyrics | null>(null);
+
+export enum statusMusic {
+  REQUESTED = 'requested',
+  PENDING = 'pending',
+  DONE = 'done',
+  ERROR = 'error'
+}
+
 export interface Track {
   id: string;
+  _id?: string;
   title: string;
-  url: string;
+  url?: string;
+  fileUrl?: string;
+  localUri?: string;
+  image?: string;
+  status?: statusMusic | string;
+  isDeleted?: boolean;
   lyrics?: string;
-  duration: number;
+  duration?: number;
   genre?: string;
   voice?: string;
+  createdAt?: any;
+  updatedAt?: any;
 }
 
 export const activeTrackAtom = atom<Track | null>(null);
 export const isPlayingAtom = atom<boolean>(false);
 
+export const downloadedTrackIdsAtom = atom<string[]>([]);
+export const downloadingTrackIdsAtom = atom<string[]>([]);
+
 // ─── Compatibility derived atom for app/_layout.tsx RevenueCat sync ──────────
-export const isPremiumAtom = atom<boolean>(
+export const isPremiumAtom = atom(
   (get) => {
     const user = get(userAtom);
     return user ? user.isPremium : false;

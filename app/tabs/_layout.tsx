@@ -1,12 +1,45 @@
 import AudioPlayer from '@/src/components/AudioPlayer';
 import { useAppTheme } from '@/src/state/theme';
+import { useAlert } from '@/src/providers/alert-provider';
+import { centrifugoService } from '@/src/services/centrifugo';
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { Tabs, useRouter } from 'expo-router';
+import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 export default function TabsLayout() {
   const theme = useAppTheme();
+  const { showAlert } = useAlert();
+  const router = useRouter();
+
+  useEffect(() => {
+    centrifugoService.connect();
+
+    const unsubscribe = centrifugoService.onMusicReady((data) => {
+      console.log('🎉 [TabsLayout] Real-time Music Ready publication received:', data);
+      const trackTitle = data?.track?.title || data?.title || 'Your AI Track';
+      showAlert(
+        'Music Ready! 🎵',
+        `"${trackTitle}" has finished generating and is now ready to play!`,
+        [
+          {
+            text: 'Listen Now',
+            onPress: () => {
+              router.push('/tabs/library');
+            },
+          },
+          {
+            text: 'Close',
+            style: 'cancel',
+          },
+        ]
+      );
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   return (
     <View style={s.container}>

@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { userAtom, hasCompletedOnboardingAtom } from '@/src/state/atoms';
 import { apiService } from '@/src/services/api';
+import { centrifugoService } from '@/src/services/centrifugo';
 import { Colors } from '@/src/state/colors';
 import { Typography } from '@/src/state/theme';
 
@@ -66,6 +67,7 @@ export default function Index() {
         const deviceId = await getOrGenerateDeviceId();
         const userData = await apiService.authenticateDevice(deviceId);
         setUser(userData);
+        centrifugoService.connect();
         
         // Wait briefly for smooth transition
         setTimeout(() => {

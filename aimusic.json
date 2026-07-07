@@ -1,0 +1,406 @@
+{
+	"info": {
+		"_postman_id": "cdb54b0a-b339-41f6-a218-4fa4c00533ca",
+		"name": "AI Music Backend API",
+		"description": "Comprehensive Postman collection for the AI Music NestJS Backend. Includes endpoints for Authentication, Users, AppConfig, Music Generation (Gemini & GCP), and Payments (Subscriptions & One-time packages).",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "25694163",
+		"_collection_link": "https://voodoo-4972.postman.co/workspace/monvance~0501bd7a-a8fb-4092-b3ed-f21709f74036/collection/25694163-cdb54b0a-b339-41f6-a218-4fa4c00533ca?action=share&source=collection_link&creator=25694163"
+	},
+	"item": [
+		{
+			"name": "1. Auth",
+			"item": [
+				{
+					"name": "Login / Register by Device ID",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"deviceId\": \"test-device-uuid-123456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"description": "Authenticates a user by their unique device ID. If the user does not exist, a new user account is created. Returns an `access_token` and sets an Authorization cookie. Copy the token to your collection variables."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2. Users",
+			"item": [
+				{
+					"name": "Get My Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"me"
+							]
+						},
+						"description": "Retrieves the authenticated user's profile, including platform, premium status, and credit limits (`premiumCredit`, `credit`, etc.)."
+					},
+					"response": []
+				},
+				{
+					"name": "get socket token",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users/socket",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"socket"
+							]
+						},
+						"description": "Retrieves the authenticated user's profile, including platform, premium status, and credit limits (`premiumCredit`, `credit`, etc.)."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"platform\": \"android\",\n  \"country\": \"US\",\n  \"version\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/update",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"update"
+							]
+						},
+						"description": "Updates the user's profile information (platform, country code, app version)."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3. AppConfig",
+			"item": [
+				{
+					"name": "Get Public Configs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/app-config/public",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"app-config",
+								"public"
+							]
+						},
+						"description": "Retrieves all application configuration items where `public: true`. Does not require authentication."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "4. Music",
+			"item": [
+				{
+					"name": "Create Music (From Prompt)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"input\": \"Upbeat electronic synthwave track with energetic synthesizer melodies, driving drum rhythm, and futuristic cyberpunk atmosphere\",\n  \"type\": \"prompt\",\n  \"genre\": \"synthwave\",\n  \"voice\": \"instrumental\",\n  \"title\": \"Cyber City Midnight\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/music/create",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"music",
+								"create"
+							]
+						},
+						"description": "Requests AI music generation from a text prompt. \n\n**Credit Check Rule:** Decrements `limits.premiumCredit` if available, otherwise decrements `limits.credit`. If no credits remain, returns `400 Bad Request` with `{ code: 1001, message: 'No credit remaining...' }`.\n\nReturns the initial music track object with status `'requested'` and `duration: 180` (3 minutes). Processing continues in background to upload the generated audio file to GCP Cloud Storage bucket `'vybe-storage'` and transition status to `'done'`."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Music (From Lyrics)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"input\": \"lets dans baby lets dance dance and twerk give u to me u ass !\",\n  \"type\": \"lycris\",\n  \"genre\": \"rap\",\n  \"voice\": \"female\",\n  \"title\": \"Shining Bright Tonight\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/music/create",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"music",
+								"create"
+							]
+						},
+						"description": "Requests AI music generation using lyrics (`type: 'lycris'`). In the background, Vertex AI Gemini API combines the genre, vocal style, and lyrics into an enhanced music generation prompt."
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Music Tracks",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/music",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"music"
+							]
+						},
+						"description": "Retrieves all non-deleted (`isDeleted: false` / null) music tracks created by the authenticated user, sorted by newest first."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Music Track (DELETE)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/music/6683fa123456789abcdef012",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"music",
+								"6683fa123456789abcdef012"
+							]
+						},
+						"description": "Soft-deletes a music track by setting `isDeleted: true` on the database document."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "5. Payments",
+			"item": [
+				{
+					"name": "Create / Validate Subscription Purchase",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"platform\": \"android\",\n  \"sku\": \"premium_monthly\",\n  \"packageName\": \"com.vybe.aimusic\",\n  \"purchaseToken\": \"test_google_play_purchase_token_12345\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/payments/create",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"payments",
+								"create"
+							]
+						},
+						"description": "Validates a subscription purchase (Google Play or Apple App Store). On validation success, sets `isPremium: true` and grants `limits.premiumCredit: 10`."
+					},
+					"response": []
+				},
+				{
+					"name": "Restore Subscription Purchase",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"platform\": \"ios\",\n  \"sku\": \"premium_monthly\",\n  \"transactionId\": \"1000000123456789\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/payments/restore",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"payments",
+								"restore"
+							]
+						},
+						"description": "Validates and restores an existing subscription receipt, ensuring the user retains premium status and credits."
+					},
+					"response": []
+				},
+				{
+					"name": "Consume One-Time Credit Package",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"platform\": \"android\",\n  \"sku\": \"credit_10\",\n  \"packageName\": \"com.vybe.aimusic\",\n  \"purchaseToken\": \"test_onetime_purchase_token_9999\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/payments/one-time",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"payments",
+								"one-time"
+							]
+						},
+						"description": "Validates and consumes a one-time credit purchase (`credit_1`, `credit_5`, or `credit_10`). Adds the corresponding number of credits to `user.limits.credit` and sets `isPremium: true`."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "6. General",
+			"item": [
+				{
+					"name": "Health Check / Hello World",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								""
+							]
+						},
+						"description": "Basic health check endpoint returning 'Hello World!'."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "your_jwt_access_token_here",
+			"type": "string"
+		}
+	]
+}

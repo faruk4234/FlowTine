@@ -1,25 +1,7 @@
 // Profile Screen - Collapsible Credits v2
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
-import { useAtom, useAtomValue } from "jotai";
-import React, { useCallback, useState } from "react";
-import {
-  Alert,
-  Linking,
-  Platform,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import Purchases from "react-native-purchases";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { ActionButton, Header } from "@/src/components";
-import { useAlert } from "@/src/providers/alert-provider";
 import { LEGAL_URLS } from "@/src/legal/urls";
+import { useAlert } from "@/src/providers/alert-provider";
 import {
   isPremiumAtom,
   themeModeAtom,
@@ -27,6 +9,23 @@ import {
 } from "@/src/state/atoms";
 import { AppPalette as C, type ThemeMode } from "@/src/state/colors";
 import { BorderRadius, Spacing, useAppTheme } from "@/src/state/theme";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+import { useAtom, useAtomValue } from "jotai";
+import React, { useCallback, useState } from "react";
+import {
+  Linking,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from "react-native";
+import Purchases from "react-native-purchases";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const CREDIT_OPTIONS = [
   { songs: 1, price: "$2.00" },

@@ -22,6 +22,7 @@ import Animated, {
 import { activeTrackAtom, isPlayingAtom } from "@/src/state/atoms";
 import { AppPalette as C } from "@/src/state/colors";
 import { useAppTheme } from "@/src/state/theme";
+import { downloadService } from "@/src/services/download";
 
 const { width } = Dimensions.get("window");
 
@@ -75,6 +76,17 @@ export default function AudioPlayer() {
 
   const soundRef = useRef<Audio.Sound | null>(null);
 
+  // Configure background audio mode
+  useEffect(() => {
+    Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      staysActiveInBackground: true,
+      playsInSilentModeIOS: true,
+      shouldDuckAndroid: true,
+      playThroughEarpieceAndroid: false,
+    }).catch((err) => console.warn("Failed to set background audio mode:", err));
+  }, []);
+
   // Synchronize playback status updates
   const onPlaybackStatusUpdate = (status: any) => {
     if (status.isLoaded) {
@@ -108,8 +120,18 @@ export default function AudioPlayer() {
       }
 
       try {
+        const trackId = activeTrack._id || activeTrack.id;
+        const localPath = trackId ? await downloadService.checkLocalFile(trackId) : null;
+        const targetUri = localPath || activeTrack.localUri || activeTrack.fileUrl || activeTrack.url;
+        if (!targetUri) {
+          console.warn("No audio URI available for track:", activeTrack.title);
+          setLoading(false);
+          return;
+        }
+
+        console.log(`🎵 [AudioPlayer] Loading track "${activeTrack.title}" from:`, localPath ? "Local Storage 📱" : "Remote URL 🌐");
         const { sound: newSound } = await Audio.Sound.createAsync(
-          { uri: activeTrack.url },
+          { uri: targetUri },
           { shouldPlay: isPlaying },
           (status) => onPlaybackStatusUpdateRef.current(status)
         );

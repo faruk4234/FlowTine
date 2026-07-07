@@ -6,6 +6,7 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -16,13 +17,18 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAlert } from "@/src/providers/alert-provider";
 import { apiService } from "@/src/services/api";
+import { downloadService } from "@/src/services/download";
+import { centrifugoService } from "@/src/services/centrifugo";
 import {
   activeTrackAtom,
+  downloadedTrackIdsAtom,
+  downloadingTrackIdsAtom,
   editingLyricAtom,
   isPlayingAtom,
   libraryTabAtom,
   promptOrLyricsTypeAtom,
   savedLyricsAtom,
+  statusMusic,
   textInputAtom,
   type SavedLyrics,
   type Track,
@@ -87,6 +93,8 @@ export default function LibraryScreen() {
   };
   const [activeTrack, setActiveTrack] = useAtom(activeTrackAtom);
   const [isPlaying, setIsPlaying] = useAtom(isPlayingAtom);
+  const [downloadedIds, setDownloadedIds] = useAtom(downloadedTrackIdsAtom);
+  const [downloadingIds, setDownloadingIds] = useAtom(downloadingTrackIdsAtom);
 
   const [songs, setSongs] = useState<Track[]>([]);
   const [loadingSongs, setLoadingSongs] = useState(false);
@@ -95,8 +103,21 @@ export default function LibraryScreen() {
     setLoadingSongs(true);
     try {
       const data = await apiService.getUserSongs();
-      // Ensure data maps correctly to Track structure
-      setSongs(data);
+      const formatted = (data || []).map((s: any) => ({
+        ...s,
+        id: s._id || s.id,
+        url: s.fileUrl || s.url,
+      }));
+      setSongs(formatted);
+
+      // Check which tracks exist locally for offline playback
+      const validDownloaded: string[] = [];
+      for (const song of formatted) {
+        if (song.id && await downloadService.checkLocalFile(song.id)) {
+          validDownloaded.push(song.id);
+        }
+      }
+      setDownloadedIds((prev) => Array.from(new Set([...prev, ...validDownloaded])));
     } catch (e) {
       console.error("Failed to fetch generated songs:", e);
       showAlert("Fetch Failed", "Could not load generated songs. Please pull to refresh.");
@@ -111,13 +132,87 @@ export default function LibraryScreen() {
     }
   }, [activeTab]);
 
+  useEffect(() => {
+    const unsubscribe = centrifugoService.onMusicReady((data) => {
+      console.log("🔄 [LibraryScreen] Music ready socket publication received, refetching...", data);
+      fetchSongs();
+    });
+    return () => unsubscribe();
+  }, []);
+
   const handlePlaySong = (song: Track) => {
-    if (activeTrack?.id === song.id) {
+    const songId = song._id || song.id;
+    const status = song.status;
+    if (status && status !== statusMusic.DONE && status !== "done") {
+      showAlert("Track Processing ⏳", `"${song.title}" is currently generating. We'll notify you when it's ready!`);
+      return;
+    }
+    if (activeTrack && (activeTrack.id === songId || activeTrack._id === songId)) {
       setIsPlaying(!isPlaying);
     } else {
-      setActiveTrack(song);
+      setActiveTrack({ ...song, id: songId, url: song.fileUrl || song.url });
       setIsPlaying(true);
     }
+  };
+
+  const handleDownloadSong = async (song: Track, e: any) => {
+    e.stopPropagation();
+    const songId = song._id || song.id;
+    if (!songId) return;
+    const status = song.status;
+    if (status && status !== statusMusic.DONE && status !== "done") {
+      showAlert("Not Ready", "Please wait for AI generation to finish before downloading.");
+      return;
+    }
+    if (downloadedIds.includes(songId)) {
+      showAlert("Already Saved 📱", `"${song.title}" is available offline on your device!`);
+      return;
+    }
+    if (downloadingIds.includes(songId)) return;
+
+    setDownloadingIds((prev) => [...prev, songId]);
+    const localUri = await downloadService.downloadTrack(song);
+    setDownloadingIds((prev) => prev.filter((id) => id !== songId));
+
+    if (localUri) {
+      setDownloadedIds((prev) => Array.from(new Set([...prev, songId])));
+      showAlert("Downloaded Offline 📱", `"${song.title}" is saved locally for offline listening!`);
+    } else {
+      showAlert("Download Failed", "Could not save track to local storage.");
+    }
+  };
+
+  const handleDeleteSong = (song: Track, e: any) => {
+    e.stopPropagation();
+    const songId = song._id || song.id;
+    if (!songId) return;
+
+    showAlert(
+      "Delete Track",
+      `Are you sure you want to permanently delete "${song.title}"?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await apiService.deleteSong(songId);
+              await downloadService.deleteLocalFile(songId);
+              setDownloadedIds((prev) => prev.filter((id) => id !== songId));
+              setSongs((prev) => prev.filter((s) => (s._id || s.id) !== songId));
+              if (activeTrack && (activeTrack._id || activeTrack.id) === songId) {
+                setActiveTrack(null);
+                setIsPlaying(false);
+              }
+            } catch (err) {
+              console.error("Delete failed:", err);
+              showAlert("Error", "Could not delete track.");
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -159,10 +254,16 @@ export default function LibraryScreen() {
           ) : (
             <ScrollView contentContainerStyle={s.listContent} showsVerticalScrollIndicator={false}>
               {songs.map((song) => {
-                const isCurrent = activeTrack?.id === song.id;
+                const songId = song._id || song.id;
+                const isCurrent = activeTrack && (activeTrack.id === songId || activeTrack._id === songId);
+                const isReady = !song.status || song.status === statusMusic.DONE || song.status === "done";
+                const isErr = song.status === statusMusic.ERROR || song.status === "error";
+                const isDownloaded = downloadedIds.includes(songId);
+                const isDownloading = downloadingIds.includes(songId);
+
                 return (
                   <TouchableOpacity
-                    key={song.id}
+                    key={songId}
                     style={[
                       s.songCard,
                       { backgroundColor: theme.colors.surface },
@@ -171,13 +272,27 @@ export default function LibraryScreen() {
                     onPress={() => handlePlaySong(song)}
                     activeOpacity={0.85}
                   >
-                    <View style={[s.playCircle, { backgroundColor: theme.colors.surfaceElevated }]}>
-                      <Ionicons
-                        name={isCurrent && isPlaying ? "pause" : "play"}
-                        size={20}
-                        color={isCurrent ? theme.colors.primary : theme.colors.text}
-                      />
+                    <View style={[s.playCircle, { backgroundColor: theme.colors.surfaceElevated, overflow: "hidden" }]}>
+                      {song.image ? (
+                        <>
+                          <Image source={{ uri: song.image }} style={s.coverImage} />
+                          <View style={s.imageOverlay}>
+                            <Ionicons
+                              name={isCurrent && isPlaying ? "pause" : "play"}
+                              size={18}
+                              color="#FFFFFF"
+                            />
+                          </View>
+                        </>
+                      ) : (
+                        <Ionicons
+                          name={isCurrent && isPlaying ? "pause" : "play"}
+                          size={20}
+                          color={isCurrent ? theme.colors.primary : theme.colors.text}
+                        />
+                      )}
                     </View>
+
                     <View style={s.songInfo}>
                       <Text style={[s.songTitle, { color: theme.colors.text }]} numberOfLines={1}>
                         {song.title}
@@ -185,11 +300,45 @@ export default function LibraryScreen() {
                       <Text style={[s.songDetails, { color: theme.colors.mutedText }]}>
                         {song.genre ? `${song.genre.toUpperCase()} • ` : ""}{song.voice ? `${song.voice.toUpperCase()}` : ""}
                       </Text>
+                      {!isReady && !isErr && (
+                        <View style={[s.statusBadge, { backgroundColor: "rgba(234, 179, 8, 0.15)" }]}>
+                          <Text style={[s.statusText, { color: "#EAB308" }]}>⏳ Generating...</Text>
+                        </View>
+                      )}
+                      {isErr && (
+                        <View style={[s.statusBadge, { backgroundColor: "rgba(239, 68, 68, 0.15)" }]}>
+                          <Text style={[s.statusText, { color: "#EF4444" }]}>⚠️ Failed</Text>
+                        </View>
+                      )}
                     </View>
+
                     <View style={s.songRight}>
-                      <Text style={[s.durationText, { color: theme.colors.mutedText }]}>
-                        3:00
+                      <Text style={[s.durationText, { color: theme.colors.mutedText, marginBottom: 4 }]}>
+                        {song.duration ? `${Math.floor(song.duration / 60)}:${(song.duration % 60) < 10 ? "0" : ""}${song.duration % 60}` : "3:00"}
                       </Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                        {isReady && (
+                          <TouchableOpacity
+                            onPress={(e) => handleDownloadSong(song, e)}
+                            style={s.iconButton}
+                            disabled={isDownloading}
+                          >
+                            {isDownloading ? (
+                              <ActivityIndicator size="small" color={theme.colors.primary} />
+                            ) : isDownloaded ? (
+                              <Ionicons name="cloud-done" size={18} color={theme.colors.primary} />
+                            ) : (
+                              <Ionicons name="cloud-download-outline" size={18} color={theme.colors.mutedText} />
+                            )}
+                          </TouchableOpacity>
+                        )}
+                        <TouchableOpacity
+                          onPress={(e) => handleDeleteSong(song, e)}
+                          style={s.iconButton}
+                        >
+                          <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   </TouchableOpacity>
                 );
@@ -358,6 +507,29 @@ const s = StyleSheet.create({
   durationText: {
     fontSize: 12,
     fontWeight: "600",
+  },
+  coverImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: "100%",
+    height: "100%",
+  },
+  imageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.35)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  statusBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    alignSelf: "flex-start",
+    marginTop: 2,
+  },
+  statusText: {
+    fontSize: 9,
+    fontWeight: "700",
+    textTransform: "uppercase",
   },
   lyricCard: {
     padding: Spacing.md,

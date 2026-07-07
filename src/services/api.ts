@@ -1,15 +1,45 @@
 import { create } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+// Default to localhost:3000 as specified in aimusic.json Postman collection
+const API_URL = 'http://localhost:3000';
 
 const api = create({
-  baseURL: API_URL || 'https://fallback-mock-api.com',
+  baseURL: API_URL,
   timeout: 30000,
   headers: { 'Content-Type': 'application/json' },
 });
 
-// A local mock database to ensure offline testing behaves exactly like a real backend.
+let currentToken: string | null = null;
+
+export function setAuthToken(token: string | null) {
+  currentToken = token;
+  if (token) {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    AsyncStorage.setItem('api_token', token).catch(() => {});
+  } else {
+    delete api.defaults.headers.common['Authorization'];
+    AsyncStorage.removeItem('api_token').catch(() => {});
+  }
+}
+
+// Interceptor to load stored token if not in memory
+api.interceptors.request.use(async (config) => {
+  if (!currentToken) {
+    try {
+      const savedToken = await AsyncStorage.getItem('api_token');
+      if (savedToken) {
+        currentToken = savedToken;
+        config.headers.Authorization = `Bearer ${savedToken}`;
+      }
+    } catch (e) {}
+  } else if (!config.headers.Authorization) {
+    config.headers.Authorization = `Bearer ${currentToken}`;
+  }
+  return config;
+});
+
+// ─── Local Mock Storage (Fallback for offline/dev) ──────────────────────────
 const MOCK_STORAGE_KEYS = {
   user: 'mock_api.user',
   songs: 'mock_api.songs',
@@ -20,10 +50,10 @@ const DEFAULT_MOCK_USER = {
   isPremium: false,
   limits: {
     credit: 5,
+    premiumCredit: 0,
   },
 };
 
-// Royalty-free background music streams for rich mock playback
 const MOCK_AUDIO_TRACKS = [
   'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
   'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
@@ -66,40 +96,101 @@ async function saveMockSongs(songs: any[]) {
   await AsyncStorage.setItem(MOCK_STORAGE_KEYS.songs, JSON.stringify(songs));
 }
 
+// ─── 13 Endpoints matching aimusic.json Postman Collection ──────────────────
 export const apiService = {
+  // 1. Auth: Login / Register by Device ID (POST /auth/login)
   authenticateDevice: async (deviceId: string) => {
-    if (!API_URL) {
-      console.log('⚡ [API Service] Using Mock Fallback for authenticateDevice');
-      return await getMockUser(deviceId);
-    }
     try {
-      const response = await api.post('/api/auth/device-login', { deviceId });
-      return response.data;
+      const response = await api.post('/auth/login', { deviceId });
+      const data = response.data;
+      const token = data.access_token || data.token || data.jwt;
+      if (token) {
+        setAuthToken(token);
+      }
+      return data.user || data;
     } catch (e) {
-      console.warn('⚠️ [API Service] Real request failed, falling back to mock authentication:', e);
+      console.warn('⚠️ [API Service] /auth/login failed, falling back to mock authentication:', e);
       return await getMockUser(deviceId);
     }
   },
 
-  generateMusic: async (payload: { genre: string; voice: string; prompt: string; type: 'prompt' | 'lyrics' }) => {
-    if (!API_URL) {
-      console.log('⚡ [API Service] Using Mock Fallback for generateMusic');
-      // Simulate generation lag
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+  // 2. Users: Get My Profile (GET /users/me)
+  getMyProfile: async () => {
+    try {
+      const response = await api.get('/users/me');
+      return response.data;
+    } catch (e) {
+      console.warn('⚠️ [API Service] /users/me failed, falling back to mock profile:', e);
+      return await getMockUser('mock_device');
+    }
+  },
+
+  // 3. Users: get socket token (GET /users/socket)
+  getSocketToken: async () => {
+    try {
+      const response = await api.get('/users/socket');
+      return response.data;
+    } catch (e) {
+      console.warn('⚠️ [API Service] /users/socket failed, offline/mock mode:', e);
+      return null;
+    }
+  },
+
+  // 4. Users: Update Profile (PUT /users/update)
+  updateProfile: async (payload: { platform?: string; country?: string; version?: number }) => {
+    try {
+      const response = await api.put('/users/update', payload);
+      return response.data;
+    } catch (e) {
+      console.warn('⚠️ [API Service] /users/update failed:', e);
+      const user = await getMockUser('mock_device');
+      const updated = { ...user, ...payload };
+      await saveMockUser(updated);
+      return updated;
+    }
+  },
+
+  // 5. AppConfig: Get Public Configs (GET /app-config/public)
+  getPublicConfig: async () => {
+    try {
+      const response = await api.get('/app-config/public');
+      return response.data;
+    } catch (e) {
+      console.warn('⚠️ [API Service] /app-config/public failed, returning default config:', e);
+      return { features: { generationEnabled: true, creditPrice: 1.99 } };
+    }
+  },
+
+  // 6 & 7. Music: Create Music From Prompt / Lyrics (POST /music/create)
+  generateMusic: async (payload: { genre: string; voice: string; prompt: string; type: 'prompt' | 'lyrics'; title?: string }) => {
+    try {
+      const body = {
+        input: payload.prompt,
+        type: payload.type === 'lyrics' ? 'lycris' : 'prompt', // Match backend schema: "prompt" | "lycris"
+        genre: payload.genre,
+        voice: payload.voice,
+        title: payload.title || `AI Track (${payload.genre})`,
+      };
+      const response = await api.post('/music/create', body);
+      return response.data;
+    } catch (e) {
+      console.warn('⚠️ [API Service] /music/create failed, falling back to mock generation:', e);
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       
       const mockUser = await getMockUser('mock_device');
-      if (mockUser.limits.credit <= 0) {
-        throw new Error('No credits remaining');
+      if (mockUser.limits.credit <= 0 && (!mockUser.limits.premiumCredit || mockUser.limits.premiumCredit <= 0)) {
+        throw new Error('No credit remaining...');
       }
 
-      // Deduct credit
-      mockUser.limits.credit -= 1;
+      if (mockUser.limits.premiumCredit && mockUser.limits.premiumCredit > 0) {
+        mockUser.limits.premiumCredit -= 1;
+      } else {
+        mockUser.limits.credit -= 1;
+      }
       await saveMockUser(mockUser);
 
       const songId = `song_${Date.now()}`;
-      const title = payload.prompt 
-        ? (payload.prompt.slice(0, 20) + ' ' + payload.genre)
-        : `AI Track (${payload.genre})`;
+      const title = payload.title || (payload.prompt ? payload.prompt.slice(0, 20) + ' ' + payload.genre : `AI Track (${payload.genre})`);
       
       const newSong = {
         id: songId,
@@ -109,6 +200,7 @@ export const apiService = {
         url: getRandomItem(MOCK_AUDIO_TRACKS),
         lyrics: payload.type === 'lyrics' ? payload.prompt : getRandomItem(MOCK_LYRICS_POOL),
         duration: 180,
+        status: 'done',
         createdAt: new Date().toISOString(),
       };
 
@@ -116,41 +208,12 @@ export const apiService = {
       songs.unshift(newSong);
       await saveMockSongs(songs);
 
-      return {
-        song: newSong,
-        user: mockUser,
-      };
-    }
-    
-    try {
-      const response = await api.post('/api/generate-music', payload);
-      return response.data;
-    } catch (e) {
-      console.warn('⚠️ [API Service] Real generation failed, falling back to mock generation:', e);
-      // Simulate fallback generation
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      
-      const mockUser = await getMockUser('mock_device');
-      if (mockUser.limits.credit <= 0) {
-        throw new Error('No credits remaining');
-      }
-      mockUser.limits.credit -= 1;
-      await saveMockUser(mockUser);
-
-      const newSong = {
-        id: `song_${Date.now()}`,
-        title: `${payload.genre} Flow`,
-        genre: payload.genre,
-        voice: payload.voice,
-        url: getRandomItem(MOCK_AUDIO_TRACKS),
-        lyrics: payload.type === 'lyrics' ? payload.prompt : getRandomItem(MOCK_LYRICS_POOL),
-        duration: 180,
-        createdAt: new Date().toISOString(),
-      };
-
-      const songs = await getMockSongs();
-      songs.unshift(newSong);
-      await saveMockSongs(songs);
+      // Trigger mock centrifugo event after 3 seconds for offline testing
+      setTimeout(() => {
+        import('./centrifugo').then((m) => {
+          m.centrifugoService.simulateMusicReady(newSong);
+        }).catch(() => {});
+      }, 3000);
 
       return {
         song: newSong,
@@ -159,21 +222,88 @@ export const apiService = {
     }
   },
 
+  // 8. Music: Get My Music Tracks (GET /music)
   getUserSongs: async () => {
-    if (!API_URL) {
-      console.log('⚡ [API Service] Using Mock Fallback for getUserSongs');
-      return await getMockSongs();
-    }
     try {
-      const response = await api.get('/api/songs');
+      const response = await api.get('/music');
       return response.data;
     } catch (e) {
-      console.warn('⚠️ [API Service] Real songs fetch failed, falling back to mock songs:', e);
+      console.warn('⚠️ [API Service] /music GET failed, falling back to mock songs:', e);
       return await getMockSongs();
     }
   },
 
-  // Developer utility to reset mock DB
+  // 9. Music: Delete Music Track (DELETE /music/:id)
+  deleteSong: async (id: string) => {
+    try {
+      const response = await api.delete(`/music/${id}`);
+      return response.data;
+    } catch (e) {
+      console.warn('⚠️ [API Service] /music DELETE failed, soft-deleting locally:', e);
+      const songs = await getMockSongs();
+      const filtered = songs.filter((s: any) => s.id !== id && s._id !== id);
+      await saveMockSongs(filtered);
+      return { success: true };
+    }
+  },
+
+  // 10. Payments: Create / Validate Subscription Purchase (POST /payments/create)
+  createSubscriptionPurchase: async (payload: { platform: string; sku: string; packageName?: string; purchaseToken?: string }) => {
+    try {
+      const response = await api.post('/payments/create', payload);
+      return response.data;
+    } catch (e) {
+      console.warn('⚠️ [API Service] /payments/create failed, simulating premium upgrade:', e);
+      const user = await getMockUser('mock_device');
+      user.isPremium = true;
+      user.limits.premiumCredit = (user.limits.premiumCredit || 0) + 10;
+      await saveMockUser(user);
+      return { success: true, user };
+    }
+  },
+
+  // 11. Payments: Restore Subscription Purchase (POST /payments/restore)
+  restoreSubscriptionPurchase: async (payload: { platform: string; sku: string; transactionId?: string; purchaseToken?: string }) => {
+    try {
+      const response = await api.post('/payments/restore', payload);
+      return response.data;
+    } catch (e) {
+      console.warn('⚠️ [API Service] /payments/restore failed, simulating restore:', e);
+      const user = await getMockUser('mock_device');
+      user.isPremium = true;
+      await saveMockUser(user);
+      return { success: true, user };
+    }
+  },
+
+  // 12. Payments: Consume One-Time Credit Package (POST /payments/one-time)
+  consumeOneTimeCredit: async (payload: { platform: string; sku: string; packageName?: string; purchaseToken?: string; credits?: number }) => {
+    try {
+      const response = await api.post('/payments/one-time', payload);
+      return response.data;
+    } catch (e) {
+      console.warn('⚠️ [API Service] /payments/one-time failed, simulating credit add:', e);
+      const user = await getMockUser('mock_device');
+      const addAmount = payload.credits || 10;
+      user.limits.credit += addAmount;
+      user.isPremium = true;
+      await saveMockUser(user);
+      return { success: true, user };
+    }
+  },
+
+  // 13. General: Health Check (GET /)
+  healthCheck: async () => {
+    try {
+      const response = await api.get('/');
+      return response.data;
+    } catch (e) {
+      console.warn('⚠️ [API Service] Health check failed:', e);
+      return 'Hello World! (Mock Offline)';
+    }
+  },
+
+  // ─── Dev utilities ────────────────────────────────────────────────────────
   resetMockData: async (deviceId: string) => {
     const user = { ...DEFAULT_MOCK_USER, deviceId };
     await saveMockUser(user);
@@ -181,7 +311,6 @@ export const apiService = {
     return user;
   },
 
-  // Developer utility to add credits
   addMockCredits: async (deviceId: string, amount: number) => {
     const user = await getMockUser(deviceId);
     user.limits.credit += amount;
