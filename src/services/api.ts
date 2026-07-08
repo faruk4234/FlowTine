@@ -97,22 +97,18 @@ function getCountryCode(): string {
   return 'us';
 }
 
-function getAppVersion(): string {
+function getAppVersion(): number {
   if (Platform.OS === 'ios') {
-    return (
-      process.env.EXPO_PUBLIC_IOSVERSION ||
-      process.env.IOSVERSION ||
-      '1.0.0'
-    );
+    const raw = process.env.EXPO_PUBLIC_IOSVERSION || process.env.IOSVERSION;
+    const num = Number(raw);
+    return !isNaN(num) && num > 0 ? num : 1;
   }
   if (Platform.OS === 'android') {
-    return (
-      process.env.EXPO_PUBLIC_ANDROIDVERSION ||
-      process.env.ANDROIDVERSION ||
-      '1.0.0'
-    );
+    const raw = process.env.EXPO_PUBLIC_ANDROIDVERSION || process.env.ANDROIDVERSION;
+    const num = Number(raw);
+    return !isNaN(num) && num > 0 ? num : 1;
   }
-  return '1.0.0';
+  return 1;
 }
 
 async function getMockUser(deviceId: string) {

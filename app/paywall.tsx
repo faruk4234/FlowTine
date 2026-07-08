@@ -1,3 +1,8 @@
+import { Ionicons } from "@expo/vector-icons";
+import { Audio, ResizeMode, Video } from "expo-av";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+import { useAtom, useSetAtom } from "jotai";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -9,20 +14,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Video, ResizeMode, Audio } from "expo-av";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
-import { useAtom, useSetAtom } from "jotai";
 import Purchases from "react-native-purchases";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { LEGAL_URLS } from "@/src/legal/urls";
-import { isPremiumAtom, userAtom } from "@/src/state/atoms";
-import { PaywallPalette as C } from "@/src/state/colors";
-import { BorderRadius, Spacing, Typography } from "@/src/state/theme";
-import { apiService } from "@/src/services/api";
 import { useAlert } from "@/src/providers/alert-provider";
+import { apiService } from "@/src/services/api";
+import { isPremiumAtom, userAtom } from "@/src/state/atoms";
+import { BorderRadius, Spacing } from "@/src/state/theme";
 
 export default function PaywallScreen() {
   const router = useRouter();
@@ -80,7 +79,7 @@ export default function PaywallScreen() {
       {
         icon: "cloud-download" as const,
         title: "Unlimited Audio & Lyrics",
-        description: "Save unlimited songs, lyrics & export high-bitrate MP3s",
+        description: "Save unlimited songs, lyrics & export studio MP3s",
       },
     ],
     []
@@ -89,10 +88,8 @@ export default function PaywallScreen() {
   const handlePurchase = async () => {
     setLoading(true);
     try {
-      // User requirement: "for now use mock data first 3 day 1 dollar after 5 dollar will be weakly 10 credit , no ads ,upgraded music generation like"
       const deviceId = user?.deviceId || "mock_device";
 
-      // Try RevenueCat in production if configured, but gracefully fall back to mock weekly premium
       try {
         const isRCConfigured = await Purchases.isConfigured();
         if (isRCConfigured) {
@@ -108,14 +105,13 @@ export default function PaywallScreen() {
         console.log("Using mock weekly premium purchase flow", rcError);
       }
 
-      // Activate mock weekly premium: +10 credits, isPremium = true
       const updatedUser = await apiService.activateMockWeeklyPremium(deviceId);
       setUser(updatedUser);
       setPremium(true);
 
       showAlert(
         "Welcome to Weekly Premium! 🎵",
-        "Your 3-day trial ($1.00) is now active! 10 weekly credits have been added to your account.",
+        "Your 3-day trial ($0.99) is now active! 10 weekly credits have been added to your account.",
         [
           {
             text: "Start Creating",
@@ -156,7 +152,6 @@ export default function PaywallScreen() {
         }
       }
 
-      // Fallback restore for mock mode
       const deviceId = user?.deviceId || "mock_device";
       const updatedUser = await apiService.activateMockWeeklyPremium(deviceId);
       setUser(updatedUser);
@@ -172,7 +167,6 @@ export default function PaywallScreen() {
     }
   }, [router, setPremium, user, setUser]);
 
-  // Can close if already premium or in development mode
   const canClose = useMemo(() => {
     if (isCreditMode) return true;
     if (user?.isPremium) return true;
@@ -190,21 +184,21 @@ export default function PaywallScreen() {
     } else {
       showAlert(
         "Premium Required",
-        "Please start your 3-day trial ($1.00) to unlock MusicEngine AI and 10 weekly credits.",
+        "Please start your 3-day trial ($0.99) to unlock MusicEngine AI and 10 weekly credits.",
         [
           { text: "OK" },
           ...(Platform.OS === "ios" || __DEV__
             ? [
-                {
-                  text: "Dev Bypass",
-                  style: "destructive" as const,
-                  onPress: () => {
-                    setPremium(true);
-                    if (user) setUser({ ...user, isPremium: true });
-                    router.replace("/tabs/home");
-                  },
+              {
+                text: "Dev Bypass",
+                style: "destructive" as const,
+                onPress: () => {
+                  setPremium(true);
+                  if (user) setUser({ ...user, isPremium: true });
+                  router.replace("/tabs/home");
                 },
-              ]
+              },
+            ]
             : []),
         ]
       );
@@ -226,11 +220,11 @@ export default function PaywallScreen() {
         volume={1.0}
       />
 
-      {/* Premium Glass / Gradient Dark Overlay */}
+      {/* Deep Glass Dark Overlay */}
       <View style={s.videoOverlay} />
 
       <SafeAreaView style={s.safe}>
-        {/* Top Header Bar */}
+        {/* Top Bar Controls */}
         <View style={s.topBar}>
           <TouchableOpacity
             style={s.iconBtn}
@@ -239,7 +233,7 @@ export default function PaywallScreen() {
             accessibilityLabel="Close"
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Ionicons name="close" size={20} color={C.text} />
+            <Ionicons name="close" size={18} color="#FFF" />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -251,8 +245,8 @@ export default function PaywallScreen() {
           >
             <Ionicons
               name={isMuted ? "volume-mute" : "volume-high"}
-              size={18}
-              color={C.text}
+              size={16}
+              color="#00FFA3"
             />
           </TouchableOpacity>
         </View>
@@ -266,18 +260,18 @@ export default function PaywallScreen() {
           <View style={s.headerSection}>
             <View style={s.brandRow}>
               <View style={s.brandIconBadge}>
-                <Ionicons name="sparkles" size={13} color={C.blue} />
+                <Ionicons name="sparkles" size={11} color="#00FFA3" />
               </View>
               <Text style={s.brandText}>MUSICENGINE AI PREMIUM</Text>
             </View>
 
-            <Text style={s.headline}>Unlock All AI Power</Text>
+            <Text style={s.headline}>Unlock All Music Power</Text>
             <Text style={s.subHeadline}>
               Create pro studio music, get weekly credits & zero ads
             </Text>
           </View>
 
-          {/* Features Showcase */}
+          {/* Compact Features Showcase */}
           <View style={s.featuresCard}>
             {features.map((f, idx) => (
               <View
@@ -288,17 +282,18 @@ export default function PaywallScreen() {
                 ]}
               >
                 <View style={s.featureIconCircle}>
-                  <Ionicons name={f.icon} size={18} color={C.blue} />
+                  <Ionicons name={f.icon} size={15} color="#00FFA3" />
                 </View>
                 <View style={s.featureTextCol}>
                   <Text style={s.featureTitle}>{f.title}</Text>
                   <Text style={s.featureDesc}>{f.description}</Text>
                 </View>
+                <Ionicons name="checkmark-circle" size={17} color="#22C55E" />
               </View>
             ))}
           </View>
 
-          {/* Single Weekly Package Card (Special Offer) */}
+          {/* Compact Weekly Package Card */}
           <View style={s.planSection}>
             <TouchableOpacity
               activeOpacity={0.9}
@@ -306,7 +301,7 @@ export default function PaywallScreen() {
               onPress={handlePurchase}
             >
               <View style={s.specialBadge}>
-                <Ionicons name="flame" size={12} color="#FFF" />
+                <Ionicons name="flame" size={11} color="#040814" />
                 <Text style={s.specialBadgeText}>SPECIAL 3-DAY TRIAL OFFER</Text>
               </View>
 
@@ -325,7 +320,7 @@ export default function PaywallScreen() {
 
                 <View style={s.planPriceCol}>
                   <Text style={s.trialPriceText}>First 3 Days</Text>
-                  <Text style={s.priceMain}>$1.00</Text>
+                  <Text style={s.priceMain}>$0.99</Text>
                   <Text style={s.priceSub}>then $5.00/wk</Text>
                 </View>
               </View>
@@ -333,26 +328,27 @@ export default function PaywallScreen() {
           </View>
         </ScrollView>
 
-        {/* Footer CTA & Legal */}
+        {/* Compact Footer CTA Button (#00FFA3 solid glowing button without LinearGradient dependency) */}
         <View style={s.footer}>
           <TouchableOpacity
             style={[s.ctaBtn, loading && s.ctaBtnDisabled]}
             onPress={handlePurchase}
             disabled={loading}
-            activeOpacity={0.9}
+            activeOpacity={0.88}
           >
             {loading ? (
-              <ActivityIndicator color={C.white} />
+              <ActivityIndicator color="#040814" />
             ) : (
               <View style={s.ctaBtnContent}>
-                <Text style={s.ctaBtnText}>Start 3-Day Trial for $1.00</Text>
-                <Ionicons name="arrow-forward" size={18} color={C.white} />
+                <Ionicons name="sparkles" size={17} color="#040814" />
+                <Text style={s.ctaBtnText}>Start 3-Day Trial for $0.99</Text>
+                <Ionicons name="arrow-forward" size={18} color="#040814" />
               </View>
             )}
           </TouchableOpacity>
 
           <Text style={s.guaranteeText}>
-            First 3 days $1.00, then $5.00/week. Includes 10 credits & upgraded AI. Cancel anytime.
+            First 3 days $0.99, then $5.00/week. Includes 10 credits & upgraded AI. Cancel anytime.
           </Text>
 
           <View style={s.legalRow}>
@@ -381,7 +377,7 @@ const s = StyleSheet.create({
   },
   videoOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(7, 10, 20, 0.78)",
+    backgroundColor: "rgba(5, 8, 16, 0.7)",
   },
   safe: {
     flex: 1,
@@ -391,93 +387,95 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: Spacing.screenHorizontal,
-    paddingTop: Platform.OS === "android" ? 12 : 6,
-    paddingBottom: 4,
+    paddingTop: Platform.OS === "android" ? 10 : 4,
+    paddingBottom: 2,
   },
   iconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "rgba(255, 255, 255, 0.16)",
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "rgba(255, 255, 255, 0.14)",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.25)",
+    borderColor: "rgba(255, 255, 255, 0.22)",
     justifyContent: "center",
     alignItems: "center",
   },
   content: {
     paddingHorizontal: Spacing.screenHorizontal,
-    paddingTop: 10,
-    paddingBottom: 24,
+    paddingTop: 4,
+    paddingBottom: 12,
   },
   headerSection: {
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 12,
   },
   brandRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(79, 131, 255, 0.18)",
+    backgroundColor: "rgba(0, 255, 163, 0.14)",
     paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 20,
+    paddingVertical: 4,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(79, 131, 255, 0.35)",
-    gap: 6,
-    marginBottom: 12,
+    borderColor: "rgba(0, 255, 163, 0.38)",
+    gap: 5,
+    marginBottom: 8,
   },
   brandIconBadge: {
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: "rgba(79, 131, 255, 0.25)",
+    backgroundColor: "rgba(0, 255, 163, 0.22)",
     justifyContent: "center",
     alignItems: "center",
   },
   brandText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "800",
-    color: "#8FAEFF",
-    letterSpacing: 1.2,
+    color: "#00FFA3",
+    letterSpacing: 1.1,
   },
   headline: {
-    fontSize: 34,
-    fontWeight: "800",
+    fontSize: 27,
+    fontWeight: "900",
     color: "#FFFFFF",
     textAlign: "center",
-    marginBottom: 6,
-    letterSpacing: -0.6,
+    marginBottom: 4,
+    letterSpacing: -0.5,
   },
   subHeadline: {
-    fontSize: 15,
-    color: "rgba(255, 255, 255, 0.75)",
+    fontSize: 13,
+    color: "rgba(255, 255, 255, 0.78)",
     textAlign: "center",
-    lineHeight: 21,
-    paddingHorizontal: 10,
+    lineHeight: 18,
+    paddingHorizontal: 12,
   },
   featuresCard: {
-    backgroundColor: "rgba(18, 23, 40, 0.85)",
+    backgroundColor: "rgba(14, 19, 33, 0.88)",
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.12)",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 18,
+    borderColor: "rgba(0, 255, 163, 0.24)",
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    marginBottom: 16,
   },
   featureRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 11,
-    gap: 14,
+    paddingVertical: 9,
+    gap: 11,
   },
   featureRowBorder: {
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255, 255, 255, 0.08)",
   },
   featureIconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "rgba(79, 131, 255, 0.2)",
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(0, 255, 163, 0.16)",
+    borderWidth: 1,
+    borderColor: "rgba(0, 255, 163, 0.32)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -485,51 +483,51 @@ const s = StyleSheet.create({
     flex: 1,
   },
   featureTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
     color: "#FFFFFF",
-    marginBottom: 2,
+    marginBottom: 1,
   },
   featureDesc: {
-    fontSize: 12,
+    fontSize: 11,
     color: "rgba(255, 255, 255, 0.65)",
-    lineHeight: 16,
+    lineHeight: 14,
   },
   planSection: {
-    marginBottom: 8,
+    marginBottom: 4,
   },
   planCardSelected: {
-    backgroundColor: "rgba(23, 33, 62, 0.92)",
+    backgroundColor: "rgba(16, 25, 43, 0.94)",
     borderRadius: BorderRadius.lg,
     borderWidth: 2,
-    borderColor: "#4F83FF",
-    paddingTop: 22,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
+    borderColor: "#00FFA3",
+    paddingTop: 18,
+    paddingBottom: 13,
+    paddingHorizontal: 14,
     position: "relative",
-    shadowColor: "#4F83FF",
+    shadowColor: "#00FFA3",
     shadowOpacity: 0.35,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
     elevation: 6,
   },
   specialBadge: {
     position: "absolute",
-    top: -12,
+    top: -10,
     alignSelf: "center",
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#3E6FFF",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    backgroundColor: "#00CC82",
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
     gap: 4,
   },
   specialBadgeText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#FFFFFF",
-    letterSpacing: 0.8,
+    fontSize: 9,
+    fontWeight: "900",
+    color: "#040814",
+    letterSpacing: 0.6,
   },
   planInner: {
     flexDirection: "row",
@@ -539,66 +537,67 @@ const s = StyleSheet.create({
   planLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
     flex: 1,
   },
   radioOuter: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 2,
-    borderColor: "#4F83FF",
+    borderColor: "#00FFA3",
     justifyContent: "center",
     alignItems: "center",
   },
   radioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: "#4F83FF",
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#00FFA3",
   },
   planName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "800",
     color: "#FFFFFF",
-    marginBottom: 3,
+    marginBottom: 2,
   },
   planBenefits: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "600",
-    color: "#8FAEFF",
+    color: "#00FFA3",
   },
   planPriceCol: {
     alignItems: "flex-end",
   },
   trialPriceText: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "#FFD05B",
+    fontSize: 9,
+    fontWeight: "800",
+    color: "#00FFA3",
     textTransform: "uppercase",
   },
   priceMain: {
-    fontSize: 24,
+    fontSize: 21,
     fontWeight: "900",
     color: "#FFFFFF",
   },
   priceSub: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "600",
     color: "rgba(255, 255, 255, 0.65)",
   },
   footer: {
     paddingHorizontal: Spacing.screenHorizontal,
-    paddingBottom: Platform.OS === "ios" ? 16 : 12,
+    paddingBottom: Platform.OS === "ios" ? 12 : 8,
   },
   ctaBtn: {
-    backgroundColor: "#3E6FFF",
+    backgroundColor: "#00FFA3",
     borderRadius: BorderRadius.lg,
-    paddingVertical: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#3E6FFF",
-    shadowOpacity: 0.45,
+    shadowColor: "#00FFA3",
+    shadowOpacity: 0.5,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 4 },
     elevation: 8,
@@ -613,32 +612,32 @@ const s = StyleSheet.create({
     gap: 8,
   },
   ctaBtnText: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#FFFFFF",
-    letterSpacing: 0.3,
+    fontSize: 16,
+    fontWeight: "900",
+    color: "#040814",
+    letterSpacing: 0.2,
   },
   guaranteeText: {
-    fontSize: 11,
-    color: "rgba(255, 255, 255, 0.6)",
+    fontSize: 10,
+    color: "rgba(255, 255, 255, 0.65)",
     textAlign: "center",
-    marginBottom: 12,
-    lineHeight: 15,
+    marginBottom: 8,
+    lineHeight: 13,
   },
   legalRow: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
   },
   legalLink: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "700",
     color: "rgba(255, 255, 255, 0.55)",
-    letterSpacing: 0.8,
+    letterSpacing: 0.6,
   },
   legalDot: {
-    fontSize: 11,
+    fontSize: 10,
     color: "rgba(255, 255, 255, 0.35)",
   },
 });
