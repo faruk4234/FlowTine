@@ -80,6 +80,41 @@ function getRandomItem<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+function getCountryCode(): string {
+  try {
+    const locale = Intl.DateTimeFormat().resolvedOptions().locale || '';
+    const parts = locale.split(/[-_]/);
+    if (parts.length > 1 && parts[1].length === 2) {
+      return parts[1].toLowerCase(); // e.g., 'tr', 'ru', 'us'
+    }
+    if (parts.length === 1 && parts[0].length === 2) {
+      return parts[0].toLowerCase(); // e.g., 'tr', 'ru'
+    }
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    if (tz.includes('Istanbul')) return 'tr';
+    if (tz.includes('Moscow')) return 'ru';
+  } catch (e) {}
+  return 'us';
+}
+
+function getAppVersion(): string {
+  if (Platform.OS === 'ios') {
+    return (
+      process.env.EXPO_PUBLIC_IOSVERSION ||
+      process.env.IOSVERSION ||
+      '1.0.0'
+    );
+  }
+  if (Platform.OS === 'android') {
+    return (
+      process.env.EXPO_PUBLIC_ANDROIDVERSION ||
+      process.env.ANDROIDVERSION ||
+      '1.0.0'
+    );
+  }
+  return '1.0.0';
+}
+
 async function getMockUser(deviceId: string) {
   const raw = await AsyncStorage.getItem(MOCK_STORAGE_KEYS.user);
   if (raw) {
@@ -87,8 +122,8 @@ async function getMockUser(deviceId: string) {
     if (parsed.deviceId === deviceId) return parsed;
   }
   const platform = Platform.OS;
-  const version = '1.0.0';
-  const country = Intl.DateTimeFormat().resolvedOptions().timeZone?.split('/')[0] || 'US';
+  const version = getAppVersion();
+  const country = getCountryCode();
   const newUser = { ...DEFAULT_MOCK_USER, deviceId, platform, version, country };
   await AsyncStorage.setItem(MOCK_STORAGE_KEYS.user, JSON.stringify(newUser));
   return newUser;
@@ -113,8 +148,8 @@ export const apiService = {
   authenticateDevice: async (deviceId: string) => {
     try {
       const platform = Platform.OS;
-      const version = '1.0.0';
-      const country = Intl.DateTimeFormat().resolvedOptions().timeZone?.split('/')[0] || 'US';
+      const version = getAppVersion();
+      const country = getCountryCode();
       console.log(`🔑 [Auth] Authenticating device with info:`, { deviceId, platform, version, country });
       const response = await api.post('/auth/login', { deviceId, platform, version, country });
       const data = response.data;
@@ -331,5 +366,14 @@ export const apiService = {
     user.limits.credit += amount;
     await saveMockUser(user);
     return user;
+  },
+
+  activateMockWeeklyPremium: async (deviceId: string) => {
+    const user = await getMockUser(deviceId);
+    user.isPremium = true;
+    user.limits.credit = (user.limits.credit || 0) + 10;
+    await saveMockUser(user);
+    return user;
   }
 };
+

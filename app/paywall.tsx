@@ -1,16 +1,6 @@
-import { LEGAL_URLS } from "@/src/legal/urls";
-import { isPremiumAtom, userAtom } from "@/src/state/atoms";
-import { PaywallPalette as C } from "@/src/state/colors";
-import { BorderRadius, Spacing, Typography } from "@/src/state/theme";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
-import { useAtom, useSetAtom } from "jotai";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
-  ImageBackground,
   Platform,
   ScrollView,
   StatusBar,
@@ -19,35 +9,48 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Purchases from "react-native-purchases";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Video, ResizeMode, Audio } from "expo-av";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+import { useAtom, useSetAtom } from "jotai";
+import Purchases from "react-native-purchases";
+
+import { LEGAL_URLS } from "@/src/legal/urls";
+import { isPremiumAtom, userAtom } from "@/src/state/atoms";
+import { PaywallPalette as C } from "@/src/state/colors";
+import { BorderRadius, Spacing, Typography } from "@/src/state/theme";
 import { apiService } from "@/src/services/api";
 import { useAlert } from "@/src/providers/alert-provider";
-
-type PlanId = "weekly" | "monthly" | "yearly" | "credit10" | "credit50" | "credit100";
-
-type PlanRow = {
-  id: PlanId;
-  label: string;
-  price: string;
-  duration?: string;
-  badge?: string;
-  creditsAmount?: number;
-};
 
 export default function PaywallScreen() {
   const router = useRouter();
   const { type } = useLocalSearchParams<{ type?: string }>();
-  const isCreditMode = type === 'credits';
+  const isCreditMode = type === "credits";
 
   const [user, setUser] = useAtom(userAtom);
   const setPremium = useSetAtom(isPremiumAtom);
 
-  const [selectedId, setSelectedId] = useState<PlanId>(
-    isCreditMode ? "credit50" : "yearly"
-  );
   const [loading, setLoading] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const { showAlert } = useAlert();
+
+  // Configure Audio Session so video sound plays reliably and repeats continuously
+  useEffect(() => {
+    async function configureAudio() {
+      try {
+        await Audio.setAudioModeAsync({
+          playsInSilentModeIOS: true,
+          allowsRecordingIOS: false,
+          staysActiveInBackground: false,
+        });
+      } catch (e) {
+        console.warn("Audio mode config error:", e);
+      }
+    }
+    configureAudio();
+  }, []);
 
   const openLegalUrl = useCallback(async (url: string) => {
     try {
@@ -57,97 +60,75 @@ export default function PaywallScreen() {
     }
   }, []);
 
-  const features = useMemo(() => {
-    if (isCreditMode) {
-      return [
-        { icon: "flash" as const, text: "Instant Generation" },
-        { icon: "musical-notes" as const, text: "High Fidelity MP3" },
-        { icon: "document-text" as const, text: "Auto Lyrics Generation" },
-        { icon: "shield-checkmark" as const, text: "Secure Purchases" },
-      ];
-    }
-    return [
-      { icon: "infinite" as const, text: "Unlimited Generations" },
-      { icon: "musical-note" as const, text: "Premium Audio Engine" },
-      { icon: "save" as const, text: "Save Unlimited Lyrics" },
-      { icon: "ban-outline" as const, text: "No Ads" },
-    ];
-  }, [isCreditMode]);
-
-  const plansList = useMemo<PlanRow[]>(() => {
-    if (isCreditMode) {
-      return [
-        { id: "credit10", label: "10 Credits Bundle", price: "$1.99", duration: "one-time", creditsAmount: 10 },
-        { id: "credit50", label: "50 Credits Bundle", price: "$4.99", duration: "one-time", badge: "POPULAR", creditsAmount: 50 },
-        { id: "credit100", label: "100 Credits Bundle", price: "$8.99", duration: "one-time", badge: "BEST VALUE", creditsAmount: 100 },
-      ];
-    }
-    return [
-      { id: "weekly", label: "Weekly Access", price: "$2.99", duration: "/ week" },
-      { id: "monthly", label: "Monthly Pass", price: "$9.99", duration: "/ month" },
-      { id: "yearly", label: "Annual Membership", price: "$49.99", duration: "/ year", badge: "SAVE 60%" },
-    ];
-  }, [isCreditMode]);
+  const features = useMemo(
+    () => [
+      {
+        icon: "flash" as const,
+        title: "10 Weekly AI Credits",
+        description: "Refill 10 high-fidelity song credits every week",
+      },
+      {
+        icon: "ban" as const,
+        title: "No Advertisements",
+        description: "Uninterrupted, zero-ad music creation studio",
+      },
+      {
+        icon: "musical-notes" as const,
+        title: "Upgraded Music Generation",
+        description: "Access advanced AI audio models & extended track quality",
+      },
+      {
+        icon: "cloud-download" as const,
+        title: "Unlimited Audio & Lyrics",
+        description: "Save unlimited songs, lyrics & export high-bitrate MP3s",
+      },
+    ],
+    []
+  );
 
   const handlePurchase = async () => {
     setLoading(true);
     try {
-      if (isCreditMode) {
-        // Purchase Credits workflow
-        const selectedPlan = plansList.find(p => p.id === selectedId);
-        const amount = selectedPlan?.creditsAmount || 0;
-        
-        // Add credits locally (mock database)
-        const deviceId = user?.deviceId || 'mock_device';
-        const updatedUser = await apiService.addMockCredits(deviceId, amount);
-        setUser(updatedUser);
-        
-        showAlert("Success", `Successfully added ${amount} credits to your account!`, [
-          { text: "Awesome", onPress: () => {
-            if (router.canGoBack()) router.back();
-            else router.replace("/tabs/home");
-          }}
-        ]);
-      } else {
-        // Premium Membership workflow
-        // In real setup, triggers RevenueCat package purchase
-        // Here we simulate the purchase to make dev flow clean, while falling back to Purchases configuration
+      // User requirement: "for now use mock data first 3 day 1 dollar after 5 dollar will be weakly 10 credit , no ads ,upgraded music generation like"
+      const deviceId = user?.deviceId || "mock_device";
+
+      // Try RevenueCat in production if configured, but gracefully fall back to mock weekly premium
+      try {
         const isRCConfigured = await Purchases.isConfigured();
         if (isRCConfigured) {
-          try {
-            const offerings = await Purchases.getOfferings();
-            const rcPackage = offerings.current?.availablePackages.find(p => {
-              if (selectedId === "weekly") return p.packageType === Purchases.PACKAGE_TYPE.WEEKLY;
-              if (selectedId === "monthly") return p.packageType === Purchases.PACKAGE_TYPE.MONTHLY;
-              if (selectedId === "yearly") return p.packageType === Purchases.PACKAGE_TYPE.ANNUAL;
-              return false;
-            });
-
-            if (rcPackage) {
-              await Purchases.purchasePackage(rcPackage);
-              const info = await Purchases.getCustomerInfo();
-              const active = info.entitlements.active && Object.keys(info.entitlements.active).length > 0;
-              setPremium(active);
-              if (active) {
-                router.replace("/tabs/home");
-                return;
-              }
-            }
-          } catch (e) {
-            console.warn("RevenueCat purchase failed, falling back to mock purchase", e);
+          const offerings = await Purchases.getOfferings();
+          const weeklyPackage = offerings.current?.availablePackages.find(
+            (p) => p.packageType === Purchases.PACKAGE_TYPE.WEEKLY
+          );
+          if (weeklyPackage) {
+            await Purchases.purchasePackage(weeklyPackage);
           }
         }
-
-        // Mock subscription purchase fallback
-        setPremium(true);
-        if (user) {
-          setUser({ ...user, isPremium: true });
-        }
-        
-        showAlert("Welcome to Premium", "Your membership is now active!", [
-          { text: "Get Started", onPress: () => router.replace("/tabs/home") }
-        ]);
+      } catch (rcError) {
+        console.log("Using mock weekly premium purchase flow", rcError);
       }
+
+      // Activate mock weekly premium: +10 credits, isPremium = true
+      const updatedUser = await apiService.activateMockWeeklyPremium(deviceId);
+      setUser(updatedUser);
+      setPremium(true);
+
+      showAlert(
+        "Welcome to Weekly Premium! 🎵",
+        "Your 3-day trial ($1.00) is now active! 10 weekly credits have been added to your account.",
+        [
+          {
+            text: "Start Creating",
+            onPress: () => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace("/tabs/home");
+              }
+            },
+          },
+        ]
+      );
     } catch (e) {
       console.error("Purchase execution error:", e);
       showAlert("Purchase Failed", "Please check your network and try again.");
@@ -162,22 +143,26 @@ export default function PaywallScreen() {
       const isRCConfigured = await Purchases.isConfigured();
       if (isRCConfigured) {
         const customerInfo = await Purchases.restorePurchases();
-        const active = customerInfo.entitlements.active && Object.keys(customerInfo.entitlements.active).length > 0;
+        const active =
+          customerInfo.entitlements.active &&
+          Object.keys(customerInfo.entitlements.active).length > 0;
         setPremium(active);
         if (active) {
           if (user) setUser({ ...user, isPremium: true });
-          showAlert("Restored", "Your premium membership was successfully restored!", [
-            { text: "Continue", onPress: () => router.replace("/tabs/home") }
+          showAlert("Restored", "Your weekly premium membership was restored!", [
+            { text: "Continue", onPress: () => router.replace("/tabs/home") },
           ]);
           return;
         }
       }
-      
-      // Developer bypass for simulator restoring
+
+      // Fallback restore for mock mode
+      const deviceId = user?.deviceId || "mock_device";
+      const updatedUser = await apiService.activateMockWeeklyPremium(deviceId);
+      setUser(updatedUser);
       setPremium(true);
-      if (user) setUser({ ...user, isPremium: true });
-      showAlert("Bypass Active", "Membership restored (Developer Sim mode).", [
-        { text: "Continue", onPress: () => router.replace("/tabs/home") }
+      showAlert("Restored", "Weekly Premium membership restored successfully.", [
+        { text: "Continue", onPress: () => router.replace("/tabs/home") },
       ]);
     } catch (e) {
       console.error("Restore error:", e);
@@ -187,12 +172,11 @@ export default function PaywallScreen() {
     }
   }, [router, setPremium, user, setUser]);
 
-  // Determine if closing is blocked (Paywall 1 waterfall on app startup)
+  // Can close if already premium or in development mode
   const canClose = useMemo(() => {
-    if (isCreditMode) return true; // Paywall 2 can always be dismissed
-    if (user?.isPremium) return true; // Premium user can close
-    // In dev, let the developer close the paywall to view the app
-    if (__DEV__) return true; 
+    if (isCreditMode) return true;
+    if (user?.isPremium) return true;
+    if (__DEV__) return true;
     return false;
   }, [isCreditMode, user]);
 
@@ -206,19 +190,22 @@ export default function PaywallScreen() {
     } else {
       showAlert(
         "Premium Required",
-        "MusicEngine AI is a premium service. Please subscribe to unlock the application.",
+        "Please start your 3-day trial ($1.00) to unlock MusicEngine AI and 10 weekly credits.",
         [
           { text: "OK" },
-          // Developer quick-skip backdoor in development builds
-          ...(Platform.OS === 'ios' || __DEV__ ? [{
-            text: "Dev Bypass",
-            style: 'destructive' as const,
-            onPress: () => {
-              setPremium(true);
-              if (user) setUser({ ...user, isPremium: true });
-              router.replace("/tabs/home");
-            }
-          }] : [])
+          ...(Platform.OS === "ios" || __DEV__
+            ? [
+                {
+                  text: "Dev Bypass",
+                  style: "destructive" as const,
+                  onPress: () => {
+                    setPremium(true);
+                    if (user) setUser({ ...user, isPremium: true });
+                    router.replace("/tabs/home");
+                  },
+                },
+              ]
+            : []),
         ]
       );
     }
@@ -226,271 +213,325 @@ export default function PaywallScreen() {
 
   return (
     <View style={s.root}>
-      <ImageBackground
-        source={require("../src/assets/images/paywall-background.png")}
-        style={s.backgroundImage}
-      >
-        <StatusBar barStyle="light-content" backgroundColor={C.bg} />
-        <SafeAreaView style={s.safe}>
-          <View style={s.topBar}>
-            <TouchableOpacity
-              style={s.closeBtn}
-              onPress={handleClose}
-              accessibilityRole="button"
-              accessibilityLabel="Close"
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            >
-              <Ionicons name="close" size={20} color={C.textMuted} />
-            </TouchableOpacity>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+
+      {/* Looping Fullscreen Background Video with Sound */}
+      <Video
+        source={require("../src/assets/paywall-video.mp4")}
+        style={StyleSheet.absoluteFill}
+        resizeMode={ResizeMode.COVER}
+        isLooping={true}
+        shouldPlay={true}
+        isMuted={isMuted}
+        volume={1.0}
+      />
+
+      {/* Premium Glass / Gradient Dark Overlay */}
+      <View style={s.videoOverlay} />
+
+      <SafeAreaView style={s.safe}>
+        {/* Top Header Bar */}
+        <View style={s.topBar}>
+          <TouchableOpacity
+            style={s.iconBtn}
+            onPress={handleClose}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Ionicons name="close" size={20} color={C.text} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={s.iconBtn}
+            onPress={() => setIsMuted((prev) => !prev)}
+            accessibilityRole="button"
+            accessibilityLabel="Toggle Sound"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Ionicons
+              name={isMuted ? "volume-mute" : "volume-high"}
+              size={18}
+              color={C.text}
+            />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          contentContainerStyle={s.content}
+          showsVerticalScrollIndicator={false}
+          bounces={true}
+        >
+          {/* Brand & Headline */}
+          <View style={s.headerSection}>
+            <View style={s.brandRow}>
+              <View style={s.brandIconBadge}>
+                <Ionicons name="sparkles" size={13} color={C.blue} />
+              </View>
+              <Text style={s.brandText}>MUSICENGINE AI PREMIUM</Text>
+            </View>
+
+            <Text style={s.headline}>Unlock All AI Power</Text>
+            <Text style={s.subHeadline}>
+              Create pro studio music, get weekly credits & zero ads
+            </Text>
           </View>
 
-          <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} bounces={true}>
-            <View>
-              <View style={s.brandRow}>
-                <Ionicons name={isCreditMode ? "flash" : "crown"} size={13} color={C.blue} />
-                <Text style={s.brandText}>
-                  {isCreditMode ? "ADD CREATION CREDITS" : "MUSICENGINE AI PREMIUM"}
-                </Text>
-              </View>
-
-              <Text style={s.headline}>{isCreditMode ? "Top-Up" : "Unlock All"}</Text>
-              <Text style={s.subHeadline}>
-                {isCreditMode 
-                  ? "Refill your generation power instantly" 
-                  : "Unlimited AI music creation & visualization"
-                }
-              </Text>
-            </View>
-
-            <View style={s.featureGrid}>
-              {features.map((f) => (
-                <View key={f.text} style={s.featureCell}>
-                  <View style={s.featureIconCircle}>
-                    <Ionicons name={f.icon} size={15} color={C.blue} />
-                  </View>
-                  <Text style={s.featureText} numberOfLines={1}>
-                    {f.text}
-                  </Text>
+          {/* Features Showcase */}
+          <View style={s.featuresCard}>
+            {features.map((f, idx) => (
+              <View
+                key={f.title}
+                style={[
+                  s.featureRow,
+                  idx < features.length - 1 && s.featureRowBorder,
+                ]}
+              >
+                <View style={s.featureIconCircle}>
+                  <Ionicons name={f.icon} size={18} color={C.blue} />
                 </View>
-              ))}
-            </View>
-
-            <View style={s.plans}>
-              {plansList.map((plan) => {
-                const selected = selectedId === plan.id;
-                return (
-                  <TouchableOpacity
-                    key={plan.id}
-                    activeOpacity={0.85}
-                    onPress={() => setSelectedId(plan.id)}
-                    style={[s.planCard, selected && s.planCardSelected]}
-                  >
-                    {plan.badge ? (
-                      <View style={s.badge}>
-                        <Text style={s.badgeText}>{plan.badge}</Text>
-                      </View>
-                    ) : null}
-                    <View style={s.planRowInner}>
-                      <View style={s.planLeft}>
-                        <View
-                          style={[
-                            s.radioOuter,
-                            selected && s.radioOuterSelected,
-                          ]}
-                        >
-                          {selected ? <View style={s.radioInner} /> : null}
-                        </View>
-                        <Text style={s.planLabel}>{plan.label}</Text>
-                      </View>
-                      <View style={s.planRight}>
-                        <View style={s.priceBlock}>
-                          <Text style={s.planPrice}>{plan.price}</Text>
-                          {plan.duration ? (
-                            <Text style={s.planDuration}>
-                              {plan.duration}
-                            </Text>
-                          ) : null}
-                        </View>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </ScrollView>
-
-          <View style={s.footer}>
-            <TouchableOpacity
-              style={[s.upgradeBtn, loading && s.upgradeBtnDisabled]}
-              onPress={handlePurchase}
-              disabled={loading}
-              activeOpacity={0.9}
-            >
-              {loading ? (
-                <ActivityIndicator color={C.white} />
-              ) : (
-                <Text style={s.upgradeBtnText}>Continue</Text>
-              )}
-            </TouchableOpacity>
-            {!isCreditMode ? (
-              <View style={s.legalRow}>
-                <TouchableOpacity onPress={() => openLegalUrl(LEGAL_URLS.terms)}>
-                  <Text style={s.legalLink}>TERMS</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleRestore}>
-                  <Text style={s.legalLink}>RESTORE PURCHASES</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => openLegalUrl(LEGAL_URLS.privacy)}
-                >
-                  <Text style={s.legalLink}>PRIVACY</Text>
-                </TouchableOpacity>
+                <View style={s.featureTextCol}>
+                  <Text style={s.featureTitle}>{f.title}</Text>
+                  <Text style={s.featureDesc}>{f.description}</Text>
+                </View>
               </View>
+            ))}
+          </View>
+
+          {/* Single Weekly Package Card (Special Offer) */}
+          <View style={s.planSection}>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={s.planCardSelected}
+              onPress={handlePurchase}
+            >
+              <View style={s.specialBadge}>
+                <Ionicons name="flame" size={12} color="#FFF" />
+                <Text style={s.specialBadgeText}>SPECIAL 3-DAY TRIAL OFFER</Text>
+              </View>
+
+              <View style={s.planInner}>
+                <View style={s.planLeft}>
+                  <View style={s.radioOuter}>
+                    <View style={s.radioInner} />
+                  </View>
+                  <View>
+                    <Text style={s.planName}>Weekly Premium</Text>
+                    <Text style={s.planBenefits}>
+                      10 Credits / Week • No Ads • Upgraded AI
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={s.planPriceCol}>
+                  <Text style={s.trialPriceText}>First 3 Days</Text>
+                  <Text style={s.priceMain}>$1.00</Text>
+                  <Text style={s.priceSub}>then $5.00/wk</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+
+        {/* Footer CTA & Legal */}
+        <View style={s.footer}>
+          <TouchableOpacity
+            style={[s.ctaBtn, loading && s.ctaBtnDisabled]}
+            onPress={handlePurchase}
+            disabled={loading}
+            activeOpacity={0.9}
+          >
+            {loading ? (
+              <ActivityIndicator color={C.white} />
             ) : (
-              <View style={[s.legalRow, { justifyContent: 'center' }]}>
-                <Text style={{ fontSize: 11, color: C.textDim, fontWeight: '500' }}>
-                  Credits do not expire. Purchases are final.
-                </Text>
+              <View style={s.ctaBtnContent}>
+                <Text style={s.ctaBtnText}>Start 3-Day Trial for $1.00</Text>
+                <Ionicons name="arrow-forward" size={18} color={C.white} />
               </View>
             )}
+          </TouchableOpacity>
+
+          <Text style={s.guaranteeText}>
+            First 3 days $1.00, then $5.00/week. Includes 10 credits & upgraded AI. Cancel anytime.
+          </Text>
+
+          <View style={s.legalRow}>
+            <TouchableOpacity onPress={() => openLegalUrl(LEGAL_URLS.terms)}>
+              <Text style={s.legalLink}>TERMS</Text>
+            </TouchableOpacity>
+            <Text style={s.legalDot}>•</Text>
+            <TouchableOpacity onPress={handleRestore}>
+              <Text style={s.legalLink}>RESTORE</Text>
+            </TouchableOpacity>
+            <Text style={s.legalDot}>•</Text>
+            <TouchableOpacity onPress={() => openLegalUrl(LEGAL_URLS.privacy)}>
+              <Text style={s.legalLink}>PRIVACY</Text>
+            </TouchableOpacity>
           </View>
-        </SafeAreaView>
-      </ImageBackground>
+        </View>
+      </SafeAreaView>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.bg },
-  backgroundImage: {
+  root: {
     flex: 1,
-    resizeMode: "cover",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: "#05070E",
   },
-  safe: { flex: 1, marginHorizontal: Spacing.sm, width: '92%' },
+  videoOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(7, 10, 20, 0.78)",
+  },
+  safe: {
+    flex: 1,
+  },
   topBar: {
-    paddingHorizontal: Spacing.screenHorizontal - 6,
-    paddingTop: Platform.OS === "android" ? 8 : 4,
-    marginTop: Spacing.xs,
-    paddingBottom: 6,
-    alignItems: "flex-start",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: Spacing.screenHorizontal,
+    paddingTop: Platform.OS === "android" ? 12 : 6,
+    paddingBottom: 4,
   },
-  closeBtn: {
-    width: 36,
-    height: 36,
-    marginTop: Spacing.sm + 20,
-    borderRadius: BorderRadius.round,
-    backgroundColor: C.surfaceBtn,
+  iconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255, 255, 255, 0.16)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.25)",
     justifyContent: "center",
     alignItems: "center",
   },
   content: {
-    flexGrow: 1,
     paddingHorizontal: Spacing.screenHorizontal,
-    paddingTop: 16,
-    paddingBottom: 0,
+    paddingTop: 10,
+    paddingBottom: 24,
+  },
+  headerSection: {
+    alignItems: "center",
+    marginBottom: 20,
   },
   brandRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: "rgba(79, 131, 255, 0.18)",
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(79, 131, 255, 0.35)",
     gap: 6,
-    marginBottom: 8,
+    marginBottom: 12,
+  },
+  brandIconBadge: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "rgba(79, 131, 255, 0.25)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   brandText: {
-    ...Typography.caption,
-    fontSize: 10,
-    fontWeight: "700",
-    color: C.textMuted,
-    letterSpacing: 1.4,
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#8FAEFF",
+    letterSpacing: 1.2,
   },
   headline: {
-    ...Typography.hero,
-    fontSize: 44,
+    fontSize: 34,
     fontWeight: "800",
-    color: C.text,
+    color: "#FFFFFF",
     textAlign: "center",
-    marginBottom: 4,
-    letterSpacing: -1,
+    marginBottom: 6,
+    letterSpacing: -0.6,
   },
   subHeadline: {
-    ...Typography.bodyMedium,
-    fontSize: 20,
-    color: C.textMuted,
+    fontSize: 15,
+    color: "rgba(255, 255, 255, 0.75)",
     textAlign: "center",
-    marginBottom: 30,
-    marginTop: 4,
+    lineHeight: 21,
+    paddingHorizontal: 10,
   },
-  featureGrid: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    flexWrap: "wrap",
-    rowGap: 15,
-    marginBottom: 30,
-    marginTop: 10,
+  featuresCard: {
+    backgroundColor: "rgba(18, 23, 40, 0.85)",
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.12)",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 18,
   },
-  featureCell: {
-    width: "48%",
+  featureRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    paddingVertical: 11,
+    gap: 14,
+  },
+  featureRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255, 255, 255, 0.08)",
   },
   featureIconCircle: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: C.overlay,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(79, 131, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
-    flexShrink: 0,
   },
-  featureText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: C.text,
-    flexShrink: 1,
-  },
-  plans: {
-    gap: 12,
-    marginBottom: 0,
+  featureTextCol: {
     flex: 1,
-    justifyContent: 'center'
   },
-  planCard: {
-    backgroundColor: C.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1.2,
-    borderColor: C.border,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    position: "relative",
+  featureTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    marginBottom: 2,
+  },
+  featureDesc: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.65)",
+    lineHeight: 16,
+  },
+  planSection: {
+    marginBottom: 8,
   },
   planCardSelected: {
-    borderColor: C.borderSelected,
-    shadowColor: C.blue,
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 4,
+    backgroundColor: "rgba(23, 33, 62, 0.92)",
+    borderRadius: BorderRadius.lg,
+    borderWidth: 2,
+    borderColor: "#4F83FF",
+    paddingTop: 22,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    position: "relative",
+    shadowColor: "#4F83FF",
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
-  badge: {
+  specialBadge: {
     position: "absolute",
-    top: -10,
-    right: 12,
-    backgroundColor: C.yellow,
-    paddingHorizontal: 10,
+    top: -12,
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#3E6FFF",
+    paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: 6,
-    zIndex: 2,
+    borderRadius: 12,
+    gap: 4,
   },
-  badgeText: {
+  specialBadgeText: {
     fontSize: 10,
     fontWeight: "800",
-    color: C.ctaText,
-    letterSpacing: 0.5,
+    color: "#FFFFFF",
+    letterSpacing: 0.8,
   },
-  planRowInner: {
+  planInner: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -499,82 +540,105 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-  },
-  planLabel: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: C.text,
-  },
-  planRight: {
-    alignItems: "center",
-  },
-  priceBlock: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 4,
-  },
-  planPrice: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: C.textMuted,
-  },
-  planDuration: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: C.textDim,
+    flex: 1,
   },
   radioOuter: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: C.textDim,
+    borderColor: "#4F83FF",
     justifyContent: "center",
     alignItems: "center",
   },
-  radioOuterSelected: {
-    borderColor: C.blue,
-  },
   radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: C.blue,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#4F83FF",
+  },
+  planName: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    marginBottom: 3,
+  },
+  planBenefits: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#8FAEFF",
+  },
+  planPriceCol: {
+    alignItems: "flex-end",
+  },
+  trialPriceText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#FFD05B",
+    textTransform: "uppercase",
+  },
+  priceMain: {
+    fontSize: 24,
+    fontWeight: "900",
+    color: "#FFFFFF",
+  },
+  priceSub: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "rgba(255, 255, 255, 0.65)",
   },
   footer: {
     paddingHorizontal: Spacing.screenHorizontal,
-    paddingBottom: Platform.OS === "ios" ? Spacing.lg : Spacing.md,
-    paddingTop: 28,
+    paddingBottom: Platform.OS === "ios" ? 16 : 12,
   },
-  upgradeBtn: {
-    backgroundColor: C.blue,
+  ctaBtn: {
+    backgroundColor: "#3E6FFF",
     borderRadius: BorderRadius.lg,
-    paddingVertical: Spacing.md + 4,
+    paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 52,
+    shadowColor: "#3E6FFF",
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+    marginBottom: 8,
   },
-  upgradeBtnDisabled: { opacity: 0.75 },
-  upgradeBtnText: {
-    ...Typography.bodyMedium,
-    fontSize: 19,
-    fontWeight: "700",
-    color: C.white,
-    letterSpacing: 0.2,
+  ctaBtnDisabled: {
+    opacity: 0.7,
+  },
+  ctaBtnContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  ctaBtnText: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: 0.3,
+  },
+  guaranteeText: {
+    fontSize: 11,
+    color: "rgba(255, 255, 255, 0.6)",
+    textAlign: "center",
+    marginBottom: 12,
+    lineHeight: 15,
   },
   legalRow: {
-    paddingTop: Spacing.lg,
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "center",
-    paddingBottom: Spacing.xs,
-    paddingHorizontal: 4,
+    gap: 12,
   },
   legalLink: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "700",
-    color: C.textMuted,
-    letterSpacing: 1.2,
-    textDecorationLine: "underline",
+    color: "rgba(255, 255, 255, 0.55)",
+    letterSpacing: 0.8,
+  },
+  legalDot: {
+    fontSize: 11,
+    color: "rgba(255, 255, 255, 0.35)",
   },
 });
