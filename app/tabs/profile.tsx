@@ -8,7 +8,7 @@ import {
 } from "@/src/state/atoms";
 import { AppPalette as C } from "@/src/state/colors";
 import { BorderRadius, Spacing, useAppTheme } from "@/src/state/theme";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useAtom, useAtomValue } from "jotai";
@@ -120,33 +120,60 @@ export default function ProfileScreen() {
 
         <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
           {/* Subscription Tier Info Card */}
-          <View style={[s.card, { backgroundColor: theme.colors.surface }]}>
-            <View style={s.cardHeader}>
-              <View style={[s.iconBg, { backgroundColor: isPremium ? "rgba(59, 130, 246, 0.15)" : theme.colors.surfaceElevated }]}>
-                <Ionicons
-                  name={isPremium ? "crown" : "star-outline"}
-                  size={22}
-                  color={isPremium ? theme.colors.primary : theme.colors.mutedText}
-                />
+          {isPremium ? (
+            <View style={s.vipCard}>
+              <View style={s.vipHeader}>
+                <View style={s.vipIconBadge}>
+                  <MaterialCommunityIcons name="crown" size={26} color="#FFD700" />
+                </View>
+                <View style={s.cardText}>
+                  <View style={s.vipTitleRow}>
+                    <Text style={s.vipTitle}>MusicEngine Pro VIP</Text>
+                    <View style={s.vipStatusPill}>
+                      <MaterialCommunityIcons name="check-decagram" size={13} color="#00FFA3" />
+                      <Text style={s.vipStatusText}>ACTIVE</Text>
+                    </View>
+                  </View>
+                  <Text style={s.vipSubtitle}>
+                    Unlimited Studio AI Generation & Weekly Credits Unlocked
+                  </Text>
+                </View>
               </View>
-              <View style={s.cardText}>
-                <Text style={[s.cardLabel, { color: theme.colors.text }]}>
-                  {isPremium ? "Premium Membership" : "Free Plan"}
-                </Text>
-                <Text style={[s.cardSub, { color: theme.colors.mutedText }]}>
-                  {isPremium ? "Powered AI song generation unlocked" : "Free generation credits"}
-                </Text>
+
+              <View style={s.vipPerksRow}>
+                <View style={s.vipPerkItem}>
+                  <Ionicons name="sparkles" size={13} color="#00FFA3" />
+                  <Text style={s.vipPerkText}>Pro Audio Models</Text>
+                </View>
+                <View style={s.vipPerkItem}>
+                  <Ionicons name="flash" size={13} color="#00FFA3" />
+                  <Text style={s.vipPerkText}>No Ads & Studio Quality</Text>
+                </View>
               </View>
             </View>
-            {!isPremium && (
+          ) : (
+            <View style={[s.card, { backgroundColor: theme.colors.surface }]}>
+              <View style={s.cardHeader}>
+                <View style={[s.iconBg, { backgroundColor: theme.colors.surfaceElevated }]}>
+                  <MaterialCommunityIcons name="crown-outline" size={24} color={theme.colors.mutedText} />
+                </View>
+                <View style={s.cardText}>
+                  <Text style={[s.cardLabel, { color: theme.colors.text }]}>
+                    Free Plan
+                  </Text>
+                  <Text style={[s.cardSub, { color: theme.colors.mutedText }]}>
+                    Free generation credits
+                  </Text>
+                </View>
+              </View>
               <ActionButton
                 title="Upgrade to Pro"
                 onPress={handleGoPremium}
                 icon="star"
                 style={{ maxHeight: 40 }}
               />
-            )}
-          </View>
+            </View>
+          )}
 
           {/* Credits Card — Collapsible */}
           <View style={[s.creditCard, { backgroundColor: theme.colors.surface }]}>
@@ -268,6 +295,86 @@ const s = StyleSheet.create({
   },
 
   /* ── Subscription Card ── */
+  vipCard: {
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    backgroundColor: "#0B1D16",
+    borderWidth: 1.5,
+    borderColor: "rgba(0, 255, 163, 0.4)",
+    gap: 14,
+    shadowColor: "#00FFA3",
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  vipHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  vipIconBadge: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "rgba(255, 215, 0, 0.16)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255, 215, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  vipTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  vipTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+  vipStatusPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(0, 255, 163, 0.15)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0, 255, 163, 0.35)",
+  },
+  vipStatusText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#00FFA3",
+    letterSpacing: 0.5,
+  },
+  vipSubtitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#A3C4B5",
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  vipPerksRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0, 255, 163, 0.15)",
+    paddingTop: 12,
+  },
+  vipPerkItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  vipPerkText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#E2FCEF",
+  },
+
   card: {
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
