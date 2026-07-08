@@ -96,7 +96,7 @@ export default function ProfileScreen() {
 
   const handleSupport = () => {
     const body = `\n\n\n---\nPlatform: ${Platform.OS} ${Platform.Version}\nApp Version: 1.0.4`;
-    const url = `mailto:support@cekolabs.com?subject=FlowTine Support Request&body=${encodeURIComponent(body)}`;
+    const url = `mailto:support@cekolabs.com?subject=MusicEngine AI Support Request&body=${encodeURIComponent(body)}`;
     Linking.openURL(url).catch(() =>
       showAlert("Support Email", "Please write to support@cekolabs.com for assistance.")
     );

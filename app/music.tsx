@@ -151,7 +151,7 @@ export default function MusicPlayerScreen() {
       const url = activeTrack?.fileUrl || activeTrack?.url || "";
       await Share.share({
         title: activeTrack?.title || "AI Music Track",
-        message: `Listen to "${activeTrack?.title || "My AI Track"}" generated on FlowTine AI! 🎵 ${url}`,
+        message: `Listen to "${activeTrack?.title || "My AI Track"}" generated on MusicEngine AI! 🎵 ${url}`,
       });
     } catch (e) {
       console.warn("Share error:", e);

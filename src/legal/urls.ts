@@ -3,6 +3,6 @@
  * Replace these with your production URLs before release.
  */
 export const LEGAL_URLS = {
-  terms: "https://vens.cekolabs.com/terms-flowtine",
-  privacy: "https://vens.cekolabs.com/policy-flowtine",
+  terms: "https://vens.cekolabs.com/terms-aimusic",
+  privacy: "https://vens.cekolabs.com/policy-aimusic",
 } as const;

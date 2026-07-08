@@ -10,13 +10,17 @@ import { centrifugoService } from '@/src/services/centrifugo';
 import { Colors } from '@/src/state/colors';
 import { Typography } from '@/src/state/theme';
 
-const DEVICE_ID_KEY = 'flowtine.device_id';
+const DEVICE_ID_KEY = 'musicengine.device_id';
+const OLD_DEVICE_ID_KEY = 'flowtine.device_id';
 
 async function getOrGenerateDeviceId(): Promise<string> {
   try {
-    // Check if we already persisted a device ID
-    const stored = await AsyncStorage.getItem(DEVICE_ID_KEY);
-    if (stored) return stored;
+    // Check if we already persisted a device ID under new or old key
+    const stored = await AsyncStorage.getItem(DEVICE_ID_KEY) || await AsyncStorage.getItem(OLD_DEVICE_ID_KEY);
+    if (stored) {
+      await AsyncStorage.setItem(DEVICE_ID_KEY, stored).catch(() => {});
+      return stored;
+    }
 
     let deviceId: string | null = null;
     let osBuildId: string | null = null;

@@ -206,7 +206,7 @@ export default function PaywallScreen() {
     } else {
       showAlert(
         "Premium Required",
-        "FlowTine is a premium service. Please subscribe to unlock the application.",
+        "MusicEngine AI is a premium service. Please subscribe to unlock the application.",
         [
           { text: "OK" },
           // Developer quick-skip backdoor in development builds
@@ -249,7 +249,7 @@ export default function PaywallScreen() {
               <View style={s.brandRow}>
                 <Ionicons name={isCreditMode ? "flash" : "crown"} size={13} color={C.blue} />
                 <Text style={s.brandText}>
-                  {isCreditMode ? "ADD CREATION CREDITS" : "FLOWTINE PREMIUM"}
+                  {isCreditMode ? "ADD CREATION CREDITS" : "MUSICENGINE AI PREMIUM"}
                 </Text>
               </View>
 

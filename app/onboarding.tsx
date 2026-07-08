@@ -57,7 +57,7 @@ export default function OnboardingScreen() {
           <Text
             style={[styles.title, { color: C.text, ...theme.typography.hero }]}
           >
-            Welcome to FlowTine
+            Welcome to MusicEngine AI
           </Text>
           <Text
             style={[
