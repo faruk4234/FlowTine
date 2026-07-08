@@ -53,7 +53,7 @@ export default function ProfileScreen() {
   const totalCredits = (user?.limits?.credit ?? 0) + (user?.limits?.premiumCredit ?? 0);
 
   const handleGoPremium = () => {
-    router.push("/paywall");
+    router.navigate("/paywall");
   };
 
   const handleBuyCredits = () => {
