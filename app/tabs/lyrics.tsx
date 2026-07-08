@@ -2,7 +2,6 @@ import { useRouter } from "expo-router";
 import { useAtom, useSetAtom } from "jotai";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   Keyboard,
   ScrollView,
   StatusBar,
@@ -10,11 +9,12 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ActionButton, Header, InspireButton, SegmentedControl } from "@/src/components";
+import { useAlert } from "@/src/providers/alert-provider";
 import {
   editingLyricAtom,
   libraryTabAtom,
@@ -22,7 +22,6 @@ import {
   type SavedLyrics,
 } from "@/src/state/atoms";
 import { BorderRadius, Spacing, useAppTheme } from "@/src/state/theme";
-import { useAlert } from "@/src/providers/alert-provider";
 
 const ENTRANCE_PARTS = [
   "A sunrise over restless city streets.",
@@ -265,18 +264,21 @@ export default function LyricsScreen() {
             {activeSubTab === "prompt" ? (
               /* ─── USE PROMPT SUBTAB ─── */
               <View style={[s.textCard, { backgroundColor: theme.colors.surface }]}>
-                <View style={s.textCardHeader}>
-                  <TextInput
-                    style={[s.textInput, { color: theme.colors.text }]}
-                    placeholder="Enter prompt..."
-                    placeholderTextColor={theme.colors.mutedText}
-                    multiline
-                    value={promptText}
-                    onChangeText={setPromptText}
-                  />
-                  <View style={s.inspireBtnAbsolute}>
-                    <InspireButton setPromptText={setPromptText} />
-                  </View>
+                <TextInput
+                  style={[s.textInput, { color: theme.colors.text }]}
+                  placeholder="Enter prompt..."
+                  placeholderTextColor={theme.colors.mutedText}
+                  maxLength={500}
+                  multiline
+                  scrollEnabled={true}
+                  value={promptText}
+                  onChangeText={setPromptText}
+                />
+                <View style={s.textCardFooter}>
+                  <InspireButton setPromptText={setPromptText} />
+                  <Text style={[s.charCountText, { color: theme.colors.mutedText }]}>
+                    {promptText.length} chars
+                  </Text>
                 </View>
               </View>
             ) : (
@@ -287,9 +289,16 @@ export default function LyricsScreen() {
                   placeholder="Type or paste your custom lyrics..."
                   placeholderTextColor={theme.colors.mutedText}
                   multiline
+                  maxLength={2500}
+                  scrollEnabled={true}
                   value={manualText}
                   onChangeText={setManualText}
                 />
+                <View style={s.textCardFooterRight}>
+                  <Text style={[s.charCountText, { color: theme.colors.mutedText }]}>
+                    {manualText.length} chars
+                  </Text>
+                </View>
               </View>
             )}
 
@@ -324,7 +333,7 @@ const s = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: Spacing.screenHorizontal,
     paddingTop: Spacing.md,
-    paddingBottom: 120, // Buffer space for floating player
+    paddingBottom: 130, // Buffer space for floating player
     gap: Spacing.md,
   },
   cancelEditBtn: {
@@ -341,24 +350,38 @@ const s = StyleSheet.create({
   textCard: {
     borderRadius: BorderRadius.md,
     padding: 16,
-    minHeight: 280,
+    height: 230,
     justifyContent: "space-between",
   },
   textInput: {
-    flex: 1,
-    fontSize: 16,
-    minHeight: 180,
+    height: 165,
+    paddingBottom: 20,
+    maxHeight: 165,
+    fontSize: 15,
     textAlignVertical: "top",
     lineHeight: 22,
   },
-  textCardHeader: {
-    position: 'relative',
-    padding: 12,
+  textCardFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.08)",
+    marginTop: 8,
   },
-  inspireBtnAbsolute: {
-    position: 'absolute',
-    bottom: 12,
-    left: 12,
+  textCardFooterRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.08)",
+    marginTop: 8,
+  },
+  charCountText: {
+    fontSize: 12,
+    fontWeight: "600",
   },
   cardFooter: {
     flexDirection: "row",

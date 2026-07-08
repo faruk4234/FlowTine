@@ -176,11 +176,7 @@ export default function PaywallScreen() {
 
   const handleClose = () => {
     if (canClose) {
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace("/tabs/home");
-      }
+      router.replace("/tabs/home");
     } else {
       showAlert(
         "Premium Required",

@@ -38,7 +38,7 @@ const RootLayout = () => {
     const isExpoGo = Constants.appOwnership === AppOwnership.Expo;
 
     if (__DEV__) {
-      Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
+      Purchases.setLogLevel(Purchases.LOG_LEVEL.ERROR);
     }
 
     let removeAppStateListener: (() => void) | undefined;
@@ -116,7 +116,9 @@ const RootLayout = () => {
         <AppThemeProvider>
           <AlertProvider>
             <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="index" />
               <Stack.Screen name="tabs" />
+              <Stack.Screen name="music" />
               <Stack.Screen name="onboarding" options={{ presentation: 'fullScreenModal' }} />
               <Stack.Screen name="paywall" options={{ presentation: 'fullScreenModal' }} />
               <Stack.Screen name="legal-webview" options={{ presentation: 'card' }} />
