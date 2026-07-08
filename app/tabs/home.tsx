@@ -388,7 +388,7 @@ export default function CreateScreen() {
 }
 
 const s = StyleSheet.create({
-    root: { flex: 1 },
+    root: { flex: 1, paddingBottom: 50 },
     safe: { flex: 1 },
     scrollContent: {
         paddingHorizontal: Spacing.screenHorizontal,

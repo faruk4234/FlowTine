@@ -152,25 +152,40 @@ export default function ProfileScreen() {
               </View>
             </View>
           ) : (
-            <View style={[s.card, { backgroundColor: theme.colors.surface }]}>
-              <View style={s.cardHeader}>
-                <View style={[s.iconBg, { backgroundColor: theme.colors.surfaceElevated }]}>
-                  <MaterialCommunityIcons name="crown-outline" size={24} color={theme.colors.mutedText} />
+            <View style={s.freeCard}>
+              <View style={s.vipHeader}>
+                <View style={s.freeIconBadge}>
+                  <MaterialCommunityIcons name="crown-outline" size={26} color="#00FFA3" />
                 </View>
                 <View style={s.cardText}>
-                  <Text style={[s.cardLabel, { color: theme.colors.text }]}>
-                    Free Plan
-                  </Text>
-                  <Text style={[s.cardSub, { color: theme.colors.mutedText }]}>
-                    Free generation credits
+                  <View style={s.vipTitleRow}>
+                    <Text style={s.vipTitle}>MusicEngine Free</Text>
+                    <View style={s.freeStatusPill}>
+                      <Text style={s.freeStatusText}>FREE PLAN</Text>
+                    </View>
+                  </View>
+                  <Text style={s.vipSubtitle}>
+                    Upgrade to unlock unlimited weekly credits & studio audio features
                   </Text>
                 </View>
               </View>
+
+              <View style={s.vipPerksRow}>
+                <View style={s.vipPerkItem}>
+                  <Ionicons name="sparkles" size={13} color="#00FFA3" />
+                  <Text style={s.freePerkText}>10 Weekly AI Credits</Text>
+                </View>
+                <View style={s.vipPerkItem}>
+                  <Ionicons name="flash" size={13} color="#00FFA3" />
+                  <Text style={s.freePerkText}>Pro Studio Engines</Text>
+                </View>
+              </View>
+
               <ActionButton
-                title="Upgrade to Pro"
+                title="Upgrade to Pro VIP"
                 onPress={handleGoPremium}
                 icon="star"
-                style={{ maxHeight: 40 }}
+                style={{ height: 46, marginTop: 2 }}
               />
             </View>
           )}
@@ -373,6 +388,46 @@ const s = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     color: "#E2FCEF",
+  },
+
+  freeCard: {
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    backgroundColor: "#111815",
+    borderWidth: 1.5,
+    borderColor: "rgba(255, 255, 255, 0.12)",
+    gap: 14,
+  },
+  freeIconBadge: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "rgba(0, 255, 163, 0.12)",
+    borderWidth: 1.5,
+    borderColor: "rgba(0, 255, 163, 0.35)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  freeStatusPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.18)",
+  },
+  freeStatusText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#B4C5BE",
+    letterSpacing: 0.5,
+  },
+  freePerkText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#CFE3DA",
   },
 
   card: {
