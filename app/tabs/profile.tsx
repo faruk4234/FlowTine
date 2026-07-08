@@ -134,7 +134,7 @@ export default function ProfileScreen() {
                   {isPremium ? "Premium Membership" : "Free Plan"}
                 </Text>
                 <Text style={[s.cardSub, { color: theme.colors.mutedText }]}>
-                  {isPremium ? "Unlimited AI song generation unlocked" : "Limited generation credits"}
+                  {isPremium ? "Powered AI song generation unlocked" : "Free generation credits"}
                 </Text>
               </View>
             </View>

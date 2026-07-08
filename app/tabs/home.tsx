@@ -253,7 +253,7 @@ export default function CreateScreen() {
                                     <Ionicons name="close" size={14} color={theme.colors.text} />
                                 </TouchableOpacity>
                             )}
-                            <View style={{ backgroundColor: 'red' }}>
+                            <View style={{}}>
                                 {promptType === 'prompt' && (
                                     <View style={s.inspireBtnAbsolute}>
                                         <InspireButton setPromptText={setTextInput} />

@@ -365,10 +365,9 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: 10,
-    borderTopWidth: 1,
     borderTopColor: "rgba(255, 255, 255, 0.08)",
-    marginTop: 8,
+    marginBottom: 10,
+
   },
   textCardFooterRight: {
     flexDirection: "row",
