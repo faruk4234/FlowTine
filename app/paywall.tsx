@@ -3,7 +3,7 @@ import { Audio, ResizeMode, Video } from "expo-av";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useAtom, useSetAtom } from "jotai";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -33,6 +33,7 @@ export default function PaywallScreen() {
 
   const [loading, setLoading] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const videoRef = useRef<Video>(null);
   const { showAlert } = useAlert();
 
   // Configure Audio Session so video sound plays reliably and repeats continuously
@@ -43,6 +44,8 @@ export default function PaywallScreen() {
           playsInSilentModeIOS: true,
           allowsRecordingIOS: false,
           staysActiveInBackground: false,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
         });
       } catch (e) {
         console.warn("Audio mode config error:", e);
@@ -207,6 +210,7 @@ export default function PaywallScreen() {
 
       {/* Looping Fullscreen Background Video with Sound */}
       <Video
+        ref={videoRef}
         source={require("../src/assets/paywall-video.mp4")}
         style={StyleSheet.absoluteFill}
         resizeMode={ResizeMode.COVER}
@@ -214,6 +218,9 @@ export default function PaywallScreen() {
         shouldPlay={true}
         isMuted={isMuted}
         volume={1.0}
+        onLoad={() => {
+          videoRef.current?.playAsync();
+        }}
       />
 
       {/* Deep Glass Dark Overlay */}
@@ -337,14 +344,14 @@ export default function PaywallScreen() {
             ) : (
               <View style={s.ctaBtnContent}>
                 <Ionicons name="sparkles" size={17} color="#040814" />
-                <Text style={s.ctaBtnText}>Start 3-Day Trial for $0.99</Text>
+                <Text style={s.ctaBtnText}>Start 7-Day Trial for $0.99</Text>
                 <Ionicons name="arrow-forward" size={18} color="#040814" />
               </View>
             )}
           </TouchableOpacity>
 
           <Text style={s.guaranteeText}>
-            First 1 week $0.99, then $5.00/week. Includes 10 credits & upgraded AI. Cancel anytime.
+            First 7 days $0.99, then $5.00/week. Includes 10 credits & upgraded AI. Cancel anytime.
           </Text>
 
           <View style={s.legalRow}>

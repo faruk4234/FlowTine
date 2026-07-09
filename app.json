@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "MusicEngine AI",
-    "slug": "FlowTine",
+    "slug": "music-engine",
     "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./src/assets/images/app-icon.png",
@@ -51,14 +51,11 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "c1f4c955-2382-463f-b2e6-139273c76040"
+        "projectId": "83692467-b493-47ec-a50d-2892f085e999"
       }
     },
     "runtimeVersion": {
       "policy": "appVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/c1f4c955-2382-463f-b2e6-139273c76040"
     }
   },
   "react-native-google-mobile-ads": {
