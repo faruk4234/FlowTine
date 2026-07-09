@@ -176,7 +176,7 @@ export default function PaywallScreen() {
 
   const handleClose = () => {
     if (canClose) {
-      router.replace("/tabs/home");
+      router.replace('/tabs/home')
     } else {
       showAlert(
         "Premium Required",
@@ -315,7 +315,7 @@ export default function PaywallScreen() {
                 </View>
 
                 <View style={s.planPriceCol}>
-                  <Text style={s.trialPriceText}>First 3 Days</Text>
+                  <Text style={s.trialPriceText}>First 1 Week</Text>
                   <Text style={s.priceMain}>$0.99</Text>
                   <Text style={s.priceSub}>then $5.00/wk</Text>
                 </View>
@@ -344,7 +344,7 @@ export default function PaywallScreen() {
           </TouchableOpacity>
 
           <Text style={s.guaranteeText}>
-            First 3 days $0.99, then $5.00/week. Includes 10 credits & upgraded AI. Cancel anytime.
+            First 1 week $0.99, then $5.00/week. Includes 10 credits & upgraded AI. Cancel anytime.
           </Text>
 
           <View style={s.legalRow}>

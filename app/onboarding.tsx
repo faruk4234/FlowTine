@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { hasCompletedOnboardingAtom } from "@/src/state/atoms";
 import { AppPalette as C } from "@/src/state/colors";
 import { useAppTheme } from "@/src/state/theme";
@@ -26,9 +27,9 @@ const FEATURES = [
     description: "Write, save, and format lyrics locally on your device to feed the creation studio.",
   },
   {
-    icon: "play-circle-outline" as const,
-    title: "Audio Visualizer Player",
-    description: "Stream your generated tracks with active waveform height scaling animations.",
+    icon: "share-social-outline" as const,
+    title: "Share Your Music",
+    description: "Export and share your AI-generated tracks with friends and across social platforms.",
   },
 ];
 
@@ -39,6 +40,7 @@ export default function OnboardingScreen() {
 
   const handleGetStarted = () => {
     setOnboardingCompleted(true);
+    AsyncStorage.setItem("onboarding.completed", "true").catch(() => {});
     // Route to Subscription Paywall immediately after onboarding
     router.replace("/paywall");
   };

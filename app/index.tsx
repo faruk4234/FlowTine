@@ -73,9 +73,12 @@ export default function Index() {
         setUser(userData);
         centrifugoService.connect();
         
+        const storedOnboarding = await AsyncStorage.getItem("onboarding.completed");
+        const isOnboardingDone = storedOnboarding === "true";
+
         // Wait briefly for smooth transition
         setTimeout(() => {
-          if (!hasCompletedOnboarding) {
+          if (!isOnboardingDone) {
             // Waterfall Check 2: Route to Onboarding Flow
             router.replace('/onboarding');
           } else if (!userData.isPremium) {
@@ -85,7 +88,7 @@ export default function Index() {
             // Authorized Premium User: Route to tabs
             router.replace('/tabs/home');
           }
-        }, 500);
+        }, 400);
       } catch (e) {
         console.error('Authentication waterfall failed:', e);
         setErrorMsg('Unable to connect. Retrying...');

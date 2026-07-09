@@ -96,7 +96,7 @@ export default function CreateScreen() {
         if (isPrem) {
             router.push("/tabs/profile?openCredits=true");
         } else {
-            router.push("/paywall?type=credits");
+            router.replace("/paywall?type=credits");
         }
     };
 
