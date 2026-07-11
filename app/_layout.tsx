@@ -26,12 +26,12 @@ function isPremiumCustomer(info: CustomerInfoLike | null | undefined): boolean {
 // ─── RevenueCat Keys ──────────────────────────────────────────────────────────
 // PROD KEYS: Only work in Development Builds (custom native app)
 const PROD_KEYS = {
-  apple: "appl_gJfpbUnvdEUPcDgIwJGaNOzQxxh",
-  google: "goog_RokUOiUOpgCBAuJymemQyPnWTTH",
+  apple: "appl_hkKhqhdofnFGxlkfTfNQGhuySjC",
+  google: "goog_dtzdNrZYFyqlpayZTlVPIXOiRTh",
 };
 
 // TEST STORE KEY: Required for testing inside EXPO GO
-const EXPO_GO_TEST_KEY = "test_QDKSTicRiuleHapXWJDzaMaHStn";
+const EXPO_GO_TEST_KEY = "test_bQaVOZuXDdOXFCJlyiWDikwxWPe";
 
 const RootLayout = () => {
   useEffect(() => {
@@ -44,17 +44,10 @@ const RootLayout = () => {
     let removeAppStateListener: (() => void) | undefined;
 
     try {
-      // 1. Initialize logic
-      if (isExpoGo) {
-        // Use the Sandbox/Test Store key for Expo Go users
-        Purchases.configure({ apiKey: EXPO_GO_TEST_KEY });
-      } else {
-        // Use real keys for production or development builds
-        const apiKey = Platform.OS === 'ios' ? PROD_KEYS.apple : PROD_KEYS.google;
-        Purchases.configure({ apiKey });
-      }
+      const apiKey = Platform.OS === 'ios' ? PROD_KEYS.apple : PROD_KEYS.google;
+      Purchases.configure({ apiKey });
     } catch (e) {
-      console.warn("Purchases: Configuration failed (likely running in a simulator/web without native support)", e);
+      console.warn("Purchases: Configuration failed:", e);
     }
 
     const setupPurchases = async () => {
@@ -73,7 +66,12 @@ const RootLayout = () => {
             appStore.set(isPremiumAtom, isPremiumCustomer(info));
 
             // Debug logging on app open / foreground
-            // Logs: active subscriptions, offering/packages, and ms left on active entitlements.
+            try {
+              const offerings = await Purchases.getOfferings();
+              console.log("📦 [RevenueCat Offerings Data]:", JSON.stringify(offerings.current?.availablePackages, null, 2));
+            } catch (offErr) {
+              console.warn("Could not log offerings:", offErr);
+            }
           } catch (e) {
             // If we're offline (or any transient error), keep the last known premium state.
             // We'll update again next time the app becomes active / network is back.

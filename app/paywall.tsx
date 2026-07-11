@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Audio, ResizeMode, Video } from "expo-av";
+import Constants from "expo-constants";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useAtom, useSetAtom } from "jotai";
@@ -23,6 +24,12 @@ import { apiService } from "@/src/services/api";
 import { isPremiumAtom, userAtom } from "@/src/state/atoms";
 import { BorderRadius, Spacing } from "@/src/state/theme";
 
+const getRevenueCatApiKey = () => {
+  return Platform.OS === "ios"
+    ? "appl_hkKhqhdofnFGxlkfTfNQGhuySjC"
+    : "goog_dtzdNrZYFyqlpayZTlVPIXOiRTh";
+};
+
 export default function PaywallScreen() {
   const router = useRouter();
   const { type } = useLocalSearchParams<{ type?: string }>();
@@ -35,6 +42,44 @@ export default function PaywallScreen() {
   const [isMuted, setIsMuted] = useState(false);
   const videoRef = useRef<Video>(null);
   const { showAlert } = useAlert();
+
+  const [packagePriceString, setPackagePriceString] = useState<string>("$4.99/week");
+  const [introPriceString, setIntroPriceString] = useState<string>("$0.99");
+
+  useEffect(() => {
+    async function fetchRevenueCatOfferings() {
+      try {
+        let isRCConfigured = await Purchases.isConfigured();
+        if (!isRCConfigured) {
+          const apiKey = getRevenueCatApiKey();
+          Purchases.configure({ apiKey, appUserID: user?.deviceId || undefined });
+        }
+        const offerings = await Purchases.getOfferings();
+        console.log("📦 [Paywall] RevenueCat Offerings Packages:", JSON.stringify(offerings.current?.availablePackages, null, 2));
+
+        const weeklyPackage =
+          offerings.current?.weekly ||
+          offerings.current?.availablePackages.find(
+            (p) =>
+              p.packageType === Purchases.PACKAGE_TYPE.WEEKLY ||
+              p.identifier.toLowerCase().includes("week")
+          ) ||
+          offerings.current?.availablePackages[0];
+
+        console.log("📦 [Paywall] Selected Weekly Package:", weeklyPackage?.identifier, weeklyPackage?.product?.priceString);
+
+        if (weeklyPackage?.product) {
+          const price = weeklyPackage.product.priceString;
+          const introPrice = (weeklyPackage.product as any).introPrice?.priceString || "$0.99";
+          if (price) setPackagePriceString(price);
+          if (introPrice) setIntroPriceString(introPrice);
+        }
+      } catch (e) {
+        console.warn("Could not fetch RevenueCat packages:", e);
+      }
+    }
+    fetchRevenueCatOfferings();
+  }, [user?.deviceId]);
 
   // Configure Audio Session so video sound plays reliably and repeats continuously
   useEffect(() => {
@@ -91,46 +136,91 @@ export default function PaywallScreen() {
   const handlePurchase = async () => {
     setLoading(true);
     try {
-      const deviceId = user?.deviceId || "mock_device";
-
-      try {
-        const isRCConfigured = await Purchases.isConfigured();
-        if (isRCConfigured) {
-          const offerings = await Purchases.getOfferings();
-          const weeklyPackage = offerings.current?.availablePackages.find(
-            (p) => p.packageType === Purchases.PACKAGE_TYPE.WEEKLY
-          );
-          if (weeklyPackage) {
-            await Purchases.purchasePackage(weeklyPackage);
-          }
-        }
-      } catch (rcError) {
-        console.log("Using mock weekly premium purchase flow", rcError);
+      let isRCConfigured = await Purchases.isConfigured();
+      if (!isRCConfigured) {
+        const apiKey = getRevenueCatApiKey();
+        Purchases.configure({ apiKey, appUserID: user?.deviceId || undefined });
+        isRCConfigured = true;
       }
 
-      const updatedUser = await apiService.activateMockWeeklyPremium(deviceId);
-      setUser(updatedUser);
-      setPremium(true);
+      const offerings = await Purchases.getOfferings();
+      const weeklyPackage =
+        offerings.current?.weekly ||
+        offerings.current?.availablePackages.find(
+          (p) =>
+            p.packageType === Purchases.PACKAGE_TYPE.WEEKLY ||
+            p.identifier.toLowerCase().includes("week")
+        ) ||
+        offerings.current?.availablePackages[0];
 
+      if (!weeklyPackage) {
+        showAlert(
+          "Real Purchase Unavailable",
+          "No active products returned from RevenueCat. Please verify your App Store / Google Play products are configured."
+        );
+        return;
+      }
+
+      const { customerInfo, productIdentifier } = await Purchases.purchasePackage(weeklyPackage);
+      const sku = productIdentifier || weeklyPackage.product.identifier;
+
+      try {
+        if (Platform.OS === "ios") {
+          const activeEntitlements = customerInfo?.entitlements?.active || {};
+          const firstEntitlement = Object.values(activeEntitlements)[0] as any;
+          const transactionId =
+            firstEntitlement?.originalPurchaseDate ||
+            customerInfo?.originalAppUserId ||
+            `${sku}_${Date.now()}`;
+
+          const res = await apiService.createSubscriptionPurchase({
+            platform: "ios",
+            transactionId: String(transactionId),
+            sku,
+          });
+          if (res?.user && setUser) setUser(res.user);
+        } else {
+          const activeEntitlements = customerInfo?.entitlements?.active || {};
+          const firstEntitlement = Object.values(activeEntitlements)[0] as any;
+          const purchaseToken =
+            firstEntitlement?.originalPurchaseDate ||
+            customerInfo?.originalAppUserId ||
+            `${sku}_token`;
+
+          const res = await apiService.createSubscriptionPurchase({
+            platform: "android",
+            sku,
+            packageName: Constants.expoConfig?.android?.package || "com.cekolabs.aimusic",
+            purchaseToken: String(purchaseToken),
+            transactionId: String(purchaseToken),
+          });
+          if (res?.user && setUser) setUser(res.user);
+        }
+      } catch (backendErr) {
+        console.warn("Backend createSubscriptionPurchase fallback:", backendErr);
+      }
+
+      setPremium(true);
+      if (user) setUser({ ...user, isPremium: true });
       showAlert(
         "Welcome to Weekly Premium! 🎵",
-        "Your 3-day trial ($0.99) is now active! 10 weekly credits have been added to your account.",
+        "Your subscription is now active! 10 weekly credits have been added to your account.",
         [
           {
             text: "Start Creating",
-            onPress: () => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace("/tabs/home");
-              }
-            },
+            onPress: () => router.replace("/tabs/home"),
           },
         ]
       );
-    } catch (e) {
-      console.error("Purchase execution error:", e);
-      showAlert("Purchase Failed", "Please check your network and try again.");
+    } catch (rcError: any) {
+      if (rcError?.userCancelled) {
+        return;
+      }
+      console.error("RevenueCat real purchase error:", rcError);
+      showAlert(
+        "Purchase Failed",
+        rcError?.message || "Could not complete real purchase. Please verify your billing account and network."
+      );
     } finally {
       setLoading(false);
     }
@@ -139,32 +229,65 @@ export default function PaywallScreen() {
   const handleRestore = useCallback(async () => {
     setLoading(true);
     try {
-      const isRCConfigured = await Purchases.isConfigured();
-      if (isRCConfigured) {
-        const customerInfo = await Purchases.restorePurchases();
-        const active =
-          customerInfo.entitlements.active &&
-          Object.keys(customerInfo.entitlements.active).length > 0;
-        setPremium(active);
-        if (active) {
-          if (user) setUser({ ...user, isPremium: true });
-          showAlert("Restored", "Your weekly premium membership was restored!", [
-            { text: "Continue", onPress: () => router.replace("/tabs/home") },
-          ]);
-          return;
-        }
+      let isRCConfigured = await Purchases.isConfigured();
+      if (!isRCConfigured) {
+        const apiKey = getRevenueCatApiKey();
+        Purchases.configure({ apiKey, appUserID: user?.deviceId || undefined });
       }
 
-      const deviceId = user?.deviceId || "mock_device";
-      const updatedUser = await apiService.activateMockWeeklyPremium(deviceId);
-      setUser(updatedUser);
-      setPremium(true);
-      showAlert("Restored", "Weekly Premium membership restored successfully.", [
-        { text: "Continue", onPress: () => router.replace("/tabs/home") },
-      ]);
-    } catch (e) {
+      const customerInfo = await Purchases.restorePurchases();
+      const active =
+        (customerInfo.entitlements.active &&
+          Object.keys(customerInfo.entitlements.active).length > 0) ||
+        (customerInfo.activeSubscriptions && customerInfo.activeSubscriptions.length > 0);
+
+      if (active) {
+        try {
+          const activeEntitlements = customerInfo?.entitlements?.active || {};
+          const firstEntitlement = Object.values(activeEntitlements)[0] as any;
+          const sku = firstEntitlement?.productIdentifier || "weekly_premium";
+
+          if (Platform.OS === "ios") {
+            const transactionId =
+              firstEntitlement?.originalPurchaseDate ||
+              customerInfo?.originalAppUserId ||
+              `${sku}_restore`;
+
+            const res = await apiService.restoreSubscriptionPurchase({
+              platform: "ios",
+              transactionId: String(transactionId),
+              sku,
+            });
+            if (res?.user && setUser) setUser(res.user);
+          } else {
+            const purchaseToken =
+              firstEntitlement?.originalPurchaseDate ||
+              customerInfo?.originalAppUserId ||
+              `${sku}_token`;
+
+            const res = await apiService.restoreSubscriptionPurchase({
+              platform: "android",
+              sku,
+              packageName: Constants.expoConfig?.android?.package || "com.flowtine.app",
+              purchaseToken: String(purchaseToken),
+            });
+            if (res?.user && setUser) setUser(res.user);
+          }
+        } catch (backendErr) {
+          console.warn("Backend restoreSubscriptionPurchase fallback:", backendErr);
+        }
+
+        setPremium(true);
+        if (user) setUser({ ...user, isPremium: true });
+        showAlert("Restored", "Your weekly premium membership was restored!", [
+          { text: "Continue", onPress: () => router.replace("/tabs/home") },
+        ]);
+      } else {
+        showAlert("No Active Subscription", "No active real subscription was found on your App Store / Google Play account.");
+      }
+    } catch (e: any) {
       console.error("Restore error:", e);
-      showAlert("Restore Failed", "No purchases found to restore.");
+      showAlert("Restore Failed", e?.message || "Could not restore real purchases.");
     } finally {
       setLoading(false);
     }
@@ -173,35 +296,11 @@ export default function PaywallScreen() {
   const canClose = useMemo(() => {
     if (isCreditMode) return true;
     if (user?.isPremium) return true;
-    if (__DEV__) return true;
     return false;
   }, [isCreditMode, user]);
 
   const handleClose = () => {
-    if (canClose) {
-      router.replace('/tabs/home')
-    } else {
-      showAlert(
-        "Premium Required",
-        "Please start your 3-day trial ($0.99) to unlock MusicEngine AI and 10 weekly credits.",
-        [
-          { text: "OK" },
-          ...(Platform.OS === "ios" || __DEV__
-            ? [
-              {
-                text: "Dev Bypass",
-                style: "destructive" as const,
-                onPress: () => {
-                  setPremium(true);
-                  if (user) setUser({ ...user, isPremium: true });
-                  router.replace("/tabs/home");
-                },
-              },
-            ]
-            : []),
-        ]
-      );
-    }
+    router.replace('/tabs/home');
   };
 
   return (
@@ -305,7 +404,7 @@ export default function PaywallScreen() {
             >
               <View style={s.specialBadge}>
                 <Ionicons name="flame" size={11} color="#040814" />
-                <Text style={s.specialBadgeText}>SPECIAL 3-DAY TRIAL OFFER</Text>
+                <Text style={s.specialBadgeText}>SPECIAL 7-DAY TRIAL OFFER</Text>
               </View>
 
               <View style={s.planInner}>
@@ -323,8 +422,8 @@ export default function PaywallScreen() {
 
                 <View style={s.planPriceCol}>
                   <Text style={s.trialPriceText}>First 1 Week</Text>
-                  <Text style={s.priceMain}>$0.99</Text>
-                  <Text style={s.priceSub}>then $5.00/wk</Text>
+                  <Text style={s.priceMain}>{introPriceString}</Text>
+                  <Text style={s.priceSub}>then {packagePriceString}</Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -344,14 +443,14 @@ export default function PaywallScreen() {
             ) : (
               <View style={s.ctaBtnContent}>
                 <Ionicons name="sparkles" size={17} color="#040814" />
-                <Text style={s.ctaBtnText}>Start 7-Day Trial for $0.99</Text>
+                <Text style={s.ctaBtnText}>Start 7-Day Trial for {introPriceString}</Text>
                 <Ionicons name="arrow-forward" size={18} color="#040814" />
               </View>
             )}
           </TouchableOpacity>
 
           <Text style={s.guaranteeText}>
-            First 7 days $0.99, then $5.00/week. Includes 10 credits & upgraded AI. Cancel anytime.
+            First 7 days {introPriceString}, then {packagePriceString}. Includes 10 credits & upgraded AI. Cancel anytime.
           </Text>
 
           <View style={s.legalRow}>

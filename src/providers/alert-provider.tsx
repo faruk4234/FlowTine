@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Modal, StyleSheet, Text, View, TouchableWithoutFeedback, Image } from 'react-native';
+import { Modal, StyleSheet, Text, View, TouchableWithoutFeedback, Image, Alert, Platform } from 'react-native';
 import { useAppTheme, BorderRadius, Spacing } from '@/src/state/theme';
 import { ActionButton } from '@/src/components';
 import { AppPalette as C } from '@/src/state/colors';
@@ -35,7 +35,24 @@ export const AlertProvider = ({ children }: { children: ReactNode }) => {
   const [options, setOptions] = useState<AlertOptions | null>(null);
 
   const showAlert = (title: string, message?: string, buttons?: AlertButton[], imageUrl?: string) => {
-    setOptions({ title, message, buttons, imageUrl });
+    const alertButtons = buttons || [{ text: 'OK' }];
+
+    // On native iOS & Android, use system Alert.alert when there is no custom imageUrl
+    // so that the alert always pops up on top of fullScreenModal screens (like Paywall)
+    if (Platform.OS !== 'web' && !imageUrl) {
+      Alert.alert(
+        title,
+        message,
+        alertButtons.map((btn) => ({
+          text: btn.text,
+          style: btn.style,
+          onPress: btn.onPress,
+        }))
+      );
+      return;
+    }
+
+    setOptions({ title, message, buttons: alertButtons, imageUrl });
     setIsVisible(true);
   };
 
@@ -59,6 +76,7 @@ export const AlertProvider = ({ children }: { children: ReactNode }) => {
         visible={isVisible}
         transparent
         animationType="fade"
+        statusBarTranslucent
         onRequestClose={closeAlert}
       >
         <TouchableWithoutFeedback onPress={closeAlert}>

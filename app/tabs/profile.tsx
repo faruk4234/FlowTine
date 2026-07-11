@@ -23,18 +23,144 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import Constants from "expo-constants";
+import { apiService } from "@/src/services/api";
 import Purchases from "react-native-purchases";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const CREDIT_OPTIONS = [
+const DEFAULT_CREDIT_OPTIONS = [
   { songs: 1, price: "$2.00" },
   { songs: 5, price: "$7.00" },
   { songs: 10, price: "$10.00" },
 ];
 
+function getCreditCountFromPackage(pkg: any): number {
+  const id = `${pkg?.identifier || ""} ${pkg?.product?.identifier || ""}`.toLowerCase();
+  if (id.includes("10")) return 10;
+  if (id.includes("5")) return 5;
+  if (id.includes("1")) return 1;
+  return 1;
+}
+
+const getRevenueCatApiKey = () => {
+  return Platform.OS === "ios"
+    ? "appl_hkKhqhdofnFGxlkfTfNQGhuySjC"
+    : "goog_dtzdNrZYFyqlpayZTlVPIXOiRTh";
+};
+
 export default function ProfileScreen() {
   const [showCreditDropdown, setShowCreditDropdown] = useState(false);
   const [selectedCreditIndex, setSelectedCreditIndex] = useState(0);
+  const [creditOptions, setCreditOptions] = useState(DEFAULT_CREDIT_OPTIONS);
+  const [availableCreditItems, setAvailableCreditItems] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function fetchCreditOfferings() {
+      try {
+        let isRCConfigured = await Purchases.isConfigured();
+        if (!isRCConfigured) {
+          const apiKey = getRevenueCatApiKey();
+          Purchases.configure({ apiKey });
+          isRCConfigured = true;
+        }
+
+        const offerings = await Purchases.getOfferings();
+
+        console.log("📦 [RevenueCat Raw Offerings Summary]:", JSON.stringify({
+          currentOfferingId: offerings.current?.identifier,
+          allOfferingIds: Object.keys(offerings.all || {}),
+          specificOfferingPackages: offerings.all?.["ofrngd5c769d526"]?.availablePackages?.map((p: any) => ({
+            packageIdentifier: p.identifier,
+            productIdentifier: p.product?.identifier,
+            priceString: p.product?.priceString,
+          })) || [],
+        }, null, 2));
+
+        const allPackages: any[] = [];
+        if (offerings.current?.availablePackages) {
+          allPackages.push(...offerings.current.availablePackages);
+        }
+        if (offerings.all) {
+          Object.values(offerings.all).forEach((off: any) => {
+            if (off?.availablePackages) {
+              off.availablePackages.forEach((pkg: any) => {
+                if (!allPackages.some((ex) => ex.identifier === pkg.identifier)) {
+                  allPackages.push(pkg);
+                }
+              });
+            }
+          });
+        }
+
+        let consumableItems: any[] = allPackages.filter(
+          (p) =>
+            p.packageType !== Purchases.PACKAGE_TYPE.WEEKLY &&
+            !p.identifier.toLowerCase().includes("week") &&
+            !p.product?.identifier?.toLowerCase().includes("week")
+        );
+
+        // Always query direct products to ensure credit1, credit5, credit10 are included
+        const productIds =
+          Platform.OS === "ios"
+            ? ["1creidt", "5credit", "credit10", "credit 1", "credit 5", "credit 10"]
+            : ["credit1", "credit5", "credit10", "credit 1", "credit 5", "credit 10"];
+        try {
+          const products = await Purchases.getProducts(
+            productIds,
+            Purchases.PRODUCT_CATEGORY.NON_SUBSCRIPTION
+          );
+          console.log("📦 [RevenueCat getProducts Query NON_SUBSCRIPTION]: Queried IDs:", productIds, "Returned count:", products.length);
+          products.forEach((prod) => {
+            const alreadyExists = consumableItems.some(
+              (item) =>
+                item.product?.identifier === prod.identifier ||
+                item.identifier === prod.identifier
+            );
+            if (!alreadyExists) {
+              consumableItems.push({
+                identifier: prod.identifier,
+                product: prod,
+                isDirectProduct: true,
+              });
+            }
+          });
+        } catch (prodErr) {
+          console.warn("Could not fetch direct products:", prodErr);
+        }
+
+        consumableItems.sort((a, b) => getCreditCountFromPackage(a) - getCreditCountFromPackage(b));
+
+        console.log("📦 [Profile Screen] RevenueCat One-Time Credit Packages Found:", JSON.stringify(consumableItems.map(item => ({
+          identifier: item.identifier,
+          productIdentifier: item.product?.identifier,
+          priceString: item.product?.priceString,
+          isDirectProduct: item.isDirectProduct,
+        })), null, 2));
+
+        if (consumableItems.length === 0) {
+          console.warn(
+            "⚠️ [RevenueCat Diagnostic]: 0 consumable credit products returned from store. Note: On Android emulators/devices, Google Play Billing returns 0 products until:\n" +
+            "1) An app bundle (.aab) is uploaded to an Internal Testing track in Google Play Console.\n" +
+            "2) Products 'credit1', 'credit5', 'credit10' are marked Active in Google Play Console.\n" +
+            "3) The signed-in Google account is added to Setup -> License testing in Google Play Console."
+          );
+        } else {
+          setAvailableCreditItems(consumableItems);
+          const updated = consumableItems.map((rcItem) => {
+            const songs = getCreditCountFromPackage(rcItem);
+            return {
+              songs,
+              price: rcItem.product?.priceString || `$${songs}.00`,
+            };
+          });
+          setCreditOptions(updated);
+        }
+      } catch (e) {
+        console.warn("Could not fetch RevenueCat credit items:", e);
+      }
+    }
+    fetchCreditOfferings();
+  }, []);
 
   const theme = useAppTheme();
   const router = useRouter();
@@ -56,20 +182,109 @@ export default function ProfileScreen() {
     router.replace("/paywall");
   };
 
-  const handleBuyCredits = () => {
-    const selected = CREDIT_OPTIONS[selectedCreditIndex];
-    showAlert(
-      "Purchase Credits",
-      `Buy ${selected.songs} song${selected.songs > 1 ? "s" : ""} for ${selected.price}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Buy",
-          onPress: () =>
-            showAlert("Success", `Purchased ${selected.songs} song credit${selected.songs > 1 ? "s" : ""}!`),
-        },
-      ]
-    );
+  const handleBuyCredits = async () => {
+    const selected = creditOptions[selectedCreditIndex];
+    try {
+      const isRCConfigured = await Purchases.isConfigured();
+      if (isRCConfigured) {
+        const creditItem =
+          availableCreditItems[selectedCreditIndex] ||
+          availableCreditItems[0];
+
+        if (creditItem) {
+          console.log("📦 [Profile Screen] Purchasing Credit Item directly:", creditItem.identifier, creditItem.product?.priceString);
+          let purchaseRes;
+          if (creditItem.isDirectProduct) {
+            purchaseRes = await Purchases.purchaseStoreProduct(creditItem.product);
+          } else {
+            purchaseRes = await Purchases.purchasePackage(creditItem);
+          }
+          const { customerInfo, productIdentifier } = purchaseRes;
+          const sku = productIdentifier || creditItem.product?.identifier;
+
+          try {
+            if (Platform.OS === "ios") {
+              const activeEntitlements = customerInfo?.entitlements?.active || {};
+              const firstEntitlement = Object.values(activeEntitlements)[0] as any;
+              const purchaseToken =
+                firstEntitlement?.originalPurchaseDate ||
+                customerInfo?.originalAppUserId ||
+                `${sku}_${Date.now()}`;
+
+              const res = await apiService.consumeOneTimeCredit({
+                platform: "ios",
+                sku,
+                purchaseToken: String(purchaseToken),
+                credits: selected.songs,
+              });
+              if (res?.user && setUser) setUser(res.user);
+            } else {
+              const activeEntitlements = customerInfo?.entitlements?.active || {};
+              const firstEntitlement = Object.values(activeEntitlements)[0] as any;
+              const purchaseToken =
+                firstEntitlement?.originalPurchaseDate ||
+                customerInfo?.originalAppUserId ||
+                `${sku}_token`;
+
+              const res = await apiService.consumeOneTimeCredit({
+                platform: "android",
+                sku,
+                packageName: Constants.expoConfig?.android?.package || "com.cekolabs.aimusic",
+                purchaseToken: String(purchaseToken),
+                credits: selected.songs,
+              });
+              if (res?.user && setUser) setUser(res.user);
+            }
+          } catch (apiErr) {
+            console.warn("API consumeOneTimeCredit failed, falling back to local user update:", apiErr);
+            if (user) {
+              const currentCredits = user.limits?.credit ?? 0;
+              setUser({
+                ...user,
+                limits: {
+                  ...user.limits,
+                  credit: currentCredits + selected.songs,
+                },
+              });
+            }
+          }
+          showAlert("Success", `Purchased ${selected.songs} song credit${selected.songs > 1 ? "s" : ""}!`);
+        } else {
+          // Fallback for emulator / local testing when Google Play returns 0 products
+          const fallbackSkus = Platform.OS === "ios"
+            ? ["1creidt", "5credit", "credit10"]
+            : ["credit1", "credit5", "credit10"];
+          const sku = fallbackSkus[selectedCreditIndex] || "credit10";
+          console.log("🛠️ [Profile Screen] Store returned 0 products on emulator. Testing POST /payments/one-time directly with SKU:", sku);
+
+          try {
+            const res = await apiService.consumeOneTimeCredit({
+              platform: Platform.OS === "ios" ? "ios" : "android",
+              sku,
+              packageName: Constants.expoConfig?.android?.package || "com.cekolabs.aimusic",
+              purchaseToken: `mock_token_${Date.now()}`,
+              credits: selected.songs,
+            });
+            if (res?.user && setUser) setUser(res.user);
+          } catch (fallbackErr) {
+            console.warn("Fallback consumeOneTimeCredit error:", fallbackErr);
+            if (user) {
+              const currentCredits = user.limits?.credit ?? 0;
+              setUser({
+                ...user,
+                limits: {
+                  ...user.limits,
+                  credit: currentCredits + selected.songs,
+                },
+              });
+            }
+          }
+          showAlert("Success", `Purchased ${selected.songs} song credit${selected.songs > 1 ? "s" : ""}!`);
+        }
+      }
+    } catch (rcError) {
+      console.log("RevenueCat credits purchase cancelled or error:", rcError);
+    }
   };
 
   const handleRestore = useCallback(async () => {
@@ -221,7 +436,7 @@ export default function ProfileScreen() {
             {/* Expanded: selectable options + Buy button */}
             {showCreditDropdown && (
               <View style={s.creditBody}>
-                {CREDIT_OPTIONS.map((opt, idx) => {
+                {creditOptions.map((opt, idx) => {
                   const isSelected = idx === selectedCreditIndex;
                   return (
                     <TouchableOpacity

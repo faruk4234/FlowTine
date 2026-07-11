@@ -294,7 +294,7 @@ export const apiService = {
   },
 
   // 10. Payments: Create / Validate Subscription Purchase (POST /payments/create)
-  createSubscriptionPurchase: async (payload: { platform: string; sku: string; packageName?: string; purchaseToken?: string }) => {
+  createSubscriptionPurchase: async (payload: { platform: string; sku?: string; packageName?: string; purchaseToken?: string; transactionId?: string }) => {
     try {
       const response = await api.post('/payments/create', payload);
       return response.data;
@@ -309,7 +309,7 @@ export const apiService = {
   },
 
   // 11. Payments: Restore Subscription Purchase (POST /payments/restore)
-  restoreSubscriptionPurchase: async (payload: { platform: string; sku: string; transactionId?: string; purchaseToken?: string }) => {
+  restoreSubscriptionPurchase: async (payload: { platform: string; sku?: string; packageName?: string; transactionId?: string; purchaseToken?: string }) => {
     try {
       const response = await api.post('/payments/restore', payload);
       return response.data;
