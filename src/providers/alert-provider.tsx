@@ -37,21 +37,6 @@ export const AlertProvider = ({ children }: { children: ReactNode }) => {
   const showAlert = (title: string, message?: string, buttons?: AlertButton[], imageUrl?: string) => {
     const alertButtons = buttons || [{ text: 'OK' }];
 
-    // On native iOS & Android, use system Alert.alert when there is no custom imageUrl
-    // so that the alert always pops up on top of fullScreenModal screens (like Paywall)
-    if (Platform.OS !== 'web' && !imageUrl) {
-      Alert.alert(
-        title,
-        message,
-        alertButtons.map((btn) => ({
-          text: btn.text,
-          style: btn.style,
-          onPress: btn.onPress,
-        }))
-      );
-      return;
-    }
-
     setOptions({ title, message, buttons: alertButtons, imageUrl });
     setIsVisible(true);
   };
@@ -82,7 +67,14 @@ export const AlertProvider = ({ children }: { children: ReactNode }) => {
         <TouchableWithoutFeedback onPress={closeAlert}>
           <View style={styles.overlay}>
             <TouchableWithoutFeedback>
-              <View style={[styles.dialog, { backgroundColor: theme.colors.surfaceElevated }]}>
+              <View style={[
+                styles.dialog,
+                {
+                  backgroundColor: theme.colors.surfaceElevated,
+                  borderColor: theme.colors.border || 'rgba(255, 255, 255, 0.12)',
+                  borderWidth: 1,
+                }
+              ]}>
                 {options?.imageUrl && (
                   <View style={styles.imageContainer}>
                     <Image source={{ uri: options.imageUrl }} style={styles.circleImage} />
@@ -110,7 +102,7 @@ export const AlertProvider = ({ children }: { children: ReactNode }) => {
                         onPress={() => handleButtonPress(btn)}
                         style={[
                           styles.button,
-                          isCancel && { backgroundColor: theme.colors.surface },
+                          isCancel && { backgroundColor: theme.colors.surface, borderColor: theme.colors.border || 'rgba(255,255,255,0.1)', borderWidth: 1 },
                           isDestructive && { backgroundColor: theme.colors.accent },
                           buttons.length > 1 && { flex: 1, minWidth: 0 }
                         ]}
@@ -134,7 +126,7 @@ export const AlertProvider = ({ children }: { children: ReactNode }) => {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.xl,
@@ -147,9 +139,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOpacity: 0.4,
+    shadowRadius: 24,
+    elevation: 12,
   },
   imageContainer: {
     alignItems: 'center',

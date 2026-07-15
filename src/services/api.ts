@@ -2,8 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'axios';
 import { Platform } from 'react-native';
 
-// Default to localhost:3000 as specified in aimusic.json Postman collection
-const API_URL = 'http://localhost:3000';
+// Reads EXPO_PUBLIC_API_URL from .env file, falls back to localhost:8080
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080';
 
 const api = create({
   baseURL: API_URL,
@@ -93,7 +93,7 @@ function getCountryCode(): string {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
     if (tz.includes('Istanbul')) return 'tr';
     if (tz.includes('Moscow')) return 'ru';
-  } catch (e) {}
+  } catch (e) { }
   return 'us';
 }
 
