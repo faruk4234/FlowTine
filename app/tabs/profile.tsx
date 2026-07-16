@@ -2,6 +2,7 @@
 import { ActionButton, Header } from "@/src/components";
 import { LEGAL_URLS } from "@/src/legal/urls";
 import { useAlert } from "@/src/providers/alert-provider";
+import { apiService } from "@/src/services/api";
 import {
   isPremiumAtom,
   userAtom
@@ -9,6 +10,7 @@ import {
 import { AppPalette as C } from "@/src/state/colors";
 import { BorderRadius, Spacing, useAppTheme } from "@/src/state/theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import Constants from "expo-constants";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useAtom, useAtomValue } from "jotai";
@@ -23,8 +25,6 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import Constants from "expo-constants";
-import { apiService } from "@/src/services/api";
 import Purchases from "react-native-purchases";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -187,103 +187,95 @@ export default function ProfileScreen() {
     try {
       const isRCConfigured = await Purchases.isConfigured();
       if (isRCConfigured) {
-        const creditItem =
+        let creditItem =
           availableCreditItems[selectedCreditIndex] ||
           availableCreditItems[0];
 
+        const fallbackSkus = Platform.OS === "ios"
+          ? ["1creidt", "5credit", "credit10"]
+          : ["credit1", "credit5", "credit10"];
+        const sku = creditItem?.product?.identifier || creditItem?.identifier || fallbackSkus[selectedCreditIndex] || "credit10";
+
+        let purchaseRes;
         if (creditItem) {
           console.log("📦 [Profile Screen] Purchasing Credit Item directly:", creditItem.identifier, creditItem.product?.priceString);
-          let purchaseRes;
           if (creditItem.isDirectProduct) {
             purchaseRes = await Purchases.purchaseStoreProduct(creditItem.product);
           } else {
             purchaseRes = await Purchases.purchasePackage(creditItem);
           }
-          const { customerInfo, productIdentifier } = purchaseRes;
-          const sku = productIdentifier || creditItem.product?.identifier;
-
-          try {
-            if (Platform.OS === "ios") {
-              const activeEntitlements = customerInfo?.entitlements?.active || {};
-              const firstEntitlement = Object.values(activeEntitlements)[0] as any;
-              const purchaseToken =
-                firstEntitlement?.originalPurchaseDate ||
-                customerInfo?.originalAppUserId ||
-                `${sku}_${Date.now()}`;
-
-              const res = await apiService.consumeOneTimeCredit({
-                platform: "ios",
-                sku,
-                purchaseToken: String(purchaseToken),
-                credits: selected.songs,
-              });
-              if (res?.user && setUser) setUser(res.user);
-            } else {
-              const activeEntitlements = customerInfo?.entitlements?.active || {};
-              const firstEntitlement = Object.values(activeEntitlements)[0] as any;
-              const purchaseToken =
-                firstEntitlement?.originalPurchaseDate ||
-                customerInfo?.originalAppUserId ||
-                `${sku}_token`;
-
-              const res = await apiService.consumeOneTimeCredit({
-                platform: "android",
-                sku,
-                packageName: Constants.expoConfig?.android?.package || "com.cekolabs.aimusic",
-                purchaseToken: String(purchaseToken),
-                credits: selected.songs,
-              });
-              if (res?.user && setUser) setUser(res.user);
-            }
-          } catch (apiErr) {
-            console.warn("API consumeOneTimeCredit failed, falling back to local user update:", apiErr);
-            if (user) {
-              const currentCredits = user.limits?.credit ?? 0;
-              setUser({
-                ...user,
-                limits: {
-                  ...user.limits,
-                  credit: currentCredits + selected.songs,
-                },
-              });
-            }
-          }
-          showAlert("Success", `Purchased ${selected.songs} song credit${selected.songs > 1 ? "s" : ""}!`);
         } else {
-          // Fallback for emulator / local testing when Google Play returns 0 products
-          const fallbackSkus = Platform.OS === "ios"
-            ? ["1creidt", "5credit", "credit10"]
-            : ["credit1", "credit5", "credit10"];
-          const sku = fallbackSkus[selectedCreditIndex] || "credit10";
-          console.log("🛠️ [Profile Screen] Store returned 0 products on emulator. Testing POST /payments/one-time directly with SKU:", sku);
-
-          try {
-            const res = await apiService.consumeOneTimeCredit({
-              platform: Platform.OS === "ios" ? "ios" : "android",
-              sku,
-              packageName: Constants.expoConfig?.android?.package || "com.cekolabs.aimusic",
-              purchaseToken: `mock_token_${Date.now()}`,
-              credits: selected.songs,
-            });
-            if (res?.user && setUser) setUser(res.user);
-          } catch (fallbackErr) {
-            console.warn("Fallback consumeOneTimeCredit error:", fallbackErr);
-            if (user) {
-              const currentCredits = user.limits?.credit ?? 0;
-              setUser({
-                ...user,
-                limits: {
-                  ...user.limits,
-                  credit: currentCredits + selected.songs,
-                },
-              });
-            }
+          console.log("📦 [Profile Screen] Item not preloaded, querying getProducts on demand for SKU:", sku);
+          const onDemandProducts = await Purchases.getProducts([sku], Purchases.PRODUCT_CATEGORY.NON_SUBSCRIPTION);
+          if (onDemandProducts && onDemandProducts.length > 0) {
+            purchaseRes = await Purchases.purchaseStoreProduct(onDemandProducts[0]);
+          } else {
+            showAlert(
+              "Store Product Unavailable",
+              `Could not load product '${sku}' from Apple/Google Play. Please verify the product ID is active and your app bundle is uploaded to Internal Testing.`
+            );
+            return;
           }
-          showAlert("Success", `Purchased ${selected.songs} song credit${selected.songs > 1 ? "s" : ""}!`);
         }
+
+        const { customerInfo, productIdentifier } = purchaseRes;
+        const resolvedSku = productIdentifier || sku;
+
+        const nonSubTransactions = customerInfo?.nonSubscriptionTransactions || [];
+        const latestTransaction = nonSubTransactions.length > 0 ? nonSubTransactions[nonSubTransactions.length - 1] : null;
+        const activeEntitlements = customerInfo?.entitlements?.active || {};
+        const firstEntitlement = Object.values(activeEntitlements)[0] as any;
+
+        const realToken =
+          latestTransaction?.transactionIdentifier ||
+          latestTransaction?.storeTransactionIdentifier ||
+          (purchaseRes as any)?.transaction?.transactionIdentifier ||
+          (purchaseRes as any)?.transaction?.purchaseToken ||
+          firstEntitlement?.identifier ||
+          customerInfo?.originalAppUserId ||
+          `${resolvedSku}_token`;
+
+        console.log("🔑 [Profile Screen] Got real transaction ID/token from store:", realToken);
+
+        let res;
+        if (Platform.OS === "ios") {
+          res = await apiService.consumeOneTimeCredit({
+            platform: "ios",
+            sku: resolvedSku,
+            purchaseToken: String(realToken),
+            credits: selected.songs,
+          });
+        } else {
+          res = await apiService.consumeOneTimeCredit({
+            platform: "android",
+            sku: resolvedSku,
+            packageName: Constants.expoConfig?.android?.package || "com.cekolabs.aimusic",
+            purchaseToken: String(realToken),
+            credits: selected.songs,
+          });
+        }
+
+        if (res?.success === false || res?.error) {
+          showAlert(
+            "Verification Error",
+            res?.error || "We could not verify your credit purchase with the server."
+          );
+          return;
+        }
+
+        if (res?.user && setUser) {
+          setUser(res.user);
+        } else {
+          const refreshedUser = await apiService.getCurrentUser();
+          if (refreshedUser && setUser) setUser(refreshedUser);
+        }
+        showAlert("Success", `Purchased ${selected.songs} song credit${selected.songs > 1 ? "s" : ""}!`);
       }
-    } catch (rcError) {
+    } catch (rcError: any) {
       console.log("RevenueCat credits purchase cancelled or error:", rcError);
+      if (!rcError?.userCancelled && !rcError?.message?.includes("cancelled")) {
+        showAlert("Purchase Error", rcError?.message || "Could not complete purchase with Google/Apple.");
+      }
     }
   };
 
@@ -292,22 +284,56 @@ export default function ProfileScreen() {
       const isRCConfigured = await Purchases.isConfigured();
       if (isRCConfigured) {
         const customerInfo = await Purchases.restorePurchases();
-        const active = customerInfo.entitlements.active && Object.keys(customerInfo.entitlements.active).length > 0;
+        const active =
+          (customerInfo.entitlements.active && Object.keys(customerInfo.entitlements.active).length > 0) ||
+          (customerInfo.activeSubscriptions && customerInfo.activeSubscriptions.length > 0);
         if (active) {
-          if (user) setUser({ ...user, isPremium: true });
+          const activeEntitlements = customerInfo?.entitlements?.active || {};
+          const firstEntitlement = Object.values(activeEntitlements)[0] as any;
+          const sku = firstEntitlement?.productIdentifier || "weekly_premium";
+
+          const nonSubTransactions = customerInfo?.nonSubscriptionTransactions || [];
+          const latestTransaction = nonSubTransactions.length > 0 ? nonSubTransactions[nonSubTransactions.length - 1] : null;
+          const realToken =
+            latestTransaction?.transactionIdentifier ||
+            firstEntitlement?.identifier ||
+            customerInfo?.originalAppUserId ||
+            `${sku}_restore`;
+
+          let res;
+          if (Platform.OS === "ios") {
+            res = await apiService.restoreSubscriptionPurchase({
+              platform: "ios",
+              transactionId: String(realToken),
+              sku,
+            });
+          } else {
+            res = await apiService.restoreSubscriptionPurchase({
+              platform: "android",
+              sku,
+              packageName: Constants.expoConfig?.android?.package || "com.cekolabs.aimusic",
+              purchaseToken: String(realToken),
+            });
+          }
+
+          if (res?.success === false || res?.error) {
+            showAlert("Restore Verification Error", res?.error || "Could not verify restored subscription with server.");
+            return;
+          }
+
+          const refreshedUser = await apiService.getCurrentUser();
+          if (refreshedUser && setUser) setUser(refreshedUser);
           showAlert("Restored", "Your premium membership has been restored!");
           return;
         }
       }
 
-      // Fallback/Sim restore
-      if (user) setUser({ ...user, isPremium: true });
-      showAlert("Membership Active", "Membership restored (Developer Sim mode).");
+      showAlert("No Active Subscription", "No active real subscription was found on your App Store / Google Play account.");
     } catch (e) {
       console.error("Restore error:", e);
       showAlert("Restore Failed", "Could not restore purchase status.");
     }
-  }, [user, setUser]);
+  }, [user, setUser, showAlert]);
 
   const handleSupport = () => {
     const body = `\n\n\n---\nPlatform: ${Platform.OS} ${Platform.Version}\nApp Version: 1.0.4`;

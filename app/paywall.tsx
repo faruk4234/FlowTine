@@ -164,6 +164,7 @@ export default function PaywallScreen() {
       const { customerInfo, productIdentifier } = await Purchases.purchasePackage(weeklyPackage);
       const sku = productIdentifier || weeklyPackage.product.identifier;
 
+      let res;
       try {
         if (Platform.OS === "ios") {
           const activeEntitlements = customerInfo?.entitlements?.active || {};
@@ -173,12 +174,11 @@ export default function PaywallScreen() {
             customerInfo?.originalAppUserId ||
             `${sku}_${Date.now()}`;
 
-          const res = await apiService.createSubscriptionPurchase({
+          res = await apiService.createSubscriptionPurchase({
             platform: "ios",
             transactionId: String(transactionId),
             sku,
           });
-          if (res?.user && setUser) setUser(res.user);
         } else {
           const activeEntitlements = customerInfo?.entitlements?.active || {};
           const firstEntitlement = Object.values(activeEntitlements)[0] as any;
@@ -187,21 +187,34 @@ export default function PaywallScreen() {
             customerInfo?.originalAppUserId ||
             `${sku}_token`;
 
-          const res = await apiService.createSubscriptionPurchase({
+          res = await apiService.createSubscriptionPurchase({
             platform: "android",
             sku,
             packageName: Constants.expoConfig?.android?.package || "com.cekolabs.aimusic",
             purchaseToken: String(purchaseToken),
             transactionId: String(purchaseToken),
           });
-          if (res?.user && setUser) setUser(res.user);
         }
-      } catch (backendErr) {
-        console.warn("Backend createSubscriptionPurchase fallback:", backendErr);
+      } catch (backendErr: any) {
+        console.warn("Backend createSubscriptionPurchase error:", backendErr);
+        res = { success: false, error: backendErr?.message || "Server connection failed." };
       }
 
-      setPremium(true);
-      if (user) setUser({ ...user, isPremium: true });
+      if (res?.success === false || res?.error) {
+        showAlert(
+          "Verification Error",
+          res?.error || "We could not verify your subscription with the server. Please try restoring or contact support."
+        );
+        return;
+      }
+
+      const refreshedUser = await apiService.getCurrentUser();
+      if (refreshedUser && setUser) {
+        setUser(refreshedUser);
+      } else if (res?.user && setUser) {
+        setUser(res.user);
+      }
+
       showAlert(
         "Welcome to Weekly Premium! 🎵",
         "Your subscription is now active! 10 weekly credits have been added to your account.",
@@ -242,6 +255,7 @@ export default function PaywallScreen() {
         (customerInfo.activeSubscriptions && customerInfo.activeSubscriptions.length > 0);
 
       if (active) {
+        let res;
         try {
           const activeEntitlements = customerInfo?.entitlements?.active || {};
           const firstEntitlement = Object.values(activeEntitlements)[0] as any;
@@ -253,32 +267,44 @@ export default function PaywallScreen() {
               customerInfo?.originalAppUserId ||
               `${sku}_restore`;
 
-            const res = await apiService.restoreSubscriptionPurchase({
+            res = await apiService.restoreSubscriptionPurchase({
               platform: "ios",
               transactionId: String(transactionId),
               sku,
             });
-            if (res?.user && setUser) setUser(res.user);
           } else {
             const purchaseToken =
               firstEntitlement?.originalPurchaseDate ||
               customerInfo?.originalAppUserId ||
               `${sku}_token`;
 
-            const res = await apiService.restoreSubscriptionPurchase({
+            res = await apiService.restoreSubscriptionPurchase({
               platform: "android",
               sku,
               packageName: Constants.expoConfig?.android?.package || "com.flowtine.app",
               purchaseToken: String(purchaseToken),
             });
-            if (res?.user && setUser) setUser(res.user);
           }
-        } catch (backendErr) {
-          console.warn("Backend restoreSubscriptionPurchase fallback:", backendErr);
+        } catch (backendErr: any) {
+          console.warn("Backend restoreSubscriptionPurchase error:", backendErr);
+          res = { success: false, error: backendErr?.message || "Server connection failed." };
         }
 
-        setPremium(true);
-        if (user) setUser({ ...user, isPremium: true });
+        if (res?.success === false || res?.error) {
+          showAlert(
+            "Restore Verification Error",
+            res?.error || "We could not verify your restored subscription on the server."
+          );
+          return;
+        }
+
+        const refreshedUser = await apiService.getCurrentUser();
+        if (refreshedUser && setUser) {
+          setUser(refreshedUser);
+        } else if (res?.user && setUser) {
+          setUser(res.user);
+        }
+
         showAlert("Restored", "Your weekly premium membership was restored!", [
           { text: "Continue", onPress: () => router.replace("/tabs/home") },
         ]);
@@ -291,7 +317,7 @@ export default function PaywallScreen() {
     } finally {
       setLoading(false);
     }
-  }, [router, setPremium, user, setUser]);
+  }, [router, user, setUser, showAlert]);
 
   const canClose = useMemo(() => {
     if (isCreditMode) return true;

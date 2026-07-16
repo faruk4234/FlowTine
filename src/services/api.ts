@@ -295,46 +295,52 @@ export const apiService = {
 
   // 10. Payments: Create / Validate Subscription Purchase (POST /payments/create)
   createSubscriptionPurchase: async (payload: { platform: string; sku?: string; packageName?: string; purchaseToken?: string; transactionId?: string }) => {
+    console.log('🚀 [API Service] POST /payments/create - Request payload:', JSON.stringify(payload, null, 2));
     try {
       const response = await api.post('/payments/create', payload);
+      console.log('✅ [API Service] POST /payments/create - Success response:', JSON.stringify(response.data, null, 2));
       return response.data;
-    } catch (e) {
-      console.warn('⚠️ [API Service] /payments/create failed, simulating premium upgrade:', e);
-      const user = await getMockUser('mock_device');
-      user.isPremium = true;
-      user.limits.premiumCredit = (user.limits.premiumCredit || 0) + 10;
-      await saveMockUser(user);
-      return { success: true, user };
+    } catch (e: any) {
+      console.error('❌ [API Service] POST /payments/create - Error status:', e?.response?.status);
+      console.error('❌ [API Service] POST /payments/create - Error data:', JSON.stringify(e?.response?.data || e?.message, null, 2));
+      return {
+        success: false,
+        error: e?.response?.data?.message || e?.response?.data?.error || e?.message || "Could not verify subscription with server.",
+      };
     }
   },
 
   // 11. Payments: Restore Subscription Purchase (POST /payments/restore)
   restoreSubscriptionPurchase: async (payload: { platform: string; sku?: string; packageName?: string; transactionId?: string; purchaseToken?: string }) => {
+    console.log('🚀 [API Service] POST /payments/restore - Request payload:', JSON.stringify(payload, null, 2));
     try {
       const response = await api.post('/payments/restore', payload);
+      console.log('✅ [API Service] POST /payments/restore - Success response:', JSON.stringify(response.data, null, 2));
       return response.data;
-    } catch (e) {
-      console.warn('⚠️ [API Service] /payments/restore failed, simulating restore:', e);
-      const user = await getMockUser('mock_device');
-      user.isPremium = true;
-      await saveMockUser(user);
-      return { success: true, user };
+    } catch (e: any) {
+      console.error('❌ [API Service] POST /payments/restore - Error status:', e?.response?.status);
+      console.error('❌ [API Service] POST /payments/restore - Error data:', JSON.stringify(e?.response?.data || e?.message, null, 2));
+      return {
+        success: false,
+        error: e?.response?.data?.message || e?.response?.data?.error || e?.message || "Could not verify restored subscription with server.",
+      };
     }
   },
 
   // 12. Payments: Consume One-Time Credit Package (POST /payments/one-time)
   consumeOneTimeCredit: async (payload: { platform: string; sku: string; packageName?: string; purchaseToken?: string; credits?: number }) => {
+    console.log('🚀 [API Service] POST /payments/one-time - Request payload:', JSON.stringify(payload, null, 2));
     try {
       const response = await api.post('/payments/one-time', payload);
+      console.log('✅ [API Service] POST /payments/one-time - Success response:', JSON.stringify(response.data, null, 2));
       return response.data;
-    } catch (e) {
-      console.warn('⚠️ [API Service] /payments/one-time failed, simulating credit add:', e);
-      const user = await getMockUser('mock_device');
-      const addAmount = payload.credits || 10;
-      user.limits.credit += addAmount;
-      user.isPremium = true;
-      await saveMockUser(user);
-      return { success: true, user };
+    } catch (e: any) {
+      console.error('❌ [API Service] POST /payments/one-time - Error status:', e?.response?.status);
+      console.error('❌ [API Service] POST /payments/one-time - Error data:', JSON.stringify(e?.response?.data || e?.message, null, 2));
+      return {
+        success: false,
+        error: e?.response?.data?.message || e?.response?.data?.error || e?.message || "Could not verify credit purchase with server.",
+      };
     }
   },
 
