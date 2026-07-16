@@ -328,7 +328,7 @@ export const apiService = {
   },
 
   // 12. Payments: Consume One-Time Credit Package (POST /payments/one-time)
-  consumeOneTimeCredit: async (payload: { platform: string; sku: string; packageName?: string; purchaseToken?: string; credits?: number }) => {
+  consumeOneTimeCredit: async (payload: { platform: string; sku: string; packageName?: string; purchaseToken?: string; transactionId?: string; credits?: number }) => {
     console.log('🚀 [API Service] POST /payments/one-time - Request payload:', JSON.stringify(payload, null, 2));
     try {
       const response = await api.post('/payments/one-time', payload);

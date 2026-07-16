@@ -66,15 +66,6 @@ export default function ProfileScreen() {
 
         const offerings = await Purchases.getOfferings();
 
-        console.log("📦 [RevenueCat Raw Offerings Summary]:", JSON.stringify({
-          currentOfferingId: offerings.current?.identifier,
-          allOfferingIds: Object.keys(offerings.all || {}),
-          specificOfferingPackages: offerings.all?.["ofrngd5c769d526"]?.availablePackages?.map((p: any) => ({
-            packageIdentifier: p.identifier,
-            productIdentifier: p.product?.identifier,
-            priceString: p.product?.priceString,
-          })) || [],
-        }, null, 2));
 
         const allPackages: any[] = [];
         if (offerings.current?.availablePackages) {
@@ -109,7 +100,6 @@ export default function ProfileScreen() {
             productIds,
             Purchases.PRODUCT_CATEGORY.NON_SUBSCRIPTION
           );
-          console.log("📦 [RevenueCat getProducts Query NON_SUBSCRIPTION]: Queried IDs:", productIds, "Returned count:", products.length);
           products.forEach((prod) => {
             const alreadyExists = consumableItems.some(
               (item) =>
@@ -130,21 +120,8 @@ export default function ProfileScreen() {
 
         consumableItems.sort((a, b) => getCreditCountFromPackage(a) - getCreditCountFromPackage(b));
 
-        console.log("📦 [Profile Screen] RevenueCat One-Time Credit Packages Found:", JSON.stringify(consumableItems.map(item => ({
-          identifier: item.identifier,
-          productIdentifier: item.product?.identifier,
-          priceString: item.product?.priceString,
-          isDirectProduct: item.isDirectProduct,
-        })), null, 2));
 
-        if (consumableItems.length === 0) {
-          console.warn(
-            "⚠️ [RevenueCat Diagnostic]: 0 consumable credit products returned from store. Note: On Android emulators/devices, Google Play Billing returns 0 products until:\n" +
-            "1) An app bundle (.aab) is uploaded to an Internal Testing track in Google Play Console.\n" +
-            "2) Products 'credit1', 'credit5', 'credit10' are marked Active in Google Play Console.\n" +
-            "3) The signed-in Google account is added to Setup -> License testing in Google Play Console."
-          );
-        } else {
+        if (consumableItems.length > 0) {
           setAvailableCreditItems(consumableItems);
           const updated = consumableItems.map((rcItem) => {
             const songs = getCreditCountFromPackage(rcItem);
@@ -198,22 +175,16 @@ export default function ProfileScreen() {
 
         let purchaseRes;
         if (creditItem) {
-          console.log("📦 [Profile Screen] Purchasing Credit Item directly:", creditItem.identifier, creditItem.product?.priceString);
           if (creditItem.isDirectProduct) {
             purchaseRes = await Purchases.purchaseStoreProduct(creditItem.product);
           } else {
             purchaseRes = await Purchases.purchasePackage(creditItem);
           }
         } else {
-          console.log("📦 [Profile Screen] Item not preloaded, querying getProducts on demand for SKU:", sku);
           const onDemandProducts = await Purchases.getProducts([sku], Purchases.PRODUCT_CATEGORY.NON_SUBSCRIPTION);
           if (onDemandProducts && onDemandProducts.length > 0) {
             purchaseRes = await Purchases.purchaseStoreProduct(onDemandProducts[0]);
           } else {
-            showAlert(
-              "Store Product Unavailable",
-              `Could not load product '${sku}' from Apple/Google Play. Please verify the product ID is active and your app bundle is uploaded to Internal Testing.`
-            );
             return;
           }
         }
@@ -235,25 +206,23 @@ export default function ProfileScreen() {
           customerInfo?.originalAppUserId ||
           `${resolvedSku}_token`;
 
-        console.log("🔑 [Profile Screen] Got real transaction ID/token from store:", realToken);
 
         let res;
         if (Platform.OS === "ios") {
           res = await apiService.consumeOneTimeCredit({
             platform: "ios",
             sku: resolvedSku,
-            purchaseToken: String(realToken),
-            credits: selected.songs,
+            transactionId: String(realToken),
           });
         } else {
           res = await apiService.consumeOneTimeCredit({
             platform: "android",
             sku: resolvedSku,
-            packageName: Constants.expoConfig?.android?.package || "com.cekolabs.aimusic",
+            packageName: Constants.expoConfig?.android?.package || "com.vybe.aimusic",
             purchaseToken: String(realToken),
-            credits: selected.songs,
           });
         }
+
 
         if (res?.success === false || res?.error) {
           showAlert(
@@ -263,13 +232,11 @@ export default function ProfileScreen() {
           return;
         }
 
-        if (res?.user && setUser) {
-          setUser(res.user);
-        } else {
-          const refreshedUser = await apiService.getCurrentUser();
-          if (refreshedUser && setUser) setUser(refreshedUser);
+        const updatedUser = res?.user || (res?._id || res?.deviceId ? res : null);
+        if (updatedUser && setUser) {
+          setUser(updatedUser);
         }
-        showAlert("Success", `Purchased ${selected.songs} song credit${selected.songs > 1 ? "s" : ""}!`);
+        showAlert("Purchased!", `Purchased ${selected.songs} song credit${selected.songs > 1 ? "s" : ""}!`);
       }
     } catch (rcError: any) {
       console.log("RevenueCat credits purchase cancelled or error:", rcError);
@@ -321,7 +288,7 @@ export default function ProfileScreen() {
             return;
           }
 
-          const refreshedUser = await apiService.getCurrentUser();
+          const refreshedUser = await apiService.getMyProfile();
           if (refreshedUser && setUser) setUser(refreshedUser);
           showAlert("Restored", "Your premium membership has been restored!");
           return;

@@ -3,7 +3,7 @@ import { Audio, ResizeMode, Video } from "expo-av";
 import Constants from "expo-constants";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { useAtom, useSetAtom } from "jotai";
+import { useAtom } from "jotai";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -21,7 +21,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LEGAL_URLS } from "@/src/legal/urls";
 import { useAlert } from "@/src/providers/alert-provider";
 import { apiService } from "@/src/services/api";
-import { isPremiumAtom, userAtom } from "@/src/state/atoms";
+import { userAtom } from "@/src/state/atoms";
 import { BorderRadius, Spacing } from "@/src/state/theme";
 
 const getRevenueCatApiKey = () => {
@@ -36,7 +36,6 @@ export default function PaywallScreen() {
   const isCreditMode = type === "credits";
 
   const [user, setUser] = useAtom(userAtom);
-  const setPremium = useSetAtom(isPremiumAtom);
 
   const [loading, setLoading] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -208,7 +207,7 @@ export default function PaywallScreen() {
         return;
       }
 
-      const refreshedUser = await apiService.getCurrentUser();
+      const refreshedUser = await apiService.getMyProfile();
       if (refreshedUser && setUser) {
         setUser(refreshedUser);
       } else if (res?.user && setUser) {
@@ -298,7 +297,7 @@ export default function PaywallScreen() {
           return;
         }
 
-        const refreshedUser = await apiService.getCurrentUser();
+        const refreshedUser = await apiService.getMyProfile();
         if (refreshedUser && setUser) {
           setUser(refreshedUser);
         } else if (res?.user && setUser) {
